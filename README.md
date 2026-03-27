@@ -1,0 +1,103 @@
+# First Person Shooter
+
+A first-person shooter game plugin for [CRYENGINE 5.6](https://www.cryengine.com/), written in C++.
+
+The game code compiles as a shared library (`libGamePlugin.so`) that the engine loads at runtime. It includes a first-person player controller with camera, movement, input handling, and shooting, along with spawn points and a projectile component.
+
+## Prerequisites
+
+| Requirement | Version |
+|-------------|---------|
+| CRYENGINE | 5.6 |
+| CMake | 3.14+ |
+| Ninja | any |
+| GCC | 9 (`gcc-9`, `g++-9`) |
+
+Set `CRYENGINE_DIR` to your local CRYENGINE root in the commands below, or export it:
+
+```bash
+export CRYENGINE_DIR=/path/to/CRYENGINE
+```
+
+## Configure
+
+Run from the project root:
+
+```bash
+cmake -B build -G Ninja \
+  -S Code \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DCRYENGINE_DIR=$CRYENGINE_DIR \
+  -DCMAKE_TOOLCHAIN_FILE=$CRYENGINE_DIR/Tools/CMake/toolchain/linux/Linux_GCC.cmake \
+  -DCMAKE_C_COMPILER=gcc-9 \
+  -DCMAKE_CXX_COMPILER=g++-9
+```
+
+Available build types: `Debug`, `Profile`, `Release`.
+
+> After deleting the build directory, always do a full reconfigure (`rm -rf build && cmake -B build ...`).
+> A bare `cmake -B build` with a stale cache will not regenerate the unity build files and the build will fail.
+
+## Build
+
+```bash
+cmake --build build --parallel $(nproc)
+```
+
+Output: `bin/linux_x64_gcc/libGamePlugin.so`
+
+The post-build step automatically copies the plugin to `$CRYENGINE_DIR/bin/linux_x64_gcc/`, where the engine looks for it at runtime.
+
+## Run
+
+```bash
+$CRYENGINE_DIR/bin/linux_x64_gcc/GameLauncher \
+  -project /path/to/FirstPersonShooter/Game.cryproject
+```
+
+The working directory must be `$CRYENGINE_DIR/bin/linux_x64_gcc/` (the launcher sets `MODULE_PATH` from its CWD, which is how the engine locates plugins).
+
+## VS Code
+
+The repository includes VS Code configuration for building, running, and debugging from the IDE.
+
+| Action | How |
+|--------|-----|
+| Build (Debug) | `Ctrl+Shift+B` |
+| Configure CMake | **Terminal > Run Task > CMake Configure (Debug)** |
+| Launch & debug | **Run > Launch Game (Debug)** (`F5`) |
+| Attach to running process | **Run > Attach to GameLauncher** |
+
+GDB is pre-configured to suppress CRYENGINE's `SIGTRAP`-based soft assertions so the debugger does not stop on every library load.
+
+## Project Structure
+
+```
+FirstPersonShooter/
+├── Game.cryproject          # Project definition (engine version, plugins, assets)
+├── Assets/
+│   └── levels/              # Game levels (created via Sandbox editor)
+├── .vscode/                 # VS Code build/launch/IntelliSense config
+└── Code/
+    ├── CMakeLists.txt        # Build definition
+    ├── GamePlugin.cpp/h      # ICryPlugin entry point
+    ├── StdAfx.cpp/h          # Precompiled header
+    └── Components/
+        ├── Player.cpp/h      # First-person player (camera, movement, input, shooting)
+        ├── SpawnPoint.cpp/h  # Spawn location marker
+        └── Bullet.h          # Projectile physics component
+```
+
+## Adding a New Component
+
+1. Create `Code/Components/MyComponent.h` and `MyComponent.cpp`
+2. Add both files to `Code/CMakeLists.txt` under the `Components_uber.cpp` `add_sources()` block
+3. In the `.cpp`, `#include "StdAfx.h"` first, then register the component via `CRYREGISTER_CLASS` or `CRY_STATIC_AUTO_REGISTER_WITH_PARAM`
+
+## Build Configurations
+
+| Config | Defines | Optimisation |
+|--------|---------|--------------|
+| `Debug` | `_DEBUG`, `DEBUG` | `-O0 -g` |
+| `Profile` | `_PROFILE`, `NDEBUG` | `-O2` |
+| `Release` | `_RELEASE`, `NDEBUG` | `-O3` |

@@ -1,0 +1,99 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Game (Debug)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "CRYENGINE_DIR_PATH/bin/linux_x64_gcc/GameLauncher",
+            "args": [
+                "-project",
+                "${workspaceFolder}/Game.cryproject"
+            ],
+            "stopAtEntry": false,
+            "cwd": "CRYENGINE_DIR_PATH/bin/linux_x64_gcc",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Absorb SIGTRAP (engine soft assertions + ld.so library-load notifications)",
+                    "text": "handle SIGTRAP nostop noprint nopass",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Add game plugin to solib search path",
+                    "text": "set solib-search-path ${workspaceFolder}/bin/linux_x64_gcc",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "CMake Build"
+        },
+        {
+            "name": "Launch Game (Profile)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "CRYENGINE_DIR_PATH/bin/linux_x64_gcc/GameLauncher",
+            "args": [
+                "-project",
+                "${workspaceFolder}/Game.cryproject"
+            ],
+            "stopAtEntry": false,
+            "cwd": "CRYENGINE_DIR_PATH/bin/linux_x64_gcc",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Absorb SIGTRAP (engine soft assertions + ld.so library-load notifications)",
+                    "text": "handle SIGTRAP nostop noprint nopass",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Add game plugin to solib search path",
+                    "text": "set solib-search-path ${workspaceFolder}/bin/linux_x64_gcc",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "CMake Build"
+        },
+        {
+            "name": "Attach to GameLauncher",
+            "type": "cppdbg",
+            "request": "attach",
+            "program": "CRYENGINE_DIR_PATH/bin/linux_x64_gcc/GameLauncher",
+            "processId": "${command:pickProcess}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Absorb SIGTRAP (engine soft assertions + ld.so library-load notifications)",
+                    "text": "handle SIGTRAP nostop noprint nopass",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Add game plugin to solib search path",
+                    "text": "set solib-search-path ${workspaceFolder}/bin/linux_x64_gcc",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}

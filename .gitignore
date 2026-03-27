@@ -1,0 +1,22 @@
+# CMake build tree
+build/
+
+# Compiled plugin output (deployed to engine bin dir automatically)
+bin/
+
+# CRYENGINE runtime artifacts
+game.log
+logbackups/
+user/
+
+# Claude Code local settings
+.claude/
+
+# VS Code generated/personal files (shared configs in .vscode/ are committed)
+.vscode/.browse.c_cpp.db*
+.vscode/ipch/
+.vscode/settings.json
+
+# OS
+.DS_Store
+Thumbs.db
