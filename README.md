@@ -13,10 +13,22 @@ The game code compiles as a shared library (`libGamePlugin.so`) that the engine 
 | Ninja | any |
 | GCC | 9 (`gcc-9`, `g++-9`) |
 
-Set `CRYENGINE_DIR` to your local CRYENGINE root in the commands below, or export it:
+The engine path must be configured once per machine. Choose one approach:
 
+**VS Code** — create `.vscode/settings.json` (gitignored):
+```json
+{
+    "cmake.sourceDirectory": "${workspaceFolder}/Code",
+    "cryengineDir": "/path/to/CRYENGINE"
+}
+```
+Tasks and launch configurations read `${config:cryengineDir}` from this file automatically.
+
+**CLI** — copy `.env.example` to `.env` (gitignored) and source it:
 ```bash
-export CRYENGINE_DIR=/path/to/CRYENGINE
+cp .env.example .env
+# edit .env and set CRYENGINE_DIR
+source .env
 ```
 
 ## Configure
@@ -61,11 +73,14 @@ The working directory must be `$CRYENGINE_DIR/bin/linux_x64_gcc/` (the launcher 
 
 The repository includes VS Code configuration for building, running, and debugging from the IDE.
 
+**Setup**: create `.vscode/settings.json` as described in [Prerequisites](#prerequisites) above — the tasks and launch configs will not resolve the engine path without it.
+
 | Action | How |
 |--------|-----|
-| Build (Debug) | `Ctrl+Shift+B` |
-| Configure CMake | **Terminal > Run Task > CMake Configure (Debug)** |
-| Launch & debug | **Run > Launch Game (Debug)** (`F5`) |
+| Configure CMake (Debug) | **Terminal > Run Task > CMake Configure (Debug)** |
+| Configure CMake (Profile) | **Terminal > Run Task > CMake Configure (Profile)** |
+| Build | `Ctrl+Shift+B` |
+| Launch & debug | **Run > Launch Game (Debug/Profile)** (`F5`) |
 | Attach to running process | **Run > Attach to GameLauncher** |
 
 GDB is pre-configured to suppress CRYENGINE's `SIGTRAP`-based soft assertions so the debugger does not stop on every library load.
@@ -77,6 +92,7 @@ FirstPersonShooter/
 ├── Game.cryproject          # Project definition (engine version, plugins, assets)
 ├── Assets/
 │   └── levels/              # Game levels (created via Sandbox editor)
+├── .env.example             # Template for CLI env var setup (copy to .env)
 ├── .vscode/                 # VS Code build/launch/IntelliSense config
 └── Code/
     ├── CMakeLists.txt        # Build definition
