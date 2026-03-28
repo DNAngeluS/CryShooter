@@ -80,10 +80,38 @@ The repository includes VS Code configuration for building, running, and debuggi
 | Configure CMake (Debug) | **Terminal > Run Task > CMake Configure (Debug)** |
 | Configure CMake (Profile) | **Terminal > Run Task > CMake Configure (Profile)** |
 | Build | `Ctrl+Shift+B` |
+| Start shader server | **Terminal > Run Task > Start Shader Server** |
 | Launch & debug | **Run > Launch Game (Debug/Profile)** (`F5`) |
 | Attach to running process | **Run > Attach to GameLauncher** |
 
 GDB is pre-configured to suppress CRYENGINE's `SIGTRAP`-based soft assertions so the debugger does not stop on every library load.
+
+## Development Tools
+
+The `tools/` directory contains development utilities needed to run the project on Linux.
+
+### Shader Server (`tools/cry_shader_server.py`)
+
+CRYENGINE's Vulkan renderer requires a running shader compiler server to compile HLSL shaders to SPIR-V at runtime. On Linux this is provided by `cry_shader_server.py`, which implements the CrySCompileServer wire protocol using Wine + DXC.
+
+**Prerequisites:** `wine`, `python3`
+
+**Start (CLI):**
+```bash
+source .env  # or: export CRYENGINE_DIR=/path/to/CRYENGINE
+python3 tools/cry_shader_server.py
+```
+
+**Start (VS Code):** `Terminal > Run Task > Start Shader Server`
+
+The server must be running before you launch the game. It listens on `127.0.0.1:61453` and stays alive until you kill it (`Ctrl+C`).
+
+The following CVars in `system.cfg` activate the remote compiler (already set in this project):
+```
+r_ShadersRemoteCompiler=1
+r_ShaderCompilerServer=127.0.0.1
+r_VkShaderCompiler=DXC
+```
 
 ## Project Structure
 
@@ -92,6 +120,8 @@ FirstPersonShooter/
 ├── Game.cryproject          # Project definition (engine version, plugins, assets)
 ├── Assets/
 │   └── levels/              # Game levels (created via Sandbox editor)
+├── tools/
+│   └── cry_shader_server.py # Remote shader compiler server (Wine + DXC)
 ├── .env.example             # Template for CLI env var setup (copy to .env)
 ├── .vscode/                 # VS Code build/launch/IntelliSense config
 └── Code/

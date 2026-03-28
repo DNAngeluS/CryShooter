@@ -73,6 +73,34 @@
             }
         },
         {
+            "label": "Start Shader Server",
+            "type": "shell",
+            "command": "python3",
+            "args": ["${workspaceFolder}/tools/cry_shader_server.py"],
+            "options": {
+                "env": {
+                    "CRYENGINE_DIR": "${config:cryengineDir}"
+                }
+            },
+            "isBackground": true,
+            "problemMatcher": {
+                "pattern": {
+                    "regexp": "^NEVER_MATCH$"
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "CryEngine shader compiler server",
+                    "endsPattern": "^NEVER_MATCH$"
+                }
+            },
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "showReuseMessage": false
+            }
+        },
+        {
             "label": "CMake Clean",
             "type": "shell",
             "command": "cmake",

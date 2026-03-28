@@ -29,6 +29,3 @@ Thumbs.db
 
 # Backup files
 *.bak
-
-# Temporary
-cry_shader_server.py
