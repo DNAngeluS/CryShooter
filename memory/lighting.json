@@ -1,0 +1,101 @@
+{
+  "_meta": {
+    "engine": "CRYENGINE 5.6",
+    "topic": "lighting",
+    "doc": "docs/lighting.md"
+  },
+
+  "black_screen_cause": {
+    "most_common": "mission_mission0.xml references a .env preset file that does not exist on disk",
+    "symptom": "No sun, no sky, completely black scene",
+    "fix": "Change Preset Name to \"%ENGINE%/EngineAssets/Shading/default.env\"",
+    "working_preset_path": "%ENGINE%/EngineAssets/Shading/default.env",
+    "broken_example": "libs/environmentpresets/levels/example.env"
+  },
+
+  "system_layers": [
+    {
+      "layer": "Environment preset (.env)",
+      "file": "%ENGINE%/EngineAssets/Shading/default.env",
+      "format": "XML, CryXmlVersion=2, spline-based parameters keyed by time-of-day"
+    },
+    {
+      "layer": "TimeOfDay reference",
+      "file": "level.pak/mission_mission0.xml → <TimeOfDay><Presets>",
+      "key_attrs": {"Time": "current hour 0-24", "TimeAnimSpeed": "0=frozen", "TimeStart/End": "animation range"}
+    },
+    {
+      "layer": "Environment settings",
+      "file": "level.pak/leveldata/environment.xml",
+      "key_elements": ["SkyBox", "Lighting (SunRotation/SunHeight/SunLinkedToTOD)", "Fog"]
+    }
+  ],
+
+  "env_time_encoding": {
+    "unit": "1/1440 of a day (so full day = 0 to 144000)",
+    "key_times": {
+      "0":      "00:00 midnight",
+      "36000":  "06:00 dawn",
+      "72000":  "12:00 noon",
+      "108000": "18:00 dusk",
+      "144000": "24:00 end of day"
+    }
+  },
+
+  "env_key_params": {
+    "PARAM_SUN_COLOR":            {"type": "TYPE_COLOR", "channels": "RGB 0-1"},
+    "PARAM_SUN_INTENSITY":        {"type": "TYPE_FLOAT", "range": "0-550000", "noon_typical": 243854},
+    "PARAM_SUN_SPECULAR_MULTIPLIER": {"type": "TYPE_FLOAT", "default": 1.0},
+    "PARAM_FOG_COLOR":            {"type": "TYPE_COLOR"},
+    "PARAM_FOG_COLOR_MULTIPLIER": {"type": "TYPE_FLOAT"},
+    "PARAM_SKY_COLOR":            {"type": "TYPE_COLOR"},
+    "PARAM_AMBIENT_GROUND_COLOR": {"type": "TYPE_COLOR"},
+    "PARAM_HDR_DYNAMIC_POWER_FACTOR": {"type": "TYPE_FLOAT", "effect": "eye-adaptation speed"}
+  },
+
+  "mission_xml_tod_block": {
+    "tag": "TimeOfDay",
+    "attrs": {
+      "Time": "current hour (12 = noon recommended for dev)",
+      "TimeStart": "0",
+      "TimeEnd": "24",
+      "TimeAnimSpeed": "0 to freeze day cycle"
+    },
+    "child": "<Presets><Preset Name=\"%ENGINE%/EngineAssets/Shading/default.env\" Default=\"1\"/></Presets>"
+  },
+
+  "environment_xml_key_elements": {
+    "SkyBox": {
+      "Material": "%ENGINE%/EngineAssets/Materials/Sky/Sky",
+      "note": "Must point to a valid .mtl or sky is invisible"
+    },
+    "Lighting": {
+      "SunRotation": "azimuth degrees (0=North, 90=East, 240=SW)",
+      "SunHeight": "elevation degrees above horizon (80 = near overhead)",
+      "SunLinkedToTOD": "1 = sun follows TOD, 0 = locked to SunVector",
+      "SunVector": "normalised toward-sun direction e.g. -0.52,-0.30,-0.80"
+    }
+  },
+
+  "cvars": {
+    "e_SkyBox":           {"default": 1, "effect": "0 = disable sky (black background)"},
+    "e_Shadows":          {"default": 1, "effect": "0 = disable all shadows"},
+    "e_ShadowsMaxTexRes": {"default": 1024, "effect": "shadow map resolution"},
+    "e_ShadowsConstBias": {"default": 1.0, "recommended": 0.5, "effect": "reduces shadow acne"},
+    "e_ShadowsSlopeBias": {"default": 1.0, "recommended": 0.5, "effect": "slope-scale bias"},
+    "e_ShadowsBlendCascades": {"default": 1, "effect": "smooth cascade transitions"},
+    "e_GI":               {"default": 0, "effect": "1 = voxel GI (expensive)"},
+    "e_HorizonBasedAmbient": {"default": 1, "effect": "screen-space ambient occlusion"}
+  },
+
+  "set_time_in_code": {
+    "api": "gEnv->p3DEngine->SetTimeOfDay(float hourValue, bool forceUpdate)",
+    "example": "gEnv->p3DEngine->SetTimeOfDay(12.0f, true);",
+    "apply_event": "ESYSTEM_EVENT_LEVEL_LOAD_END"
+  },
+
+  "debug_cvars": {
+    "e_ShadowsDebug": "1 = visualise shadow cascades",
+    "r_DisplayInfo":  "1 = render stats overlay (FPS, drawcalls, etc.)"
+  }
+}

@@ -28,10 +28,11 @@ class CPlayerComponent final : public IEntityComponent
 
 	enum class EInputFlag : uint8
 	{
-		MoveLeft = 1 << 0,
-		MoveRight = 1 << 1,
+		MoveLeft    = 1 << 0,
+		MoveRight   = 1 << 1,
 		MoveForward = 1 << 2,
-		MoveBack = 1 << 3
+		MoveBack    = 1 << 3,
+		Sprint      = 1 << 4,
 	};
 	
 	static constexpr EEntityAspects InputAspect = eEA_GameClientD;
@@ -146,6 +147,7 @@ protected:
 	
 protected:
 	bool m_isAlive = false;
+	bool m_wantsToJump = false;
 
 	Cry::DefaultComponents::CCameraComponent* m_pCameraComponent = nullptr;
 	Cry::DefaultComponents::CCharacterControllerComponent* m_pCharacterController = nullptr;

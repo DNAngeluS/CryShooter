@@ -39,7 +39,10 @@ public:
 				return pSpawner->GetWorldTransformMatrix();
 			}
 		}
-		
-		return IDENTITY;
+
+		// No spawn point placed in the level — fall back to terrain center at a safe height
+		const float cx = 512.f, cy = 512.f;
+		const float terrainZ = gEnv->p3DEngine ? gEnv->p3DEngine->GetTerrainElevation(cx, cy) : 32.f;
+		return Matrix34::Create(Vec3(1.f), IDENTITY, Vec3(cx, cy, terrainZ + 10.f));
 	}
 };

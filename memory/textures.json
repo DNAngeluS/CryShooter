@@ -1,0 +1,105 @@
+{
+  "_meta": {
+    "engine": "CRYENGINE 5.6",
+    "topic": "terrain_textures",
+    "doc": "docs/textures.md"
+  },
+
+  "file_location": {
+    "pak": "Assets/levels/<name>/terraintexture.pak",
+    "entry": "terrain/cover.ctc",
+    "engine_constant": "COMPILED_TERRAIN_TEXTURE_FILE_NAME = \"terrain\\\\cover.ctc\""
+  },
+
+  "common_problem": {
+    "symptom": "Walkable black squares on terrain",
+    "cause": "terraintexture.pak is an empty ZIP (22 bytes) — Sandbox never ran 'Generate Terrain Texture'",
+    "effect": "OpenTerrainTextureFile returns false, texture pool never initialised, e_TerrainAutoGenerateBaseTexture has no effect",
+    "fix": "Generate a valid cover.ctc and inject it into the pak (see python_generator below)"
+  },
+
+  "binary_format": {
+    "endian": "little-endian",
+    "structs": {
+      "SCommonFileHeader": {
+        "size_bytes": 8,
+        "fields": [
+          {"name": "signature", "type": "char[4]", "value": "CRY\\0"},
+          {"name": "file_type", "type": "uint8",   "value": 100, "note": "eTerrainTextureFile"},
+          {"name": "flags",     "type": "uint8",   "value": 0},
+          {"name": "version",   "type": "uint16",  "value": 9, "note": "FILEVERSION_TERRAIN_TEXTURE_FILE"}
+        ],
+        "pack_format": "4sBBH"
+      },
+      "STerrainTextureFileHeader": {
+        "size_bytes": 8,
+        "fields": [
+          {"name": "nLayerCount",   "type": "uint16", "value": 2},
+          {"name": "dwFlags",       "type": "uint16", "value": 0},
+          {"name": "fBrMultiplier", "type": "float",  "value": 1.0}
+        ],
+        "pack_format": "HHf"
+      },
+      "STerrainTextureLayerFileHeader": {
+        "size_bytes": 12,
+        "fields": [
+          {"name": "nSectorSizePixels", "type": "uint16"},
+          {"name": "nReserved",         "type": "uint16", "value": 0},
+          {"name": "eTexFormat",        "type": "int32",  "note": "eTF_R8G8B8A8=2, eTF_BC3=24"},
+          {"name": "nSectorSizeBytes",  "type": "uint32", "note": "pixels^2 * bytes_per_pixel"}
+        ],
+        "pack_format": "HHiI"
+      }
+    },
+    "layout_order": [
+      "SCommonFileHeader",
+      "STerrainTextureFileHeader",
+      "STerrainTextureLayerFileHeader × nLayerCount",
+      "uint16 wSize  (index table entry count = total quad-tree nodes)",
+      "int16[wSize]  (-1 = no tile, >=0 = tile index)",
+      "tile_data[unique_indices]  (layer0_bytes then layer1_bytes per tile)"
+    ],
+    "tile_seek_formula": "sizeof(headers) + sizeof(index_table) + tile_index * (layer0_bytes + layer1_bytes)"
+  },
+
+  "index_table": {
+    "traversal": "pre-order DFS of quad-tree (root first, then 4 children recursively)",
+    "wSize_32x32_terrain": 1365,
+    "strategy_all_same_colour": "assign indices 0..1364, provide 1365 identical tiles",
+    "strategy_root_only": "index[0]=0 all others=-1, provide 1 tile; BUT pIndices[0]<0 check skips AssignTextureFileOffset entirely — do NOT use -1 for root",
+    "nDiffTexIndexTableSize_formula": "wSize * 2 + 2"
+  },
+
+  "etex_format_values": {
+    "eTF_Unknown":  0,
+    "eTF_R8G8B8A8": 2,
+    "eTF_BC3":      24
+  },
+
+  "recommended_tile_sizes": {
+    "diffuse_layer_pixels": 64,
+    "heightmap_layer_pixels": 32,
+    "diffuse_bytes_per_tile": 16384,
+    "heightmap_bytes_per_tile": 4096,
+    "total_bytes_per_tile": 20480,
+    "total_raw_for_1365_tiles_mb": 27.3,
+    "compressed_kb_solid_colour": "~36"
+  },
+
+  "python_generator": {
+    "description": "Generate cover.ctc with 1365 solid-colour tiles and inject into pak",
+    "colour_diffuse_rgba": [140, 120, 90, 255],
+    "colour_heightmap_rgba": [128, 128, 0, 0],
+    "key_lines": [
+      "common  = b'CRY\\x00' + struct.pack('<BBH', 100, 0, 9)",
+      "tex_hdr = struct.pack('<HHf', 2, 0, 1.0)",
+      "layer0  = struct.pack('<HHiI', 64, 0, 2, 16384)",
+      "layer1  = struct.pack('<HHiI', 32, 0, 2, 4096)",
+      "TREE_NODES = 1365",
+      "index_block = struct.pack('<H', TREE_NODES) + b''.join(struct.pack('<h', i) for i in range(TREE_NODES))",
+      "one_tile = DIFF_PIXEL * 4096 + HMAP_PIXEL * 1024",
+      "ctc = common + tex_hdr + layer0 + layer1 + index_block + one_tile * TREE_NODES",
+      "zipfile.ZipFile(pak, 'w', ZIP_DEFLATED).writestr('terrain/cover.ctc', ctc)"
+    ]
+  }
+}

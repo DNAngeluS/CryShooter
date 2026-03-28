@@ -13,7 +13,7 @@
 
 namespace
 {
-	static void RegisterPlayerComponent(Schematyc::IEnvRegistrar& registrar)
+	static void RegisterPlayerComponent(Schematyc::IEnvRegistrar &registrar)
 	{
 		Schematyc::CEnvRegistrationScope scope = registrar.Scope(IEntity::GetEntityScopeGUID());
 		{
@@ -56,7 +56,7 @@ void CPlayerComponent::Initialize()
 
 	// Mark the entity to be replicated over the network
 	m_pEntity->GetNetEntity()->BindToNetwork();
-	
+
 	// Register the RemoteReviveOnClient function as a Remote Method Invocation (RMI) that can be executed by the server on clients
 	SRmi<RMI_WRAP(&CPlayerComponent::RemoteReviveOnClient)>::Register(this, eRAT_NoAttach, false, eNRT_ReliableOrdered);
 }
@@ -71,30 +71,36 @@ void CPlayerComponent::InitializeLocalPlayer()
 
 	// Get the input component, wraps access to action mapping so we can easily get callbacks when inputs are triggered
 	m_pInputComponent = m_pEntity->GetOrCreateComponent<Cry::DefaultComponents::CInputComponent>();
-	
+
 	// Register an action, and the callback that will be sent when it's triggered
-	m_pInputComponent->RegisterAction("player", "moveleft", [this](int activationMode, float value) { HandleInputFlagChange(EInputFlag::MoveLeft, (EActionActivationMode)activationMode);  }); 
+	m_pInputComponent->RegisterAction("player", "moveleft", [this](int activationMode, float value)
+																		{ HandleInputFlagChange(EInputFlag::MoveLeft, (EActionActivationMode)activationMode); });
 	// Bind the 'A' key the "moveleft" action
 	m_pInputComponent->BindAction("player", "moveleft", eAID_KeyboardMouse, EKeyId::eKI_A);
 
-	m_pInputComponent->RegisterAction("player", "moveright", [this](int activationMode, float value) { HandleInputFlagChange(EInputFlag::MoveRight, (EActionActivationMode)activationMode);  }); 
+	m_pInputComponent->RegisterAction("player", "moveright", [this](int activationMode, float value)
+																		{ HandleInputFlagChange(EInputFlag::MoveRight, (EActionActivationMode)activationMode); });
 	m_pInputComponent->BindAction("player", "moveright", eAID_KeyboardMouse, EKeyId::eKI_D);
 
-	m_pInputComponent->RegisterAction("player", "moveforward", [this](int activationMode, float value) { HandleInputFlagChange(EInputFlag::MoveForward, (EActionActivationMode)activationMode);  }); 
+	m_pInputComponent->RegisterAction("player", "moveforward", [this](int activationMode, float value)
+																		{ HandleInputFlagChange(EInputFlag::MoveForward, (EActionActivationMode)activationMode); });
 	m_pInputComponent->BindAction("player", "moveforward", eAID_KeyboardMouse, EKeyId::eKI_W);
 
-	m_pInputComponent->RegisterAction("player", "moveback", [this](int activationMode, float value) { HandleInputFlagChange(EInputFlag::MoveBack, (EActionActivationMode)activationMode);  }); 
+	m_pInputComponent->RegisterAction("player", "moveback", [this](int activationMode, float value)
+																		{ HandleInputFlagChange(EInputFlag::MoveBack, (EActionActivationMode)activationMode); });
 	m_pInputComponent->BindAction("player", "moveback", eAID_KeyboardMouse, EKeyId::eKI_S);
 
-	m_pInputComponent->RegisterAction("player", "mouse_rotateyaw", [this](int activationMode, float value) { m_mouseDeltaRotation.x -= value; });
+	m_pInputComponent->RegisterAction("player", "mouse_rotateyaw", [this](int activationMode, float value)
+																		{ m_mouseDeltaRotation.x -= value; });
 	m_pInputComponent->BindAction("player", "mouse_rotateyaw", eAID_KeyboardMouse, EKeyId::eKI_MouseX);
 
-	m_pInputComponent->RegisterAction("player", "mouse_rotatepitch", [this](int activationMode, float value) { m_mouseDeltaRotation.y -= value; });
+	m_pInputComponent->RegisterAction("player", "mouse_rotatepitch", [this](int activationMode, float value)
+																		{ m_mouseDeltaRotation.y -= value; });
 	m_pInputComponent->BindAction("player", "mouse_rotatepitch", eAID_KeyboardMouse, EKeyId::eKI_MouseY);
 
 	// Register the shoot action
 	m_pInputComponent->RegisterAction("player", "shoot", [this](int activationMode, float value)
-	{
+																		{
 		// Only fire on press, not release
 		if (activationMode == eAAM_OnPress)
 		{
@@ -123,22 +129,42 @@ void CPlayerComponent::InitializeLocalPlayer()
 					}
 				}
 			}
-		}
-	});
+		} });
 
 	// Bind the shoot action to left mouse click
 	m_pInputComponent->BindAction("player", "shoot", eAID_KeyboardMouse, EKeyId::eKI_Mouse1);
+
+	// Sprint while Left Shift is held
+	m_pInputComponent->RegisterAction("player", "sprint", [this](int activationMode, float value) { HandleInputFlagChange(EInputFlag::Sprint, (EActionActivationMode)activationMode); });
+	m_pInputComponent->BindAction("player", "sprint", eAID_KeyboardMouse, EKeyId::eKI_LShift);
+
+	// Jump on Space (only triggers the impulse once per press)
+	m_pInputComponent->RegisterAction("player", "jump", [this](int activationMode, float value)
+																		{
+		if (activationMode == eAAM_OnPress)
+		{
+			m_wantsToJump = true;
+		} });
+	m_pInputComponent->BindAction("player", "jump", eAID_KeyboardMouse, EKeyId::eKI_Space);
+
+	// Quit the game on ESC
+	m_pInputComponent->RegisterAction("player", "quit", [this](int activationMode, float value)
+																		{
+		if (activationMode == eAAM_OnPress)
+		{
+			gEnv->pSystem->Quit();
+		} });
+	m_pInputComponent->BindAction("player", "quit", eAID_KeyboardMouse, EKeyId::eKI_Escape);
 }
 
 Cry::Entity::EventFlags CPlayerComponent::GetEventMask() const
 {
-	return
-		Cry::Entity::EEvent::BecomeLocalPlayer |
-		Cry::Entity::EEvent::Update |
-		Cry::Entity::EEvent::Reset;
+	return Cry::Entity::EEvent::BecomeLocalPlayer |
+				 Cry::Entity::EEvent::Update |
+				 Cry::Entity::EEvent::Reset;
 }
 
-void CPlayerComponent::ProcessEvent(const SEntityEvent& event)
+void CPlayerComponent::ProcessEvent(const SEntityEvent &event)
 {
 	switch (event.event)
 	{
@@ -150,9 +176,9 @@ void CPlayerComponent::ProcessEvent(const SEntityEvent& event)
 	case Cry::Entity::EEvent::Update:
 	{
 		// Don't update the player if we haven't spawned yet
-		if(!m_isAlive)
+		if (!m_isAlive)
 			return;
-		
+
 		const float frameTime = event.fParam[0];
 
 		// Start by updating the movement request we want to send to the character controller
@@ -183,7 +209,7 @@ void CPlayerComponent::ProcessEvent(const SEntityEvent& event)
 
 bool CPlayerComponent::NetSerialize(TSerialize ser, EEntityAspects aspect, uint8 profile, int flags)
 {
-	if(aspect == InputAspect)
+	if (aspect == InputAspect)
 	{
 		ser.BeginGroup("PlayerInput");
 
@@ -219,13 +245,24 @@ bool CPlayerComponent::NetSerialize(TSerialize ser, EEntityAspects aspect, uint8
 
 void CPlayerComponent::UpdateMovementRequest(float frameTime)
 {
+	const bool onGround = m_pCharacterController->IsOnGround();
+
+	if (m_wantsToJump)
+	{
+		if (onGround)
+		{
+			m_pCharacterController->AddVelocity(Vec3(0.f, 0.f, 8.f));
+		}
+		m_wantsToJump = false;
+	}
+
 	// Don't handle input if we are in air
-	if (!m_pCharacterController->IsOnGround())
+	if (!onGround)
 		return;
 
 	Vec3 velocity = ZERO;
 
-	const float moveSpeed = 20.5f;
+	const float moveSpeed = 20.5f * ((m_inputFlags & EInputFlag::Sprint) ? 2.5f : 1.0f);
 
 	if (m_inputFlags & EInputFlag::MoveLeft)
 	{
@@ -291,7 +328,7 @@ void CPlayerComponent::UpdateAnimation(float frameTime)
 	m_pAnimationComponent->SetTagWithId(m_rotateTagId, isTurning);
 	if (isTurning)
 	{
-		// TODO: This is a very rough predictive estimation of eMotionParamID_TurnAngle that could easily be replaced with accurate reactive motion 
+		// TODO: This is a very rough predictive estimation of eMotionParamID_TurnAngle that could easily be replaced with accurate reactive motion
 		// if we introduced IK look/aim setup to the character's model and decoupled entity's orientation from the look direction derived from mouse input.
 
 		const float turnDuration = 1.0f; // Expect the turning motion to take approximately one second.
@@ -299,7 +336,7 @@ void CPlayerComponent::UpdateAnimation(float frameTime)
 	}
 
 	// Update active fragment
-	const FragmentID& desiredFragmentId = m_pCharacterController->IsWalking() ? m_walkFragmentId : m_idleFragmentId;
+	const FragmentID &desiredFragmentId = m_pCharacterController->IsWalking() ? m_walkFragmentId : m_idleFragmentId;
 	if (m_activeFragmentId != desiredFragmentId)
 	{
 		m_activeFragmentId = desiredFragmentId;
@@ -354,6 +391,11 @@ void CPlayerComponent::UpdateCamera(float frameTime)
 		// Apply the offset to the camera
 		localTransform.SetTranslation(cameraOrientation.t + Vec3(0, viewOffsetForward, viewOffsetUp));
 	}
+	else
+	{
+		// No character mesh loaded — use a fixed eye height so the camera sits above the ground
+		localTransform.SetTranslation(Vec3(0, viewOffsetForward, 4.2f));
+	}
 
 	m_pCameraComponent->SetTransformMatrix(localTransform);
 	m_pAudioListenerComponent->SetOffset(localTransform.GetTranslation());
@@ -364,16 +406,16 @@ void CPlayerComponent::OnReadyForGameplayOnServer()
 	CRY_ASSERT(gEnv->bServer, "This function should only be called on the server!");
 
 	const Matrix34 newTransform = CSpawnPointComponent::GetFirstSpawnPointTransform();
-	
+
 	Revive(newTransform);
-	
+
 	// Invoke the RemoteReviveOnClient function on all remote clients, to ensure that Revive is called across the network
-	SRmi<RMI_WRAP(&CPlayerComponent::RemoteReviveOnClient)>::InvokeOnOtherClients(this, RemoteReviveParams{ newTransform.GetTranslation(), Quat(newTransform) });
+	SRmi<RMI_WRAP(&CPlayerComponent::RemoteReviveOnClient)>::InvokeOnOtherClients(this, RemoteReviveParams{newTransform.GetTranslation(), Quat(newTransform)});
 
 	// Go through all other players, and send the RemoteReviveOnClient on their instances to the new player that is ready for gameplay
 	const int channelId = m_pEntity->GetNetEntity()->GetChannelId();
-	CGamePlugin::GetInstance()->IterateOverPlayers([this, channelId](CPlayerComponent& player)
-	{
+	CGamePlugin::GetInstance()->IterateOverPlayers([this, channelId](CPlayerComponent &player)
+																								 {
 		// Don't send the event for the player itself (handled in the RemoteReviveOnClient event above sent to all clients)
 		if (player.GetEntityId() == GetEntityId())
 			return;
@@ -384,11 +426,10 @@ void CPlayerComponent::OnReadyForGameplayOnServer()
 
 		// Revive this player on the new player's machine, on the location the existing player was currently at
 		const QuatT currentOrientation = QuatT(player.GetEntity()->GetWorldTM());
-		SRmi<RMI_WRAP(&CPlayerComponent::RemoteReviveOnClient)>::InvokeOnClient(&player, RemoteReviveParams{ currentOrientation.t, currentOrientation.q }, channelId);
-	});
+		SRmi<RMI_WRAP(&CPlayerComponent::RemoteReviveOnClient)>::InvokeOnClient(&player, RemoteReviveParams{ currentOrientation.t, currentOrientation.q }, channelId); });
 }
 
-bool CPlayerComponent::RemoteReviveOnClient(RemoteReviveParams&& params, INetChannel* pNetChannel)
+bool CPlayerComponent::RemoteReviveOnClient(RemoteReviveParams &&params, INetChannel *pNetChannel)
 {
 	// Call the Revive function on this client
 	Revive(Matrix34::Create(Vec3(1.f), params.rotation, params.position));
@@ -396,17 +437,17 @@ bool CPlayerComponent::RemoteReviveOnClient(RemoteReviveParams&& params, INetCha
 	return true;
 }
 
-void CPlayerComponent::Revive(const Matrix34& transform)
+void CPlayerComponent::Revive(const Matrix34 &transform)
 {
 	m_isAlive = true;
-	
+
 	// Set the entity transformation, except if we are in the editor
 	// In the editor case we always prefer to spawn where the viewport is
-	if(!gEnv->IsEditor())
+	if (!gEnv->IsEditor())
 	{
 		m_pEntity->SetWorldTM(transform);
 	}
-	
+
 	// Apply the character to the entity and queue animations
 	m_pAnimationComponent->ResetCharacter();
 	m_pCharacterController->Physicalize();
@@ -414,7 +455,7 @@ void CPlayerComponent::Revive(const Matrix34& transform)
 	// Reset input now that the player respawned
 	m_inputFlags.Clear();
 	NetMarkAspectsDirty(InputAspect);
-	
+
 	m_mouseDeltaRotation = ZERO;
 	m_lookOrientation = IDENTITY;
 
@@ -458,8 +499,8 @@ void CPlayerComponent::HandleInputFlagChange(const CEnumFlags<EInputFlag> flags,
 	}
 	break;
 	}
-	
-	if(IsLocalClient())
+
+	if (IsLocalClient())
 	{
 		NetMarkAspectsDirty(InputAspect);
 	}

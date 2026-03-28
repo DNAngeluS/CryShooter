@@ -1,0 +1,92 @@
+{
+  "_meta": {
+    "engine": "CRYENGINE 5.6",
+    "topic": "character_mesh",
+    "doc": "docs/character_mesh.md"
+  },
+
+  "required_asset_files": {
+    "character_definition": "Objects/Characters/SampleCharacter/firstperson.cdf",
+    "animation_database":   "Animations/Mannequin/ADB/FirstPerson.adb",
+    "controller_definition":"Animations/Mannequin/ADB/FirstPersonControllerDefinition.xml",
+    "scope_context_name":   "FirstPersonCharacter",
+    "default_fragment":     "Idle",
+    "note": "All paths relative to Assets/. Missing any file → GetCharacter() returns nullptr."
+  },
+
+  "component_setup_order": [
+    "GetOrCreateComponent<CCharacterControllerComponent>() → SetTransformMatrix z=1.0",
+    "GetOrCreateComponent<CAdvancedAnimationComponent>()",
+    "SetMannequinAnimationDatabaseFile()",
+    "SetCharacterFile()",
+    "SetControllerDefinitionFile()",
+    "SetDefaultScopeContextName()",
+    "SetDefaultFragmentName()",
+    "SetAnimationDrivenMotion(true)  ← disables root-motion, physics drives movement",
+    "LoadFromDisk()",
+    "GetFragmentId() / GetTagId()  ← cache IDs after LoadFromDisk"
+  ],
+
+  "character_controller_physics": {
+    "type": "pe_type_living (living entity capsule)",
+    "default_radius_m": 0.45,
+    "default_height_m": 0.935,
+    "heightPivot": 0.0,
+    "note_heightPivot": "0 means entity origin IS the ground contact point",
+    "heightCollider": "set by SetTransformMatrix z offset (1.0 in this project)",
+    "jump_snippet": "if (IsOnGround()) AddVelocity(Vec3(0, 0, 8.f));",
+    "move_snippet":  "AddVelocity(GetEntity()->GetWorldRotation() * Vec3(vx, vy, 0));"
+  },
+
+  "camera": {
+    "component": "CCameraComponent",
+    "update_function": "UpdateCamera(float frameTime)",
+    "with_character": {
+      "joint_name": "head",
+      "cache_in": "Revive() via GetIDefaultSkeleton().GetJointIDByName(\"head\")",
+      "snippet": "const QuatT& pose = pCharacter->GetISkeletonPose()->GetAbsJointByID(m_cameraJointId);\nlocalTransform.SetTranslation(pose.t + Vec3(0, 0.01f, 0.26f));"
+    },
+    "without_character_fallback": {
+      "eye_height_m": 1.8,
+      "snippet": "localTransform.SetTranslation(Vec3(0, 0.01f, 1.8f));",
+      "why": "heightPivot=0 → entity at ground → 1.8 m above = standing eye level"
+    }
+  },
+
+  "shooting": {
+    "attachment_name": "barrel_out",
+    "snippet": "IAttachment* p = pCharacter->GetIAttachmentManager()->GetInterfaceByName(\"barrel_out\");\nif (p) { QuatTS origin = p->GetAttWorldAbsolute(); /* spawn bullet */ }"
+  },
+
+  "animation_api": {
+    "queue_fragment":   "m_pAnimationComponent->QueueFragmentWithId(fragmentId)",
+    "set_tag":          "m_pAnimationComponent->SetTagWithId(tagId, bool)",
+    "set_motion_param": "m_pAnimationComponent->SetMotionParameter(eMotionParamID_TurnAngle, float)",
+    "reset":            "m_pAnimationComponent->ResetCharacter()  ← call in Revive()"
+  },
+
+  "input_actions": {
+    "move_left":    {"key": "eKI_A",      "flag": "EInputFlag::MoveLeft"},
+    "move_right":   {"key": "eKI_D",      "flag": "EInputFlag::MoveRight"},
+    "move_forward": {"key": "eKI_W",      "flag": "EInputFlag::MoveForward"},
+    "move_back":    {"key": "eKI_S",      "flag": "EInputFlag::MoveBack"},
+    "sprint":       {"key": "eKI_LShift", "flag": "EInputFlag::Sprint"},
+    "jump":         {"key": "eKI_Space",  "one_shot": true, "member": "m_wantsToJump"},
+    "shoot":        {"key": "eKI_Mouse1", "one_shot": true},
+    "quit":         {"key": "eKI_Escape", "action": "gEnv->pSystem->Quit()"}
+  },
+
+  "network": {
+    "bind_to_network": "m_pEntity->GetNetEntity()->BindToNetwork()",
+    "local_player_flag": "ENTITY_FLAG_LOCAL_PLAYER",
+    "local_player_entity_id": "LOCAL_PLAYER_ENTITY_ID",
+    "rmi_register": "SRmi<RMI_WRAP(&CPlayerComponent::RemoteReviveOnClient)>::Register(this, eRAT_NoAttach, false, eNRT_ReliableOrdered)"
+  },
+
+  "cdf_xml_structure": {
+    "root": "CharacterDefinition",
+    "skeleton": "<Model File=\"path/to/skeleton.chr\"/>",
+    "skin_attachment": "<Attachment Type=\"CA_SKIN\" AName=\"name\" Binding=\"path/to/mesh.skin\" Flags=\"0\"/>",
+    "bone_attachment": "<Attachment Type=\"CA_BONE\" AName=\"barrel_out\" BoneName=\"weapon_bone\" Flags=\"0\"/>"
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "_meta": {
+    "engine": "CRYENGINE 5.6",
+    "topic": "terrain",
+    "doc": "docs/terrain.md"
+  },
+
+  "level_files": {
+    "level_pak": "Assets/levels/<name>/level.pak",
+    "terrain_texture_pak": "Assets/levels/<name>/terraintexture.pak",
+    "files_inside_level_pak": [
+      "levelinfo.xml",
+      "leveldata.xml",
+      "mission_mission0.xml",
+      "terrain/terrain.dat",
+      "terrain/cover.ctc  (NOT here — in terraintexture.pak)"
+    ]
+  },
+
+  "levelinfo_xml_fields": {
+    "HeightmapSize": "heightmap samples per side (e.g. 1024)",
+    "UnitSize": "metres per heightmap sample (e.g. 1 → 1 m/sample)",
+    "SectorSize": "metres per terrain sector (e.g. 32)",
+    "SectorsTableSize": "sectors per side = HeightmapSize / SectorSize",
+    "HeightmapZRatio": "height = raw_value × ZRatio  (default 0.015625 = 1/64)",
+    "OceanWaterLevel": "Z height of ocean surface — must differ from terrain height to avoid z-fighting"
+  },
+
+  "ocean_z_fighting_fix": {
+    "problem": "OceanWaterLevel equals terrain height → co-planar triangles → black/grey flicker",
+    "fix_in_code": [
+      "gEnv->pConsole->ExecuteString(\"e_WaterOcean 0\",       false, true);",
+      "gEnv->pConsole->ExecuteString(\"e_WaterOceanBottom 0\", false, true);"
+    ],
+    "fix_in_data": {
+      "files": ["levelinfo.xml", "leveldata.xml"],
+      "change": "OceanWaterLevel=\"-100\" and WaterLevel=\"-100\""
+    },
+    "apply_event": "ESYSTEM_EVENT_LEVEL_LOAD_END"
+  },
+
+  "environment_preset": {
+    "field_in_mission_xml": "<Preset Name=\"...\" Default=\"1\"/>",
+    "working_path": "%ENGINE%/EngineAssets/Shading/default.env",
+    "broken_example": "libs/environmentpresets/levels/example.env  (does not ship with engine)",
+    "symptom_if_missing": "no sun, black sky"
+  },
+
+  "spawn_point": {
+    "component_guid": "{41316132-8A1E-4073-B0CD-A242FD3D2E90}",
+    "fallback_code": {
+      "description": "When level has no SpawnPoint entity, use terrain elevation at centre",
+      "snippet": "const float cx = 512.f, cy = 512.f;\nconst float z = gEnv->p3DEngine->GetTerrainElevation(cx, cy);\nreturn Matrix34::Create(Vec3(1.f), IDENTITY, Vec3(cx, cy, z + 10.f));"
+    },
+    "api": "gEnv->p3DEngine->GetTerrainElevation(float x, float y)"
+  },
+
+  "edit_level_pak_python": {
+    "steps": [
+      "import zipfile, shutil, tempfile, os",
+      "tmp = tempfile.mkdtemp()",
+      "zipfile.ZipFile(pak).extractall(tmp)",
+      "# edit files in tmp/",
+      "shutil.copy2(pak, pak + '.bak')",
+      "repack with zipfile.ZipFile(pak, 'w', ZIP_DEFLATED)"
+    ]
+  },
+
+  "mission_xml_entity_format": {
+    "note": "Entities use Schematyc component system in CRYENGINE 5.6",
+    "component_xml_keys": {
+      "TypeGUID": "component class GUID from ReflectType desc.SetGUID()",
+      "Name": "component instance name (string)",
+      "GUID": "unique instance GUID"
+    }
+  }
+}

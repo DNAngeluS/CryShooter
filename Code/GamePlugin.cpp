@@ -45,7 +45,10 @@ void CGamePlugin::OnSystemEvent(ESystemEvent event, UINT_PTR wparam, UINT_PTR lp
 		case ESYSTEM_EVENT_GAME_POST_INIT:
 		{
 			// Listen for client connection events, in order to create the local player
-			gEnv->pGameFramework->AddNetworkedClientListener(*this);
+			if (gEnv->pGameFramework != nullptr)
+			{
+				gEnv->pGameFramework->AddNetworkedClientListener(*this);
+			}
 
 			// Don't need to load the map in editor
 			if (!gEnv->IsEditor())
@@ -80,6 +83,25 @@ void CGamePlugin::OnSystemEvent(ESystemEvent event, UINT_PTR wparam, UINT_PTR lp
 		}
 		break;
 		
+		case ESYSTEM_EVENT_LEVEL_LOAD_END:
+		{
+			// Disable ocean surface and its bottom quad — they sit coplanar with the
+			// terrain surface and cause z-fighting even when the water level is low.
+			gEnv->pConsole->ExecuteString("e_WaterOcean 0",       false, true);
+			gEnv->pConsole->ExecuteString("e_WaterOceanBottom 0", false, true);
+
+			// Tighten terrain LOD error and extend the fine-mesh radius so sector
+			// seams don't produce near-coplanar triangles at any visible distance.
+			// Defaults: ErrorRatio=0.05, DistanceRatio=0.5
+			gEnv->pConsole->ExecuteString("e_TerrainLodErrorRatio 0.001",    false, true);
+			gEnv->pConsole->ExecuteString("e_TerrainLodDistanceRatio 4.0",   false, true);
+
+			// The terrain texture pak is empty (base texture was never baked in the
+			// Sandbox editor), so auto-generate it from terrain material info.
+			gEnv->pConsole->ExecuteString("e_TerrainAutoGenerateBaseTexture 1", false, true);
+		}
+		break;
+
 		case ESYSTEM_EVENT_LEVEL_UNLOAD:
 		{
 			m_players.clear();

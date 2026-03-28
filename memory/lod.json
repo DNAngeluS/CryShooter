@@ -1,0 +1,77 @@
+{
+  "_meta": {
+    "engine": "CRYENGINE 5.6",
+    "topic": "lod",
+    "doc": "docs/lod.md"
+  },
+
+  "terrain_quad_tree": {
+    "description": "Terrain is a quad-tree of CTerrainNode. Root = whole terrain, leaves = individual sectors.",
+    "node_count_formula": "sum of 4^i for i in 0..depth  =  (4^(depth+1) - 1) / 3",
+    "example_32x32_sectors": {
+      "levels": 6,
+      "nodes_per_level": [1, 4, 16, 64, 256, 1024],
+      "total_nodes": 1365
+    }
+  },
+
+  "cvars": {
+    "e_TerrainLodErrorRatio": {
+      "default": 0.05,
+      "recommended": 0.001,
+      "effect": "Max allowed pixel error at LOD transition. Lower = finer mesh near camera. Fixes LOD-seam z-fighting."
+    },
+    "e_TerrainLodDistanceRatio": {
+      "default": 0.5,
+      "recommended": 4.0,
+      "effect": "Radius multiplier for fine LOD. Higher = fine mesh at larger distance from camera."
+    },
+    "e_WaterOcean": {
+      "default": 1,
+      "recommended": 0,
+      "effect": "0 disables ocean surface quad entirely."
+    },
+    "e_WaterOceanBottom": {
+      "default": 1,
+      "recommended": 0,
+      "effect": "0 disables ocean bottom fill quad. Often the primary z-fighting cause."
+    },
+    "e_TerrainAutoGenerateBaseTexture": {
+      "default": 0,
+      "effect": "1 = generate base texture at runtime from painted terrain materials. Requires valid cover.ctc to init pool first."
+    }
+  },
+
+  "apply_in_code": {
+    "event": "ESYSTEM_EVENT_LEVEL_LOAD_END",
+    "snippet": "gEnv->pConsole->ExecuteString(\"e_WaterOcean 0\",                false, true);\ngEnv->pConsole->ExecuteString(\"e_WaterOceanBottom 0\",          false, true);\ngEnv->pConsole->ExecuteString(\"e_TerrainLodErrorRatio 0.001\",  false, true);\ngEnv->pConsole->ExecuteString(\"e_TerrainLodDistanceRatio 4.0\", false, true);"
+  },
+
+  "z_fighting_causes": [
+    {
+      "cause": "Ocean co-planar with terrain",
+      "symptom": "Flickering black/grey on terrain surface",
+      "fix": "e_WaterOcean 0 + e_WaterOceanBottom 0, or move OceanWaterLevel to -100"
+    },
+    {
+      "cause": "Terrain LOD seam triangles",
+      "symptom": "Flickering patches at terrain sector boundaries",
+      "fix": "e_TerrainLodErrorRatio 0.001 + e_TerrainLodDistanceRatio 4.0"
+    },
+    {
+      "cause": "Camera below terrain surface",
+      "symptom": "Floor at mid-screen, flickering black (backface) and texture",
+      "fix": "Increase camera eye height above entity origin (1.8 m fallback when no character)"
+    },
+    {
+      "cause": "Missing terrain texture tiles (terraintexture.pak empty)",
+      "symptom": "Solid black walkable squares on terrain (not z-fighting, but rendering nothing)",
+      "fix": "Generate cover.ctc — see textures.json / docs/textures.md"
+    }
+  ],
+
+  "system_cfg_alternative": {
+    "file": "system.cfg (project root)",
+    "example": "e_TerrainLodErrorRatio=0.001\ne_TerrainLodDistanceRatio=4.0\ne_WaterOcean=0\ne_WaterOceanBottom=0"
+  }
+}

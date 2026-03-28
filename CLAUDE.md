@@ -9,14 +9,26 @@ FirstPersonShooter/
 ├── Game.cryproject          # Project definition (engine version, plugins, assets)
 ├── Assets/
 │   └── levels/              # Game levels (created via Sandbox editor)
-└── Code/
-    ├── CMakeLists.txt        # Build definition
-    ├── GamePlugin.cpp/h      # ICryPlugin entry point, network listener
-    ├── StdAfx.cpp/h          # Precompiled header
-    └── Components/
-        ├── Player.cpp/h      # First-person player (camera, movement, input, shooting)
-        ├── SpawnPoint.cpp/h  # Spawn location marker
-        └── Bullet.h          # Projectile physics component
+├── Code/
+│   ├── CMakeLists.txt        # Build definition
+│   ├── GamePlugin.cpp/h      # ICryPlugin entry point, network listener
+│   ├── StdAfx.cpp/h          # Precompiled header
+│   └── Components/
+│       ├── Player.cpp/h      # First-person player (camera, movement, input, shooting)
+│       ├── SpawnPoint.cpp/h  # Spawn location marker
+│       └── Bullet.h          # Projectile physics component
+├── docs/                     # Human-readable engine knowledge base
+│   ├── terrain.md            # Level files, water, spawn points, env presets
+│   ├── lod.md                # Terrain LOD CVars, z-fighting causes and fixes
+│   ├── textures.md           # cover.ctc binary format, Python generation
+│   ├── character_mesh.md     # Mannequin, CDF, camera, character controller
+│   └── lighting.md           # TOD system, .env presets, sky, shadows, CVars
+└── memory/                   # LLM-focused JSON quick-reference (machine-readable)
+    ├── terrain.json
+    ├── lod.json
+    ├── textures.json
+    ├── character_mesh.json
+    └── lighting.json
 ```
 
 The game is built as a shared library (`libGamePlugin.so`) loaded by the engine at runtime.
