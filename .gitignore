@@ -17,6 +17,9 @@ user/
 .vscode/ipch/
 .vscode/settings.json
 
+# Local engine path config (CLI — see .env.example)
+.env
+
 # OS
 .DS_Store
 Thumbs.db

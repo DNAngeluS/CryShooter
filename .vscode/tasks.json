@@ -10,8 +10,8 @@
                 "-G", "Ninja",
                 "-S", "${workspaceFolder}/Code",
                 "-DCMAKE_BUILD_TYPE=Debug",
-                "-DCRYENGINE_DIR=${env:CRYENGINE_DIR}",
-                "-DCMAKE_TOOLCHAIN_FILE=${env:CRYENGINE_DIR}/Tools/CMake/toolchain/linux/Linux_GCC.cmake",
+                "-DCRYENGINE_DIR=${config:cryengineDir}",
+                "-DCMAKE_TOOLCHAIN_FILE=${config:cryengineDir}/Tools/CMake/toolchain/linux/Linux_GCC.cmake",
                 "-DCMAKE_C_COMPILER=gcc-9",
                 "-DCMAKE_CXX_COMPILER=g++-9"
             ],
@@ -31,8 +31,8 @@
                 "-G", "Ninja",
                 "-S", "${workspaceFolder}/Code",
                 "-DCMAKE_BUILD_TYPE=Profile",
-                "-DCRYENGINE_DIR=${env:CRYENGINE_DIR}",
-                "-DCMAKE_TOOLCHAIN_FILE=${env:CRYENGINE_DIR}/Tools/CMake/toolchain/linux/Linux_GCC.cmake",
+                "-DCRYENGINE_DIR=${config:cryengineDir}",
+                "-DCMAKE_TOOLCHAIN_FILE=${config:cryengineDir}/Tools/CMake/toolchain/linux/Linux_GCC.cmake",
                 "-DCMAKE_C_COMPILER=gcc-9",
                 "-DCMAKE_CXX_COMPILER=g++-9"
             ],

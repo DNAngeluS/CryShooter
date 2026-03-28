@@ -4,15 +4,32 @@ CRYENGINE 5.6 First Person Shooter game plugin project (C++, Linux/GCC-9).
 
 ## Prerequisites
 
-Set the `CRYENGINE_DIR` environment variable to your local CRYENGINE installation root
-before configuring, building, or launching:
+The engine path must be configured once per machine. Choose one approach:
 
-```bash
-export CRYENGINE_DIR=/path/to/CRYENGINE
+### VS Code
+
+Add to `.vscode/settings.json` (gitignored — create it if it doesn't exist):
+
+```json
+{
+    "cmake.sourceDirectory": "${workspaceFolder}/Code",
+    "cryengineDir": "/path/to/CRYENGINE"
+}
 ```
 
-Add this to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.) to persist it across sessions.
-VS Code tasks and launch configs read `CRYENGINE_DIR` automatically via `${env:CRYENGINE_DIR}`.
+All tasks and launch configurations read `${config:cryengineDir}` from this file automatically.
+
+### CLI
+
+Copy `.env.example` to `.env` (gitignored) and fill in your path, then source it:
+
+```bash
+cp .env.example .env
+# edit .env and set CRYENGINE_DIR
+source .env
+```
+
+Or export directly in your shell profile (`~/.bashrc`, `~/.zshrc`) for a permanent setup.
 
 ## Project Structure
 

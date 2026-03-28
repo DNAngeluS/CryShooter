@@ -4,10 +4,10 @@
             "name": "Linux (GCC-9)",
             "includePath": [
                 "${workspaceFolder}/Code",
-                "${env:CRYENGINE_DIR}/Code/CryEngine/CryCommon",
-                "${env:CRYENGINE_DIR}/Code/CryEngine/CryAction",
-                "${env:CRYENGINE_DIR}/Code/CryEngine/CrySchematyc/Core/Interface",
-                "${env:CRYENGINE_DIR}/Code/CryPlugins/CryDefaultEntities/Module"
+                "${config:cryengineDir}/Code/CryEngine/CryCommon",
+                "${config:cryengineDir}/Code/CryEngine/CryAction",
+                "${config:cryengineDir}/Code/CryEngine/CrySchematyc/Core/Interface",
+                "${config:cryengineDir}/Code/CryPlugins/CryDefaultEntities/Module"
             ],
             "defines": [
                 "LINUX",
