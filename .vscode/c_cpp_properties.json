@@ -4,10 +4,10 @@
             "name": "Linux (GCC-9)",
             "includePath": [
                 "${workspaceFolder}/Code",
-                "CRYENGINE_DIR_PATH/Code/CryEngine/CryCommon",
-                "CRYENGINE_DIR_PATH/Code/CryEngine/CryAction",
-                "CRYENGINE_DIR_PATH/Code/CryEngine/CrySchematyc/Core/Interface",
-                "CRYENGINE_DIR_PATH/Code/CryPlugins/CryDefaultEntities/Module"
+                "${env:CRYENGINE_DIR}/Code/CryEngine/CryCommon",
+                "${env:CRYENGINE_DIR}/Code/CryEngine/CryAction",
+                "${env:CRYENGINE_DIR}/Code/CryEngine/CrySchematyc/Core/Interface",
+                "${env:CRYENGINE_DIR}/Code/CryPlugins/CryDefaultEntities/Module"
             ],
             "defines": [
                 "LINUX",
@@ -18,7 +18,8 @@
             "compilerPath": "/usr/bin/g++-9",
             "cStandard": "c11",
             "cppStandard": "c++11",
-            "intelliSenseMode": "linux-gcc-x64"
+            "intelliSenseMode": "linux-gcc-x64",
+            "configurationProvider": "ms-vscode.cmake-tools"
         }
     ],
     "version": 4

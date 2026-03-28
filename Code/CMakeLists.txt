@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 project(FirstPersonShooter)
 
-set(CRYENGINE_DIR "CRYENGINE_DIR_PATH" CACHE STRING "CRYENGINE root directory.")
+set(CRYENGINE_DIR "$ENV{CRYENGINE_DIR}" CACHE STRING "CRYENGINE root directory.")
 set(TOOLS_CMAKE_DIR "${CRYENGINE_DIR}/Tools/CMake")
 
 set(PROJECT_BUILD 1)

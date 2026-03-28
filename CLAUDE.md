@@ -2,6 +2,18 @@
 
 CRYENGINE 5.6 First Person Shooter game plugin project (C++, Linux/GCC-9).
 
+## Prerequisites
+
+Set the `CRYENGINE_DIR` environment variable to your local CRYENGINE installation root
+before configuring, building, or launching:
+
+```bash
+export CRYENGINE_DIR=/path/to/CRYENGINE
+```
+
+Add this to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.) to persist it across sessions.
+VS Code tasks and launch configs read `CRYENGINE_DIR` automatically via `${env:CRYENGINE_DIR}`.
+
 ## Project Structure
 
 ```
@@ -41,8 +53,8 @@ Run from the project root (`FirstPersonShooter/`):
 cmake -B build -G Ninja \
   -S Code \
   -DCMAKE_BUILD_TYPE=Debug \
-  -DCRYENGINE_DIR=CRYENGINE_DIR_PATH \
-  -DCMAKE_TOOLCHAIN_FILE=CRYENGINE_DIR_PATH/Tools/CMake/toolchain/linux/Linux_GCC.cmake \
+  -DCRYENGINE_DIR=$CRYENGINE_DIR \
+  -DCMAKE_TOOLCHAIN_FILE=$CRYENGINE_DIR/Tools/CMake/toolchain/linux/Linux_GCC.cmake \
   -DCMAKE_C_COMPILER=gcc-9 \
   -DCMAKE_CXX_COMPILER=g++-9
 ```
@@ -65,8 +77,8 @@ The post-build step also copies it to `$CRYENGINE_DIR/bin/linux_x64_gcc/` automa
 ## Run
 
 ```bash
-CRYENGINE_DIR_PATH/bin/linux_x64_gcc/GameLauncher \
-  -project PROJECT_DIR_PATH/Game.cryproject
+$CRYENGINE_DIR/bin/linux_x64_gcc/GameLauncher \
+  -project $PROJECT_ROOT/Game.cryproject
 ```
 
 > The build automatically copies `libGamePlugin.so` to the engine's bin dir via a post-build step.
@@ -83,10 +95,10 @@ CRYENGINE_DIR_PATH/bin/linux_x64_gcc/GameLauncher \
 
 | Resource | Path |
 |----------|------|
-| Engine headers | `CRYENGINE_DIR_PATH/Code/CryEngine/CryCommon/` |
-| Default component headers | `CRYENGINE_DIR_PATH/Code/CryPlugins/CryDefaultEntities/Module/` |
-| Engine binaries | `CRYENGINE_DIR_PATH/bin/linux_x64_gcc/` |
-| CMake helpers | `CRYENGINE_DIR_PATH/Tools/CMake/` |
+| Engine headers | `$CRYENGINE_DIR/Code/CryEngine/CryCommon/` |
+| Default component headers | `$CRYENGINE_DIR/Code/CryPlugins/CryDefaultEntities/Module/` |
+| Engine binaries | `$CRYENGINE_DIR/bin/linux_x64_gcc/` |
+| CMake helpers | `$CRYENGINE_DIR/Tools/CMake/` |
 
 ## Build Configurations
 
