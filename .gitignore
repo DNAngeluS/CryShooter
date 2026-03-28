@@ -20,3 +20,12 @@ user/
 # OS
 .DS_Store
 Thumbs.db
+
+# Log files
+*.log
+
+# Backup files
+*.bak
+
+# Temporary
+cry_shader_server.py
