@@ -26,18 +26,23 @@ message(STATUS "CMAKE_C_COMPILER = ${CMAKE_C_COMPILER}")
 message(STATUS "CMAKE_CXX_COMPILER = ${CMAKE_CXX_COMPILER}")
 message(STATUS "OUTPUT_DIRECTORY_NAME = ${OUTPUT_DIRECTORY_NAME}")
 
-# Resolve CRYENGINE Tools/CMake directory from cache var or environment variable.
-# CRYENGINE_DIR is passed as -DCRYENGINE_DIR=... on the cmake command line; the
-# env var is the fallback for CLI users who have sourced .env.
+# Resolve CRYENGINE_DIR and persist it in the CMake cache.
+# Why FORCE: with cmake.useCMakePresets the preset evaluates $env{CRYENGINE_DIR}
+# before VS Code applies cmake.environment, so it may arrive as "" in the cache.
+# FORCE overwrites that empty value with the real path from the env var.
 if(DEFINED CRYENGINE_DIR AND NOT CRYENGINE_DIR STREQUAL "")
-    set(_cry_cmake_dir "${CRYENGINE_DIR}/Tools/CMake")
-elseif(DEFINED ENV{CRYENGINE_DIR})
-    set(_cry_cmake_dir "$ENV{CRYENGINE_DIR}/Tools/CMake")
+    # Cache variable already has a good value — nothing to do.
+elseif(DEFINED ENV{CRYENGINE_DIR} AND NOT "$ENV{CRYENGINE_DIR}" STREQUAL "")
+    set(CRYENGINE_DIR "$ENV{CRYENGINE_DIR}" CACHE PATH "CRYENGINE root directory." FORCE)
 else()
     message(FATAL_ERROR
-        "CRYENGINE_DIR is not set. Pass it via -DCRYENGINE_DIR=<path> or "
-        "set the CRYENGINE_DIR environment variable.")
+        "CRYENGINE_DIR is not set.\n"
+        "Options:\n"
+        "  - Set cmake.environment.CRYENGINE_DIR in .vscode/settings.json\n"
+        "  - Add CRYENGINE_DIR to cacheVariables in a CMakeUserPresets.json\n"
+        "  - Export CRYENGINE_DIR in your shell profile (~/.zshrc or ~/.bashrc)")
 endif()
+set(_cry_cmake_dir "${CRYENGINE_DIR}/Tools/CMake")
 
 if(EXISTS "${_cry_cmake_dir}/../linux_bootstrap")
     set(SDK_DIR "${_cry_cmake_dir}/../linux_bootstrap/Code/SDKs")

@@ -90,6 +90,38 @@ GDB is pre-configured to suppress CRYENGINE's `SIGTRAP`-based soft assertions so
 
 The `tools/` directory contains development utilities needed to run the project on Linux.
 
+### Asset Pipeline (`tools/cry_asset_pipeline.py`)
+
+Natural-language oriented tooling for CRYENGINE-compatible asset packages.
+
+Implemented slices:
+- `level` jobs: prompt -> structured spec -> staged CRYENGINE level package -> validation -> publish
+- `mesh_import` jobs: local mesh source -> staged import package -> validation -> optional compiler hand-off
+
+**Examples:**
+```bash
+python3 tools/cry_asset_pipeline.py run \
+  --kind level \
+  --prompt "small desert combat arena at noon" \
+  --target-package desert_arena
+
+python3 tools/cry_asset_pipeline.py convert-mesh \
+  --input /path/to/model.obj \
+  --target Objects/Imported/model
+```
+
+The staged workspace lives under `user/asset_pipeline/jobs/` and is gitignored.
+
+### Tracker (`tools/cry_asset_tracker.py`)
+
+Reads and updates `memory/asset_pipeline_tracker.json` so future LLM sessions can resume the current pipeline state.
+
+```bash
+python3 tools/cry_asset_tracker.py status
+python3 tools/cry_asset_tracker.py next
+python3 tools/cry_asset_tracker.py resume
+```
+
 ### Shader Server (`tools/cry_shader_server.py`)
 
 CRYENGINE's Vulkan renderer requires a running shader compiler server to compile HLSL shaders to SPIR-V at runtime. On Linux this is provided by `cry_shader_server.py`, which implements the CrySCompileServer wire protocol using Wine + DXC.
@@ -121,9 +153,18 @@ FirstPersonShooter/
 ├── Assets/
 │   └── levels/              # Game levels (created via Sandbox editor)
 ├── tools/
-│   └── cry_shader_server.py # Remote shader compiler server (Wine + DXC)
+│   ├── cry_shader_server.py # Remote shader compiler server (Wine + DXC)
+│   ├── cry_asset_pipeline.py # Natural-language asset pipeline CLI
+│   ├── cry_asset_tracker.py  # Asset tracker / resume CLI
+│   └── asset_pipeline/       # Internal helpers for level generation and mesh import
 ├── .env.example             # Template for CLI env var setup (copy to .env)
 ├── .vscode/                 # VS Code build/launch/IntelliSense config
+├── docs/
+│   └── asset_pipeline.md     # Human-readable asset pipeline reference
+└── memory/
+    ├── asset_pipeline_plan.json
+    ├── asset_pipeline_interface.json
+    └── asset_pipeline_tracker.json
 └── Code/
     ├── CMakeLists.txt        # Build definition
     ├── GamePlugin.cpp/h      # ICryPlugin entry point

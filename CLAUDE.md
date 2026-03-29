@@ -14,11 +14,17 @@ Add to `.vscode/settings.json` (gitignored — create it if it doesn't exist):
 ```json
 {
     "cmake.sourceDirectory": "${workspaceFolder}/Code",
-    "cryengineDir": "/path/to/CRYENGINE"
+    "cryengineDir": "/path/to/CRYENGINE",
+    "cmake.useCMakePresets": "always",
+    "cmake.environment": {
+        "CRYENGINE_DIR": "/path/to/CRYENGINE"
+    }
 }
 ```
 
-All tasks and launch configurations read `${config:cryengineDir}` from this file automatically.
+`cryengineDir` is used by tasks and launch configs (`${config:cryengineDir}`).
+`cmake.environment.CRYENGINE_DIR` feeds the CMake presets — keep both paths in sync.
+Note: `${config:cryengineDir}` is **not** expanded inside `cmake.environment`; the path must be set literally there.
 
 ### CLI
 
@@ -39,6 +45,11 @@ FirstPersonShooter/
 ├── Game.cryproject          # Project definition (engine version, plugins, assets)
 ├── Assets/
 │   └── levels/              # Game levels (created via Sandbox editor)
+├── tools/
+│   ├── cry_shader_server.py # Remote shader compiler server (Wine + DXC)
+│   ├── cry_asset_pipeline.py # Natural-language asset pipeline CLI
+│   ├── cry_asset_tracker.py  # Conversation resume / tracking CLI
+│   └── asset_pipeline/       # Internal asset pipeline helpers
 ├── Code/
 │   ├── CMakeLists.txt        # Build definition
 │   ├── GamePlugin.cpp/h      # ICryPlugin entry point, network listener
@@ -48,12 +59,16 @@ FirstPersonShooter/
 │       ├── SpawnPoint.cpp/h  # Spawn location marker
 │       └── Bullet.h          # Projectile physics component
 ├── docs/                     # Human-readable engine knowledge base
+│   ├── asset_pipeline.md     # Pipeline workflow, commands, and constraints
 │   ├── terrain.md            # Level files, water, spawn points, env presets
 │   ├── lod.md                # Terrain LOD CVars, z-fighting causes and fixes
 │   ├── textures.md           # cover.ctc binary format, Python generation
 │   ├── character_mesh.md     # Mannequin, CDF, camera, character controller
 │   └── lighting.md           # TOD system, .env presets, sky, shadows, CVars
 └── memory/                   # LLM-focused JSON quick-reference (machine-readable)
+    ├── asset_pipeline_plan.json
+    ├── asset_pipeline_interface.json
+    ├── asset_pipeline_tracker.json
     ├── terrain.json
     ├── lod.json
     ├── textures.json
@@ -138,6 +153,41 @@ $CRYENGINE_DIR/bin/linux_x64_gcc/GameLauncher \
 1. Create `Code/Components/MyComponent.h` and `.cpp`
 2. Add both files to `Code/CMakeLists.txt` under the `Components_uber.cpp` `add_sources()` block
 3. In the `.cpp`, include `StdAfx.h` first, then register via `CRY_STATIC_AUTO_REGISTER_WITH_PARAM` or `CRYREGISTER_CLASS`
+
+## Asset Pipeline Tools
+
+The repo now includes a staged Python asset pipeline for natural-language driven CRYENGINE packages.
+
+### `tools/cry_asset_pipeline.py`
+
+Implemented slices:
+- `level` jobs: prompt -> spec -> staged CRYENGINE level package -> validate -> publish into `Assets/levels/`
+- `mesh_import` jobs: local source mesh -> staged import package -> validation -> optional compiler hand-off
+
+Examples:
+
+```bash
+python3 tools/cry_asset_pipeline.py run \
+  --kind level \
+  --prompt "small desert combat arena at noon" \
+  --target-package desert_arena
+
+python3 tools/cry_asset_pipeline.py convert-mesh \
+  --input /path/to/model.obj \
+  --target Objects/Imported/model
+```
+
+The staging root is `user/asset_pipeline/jobs/`.
+
+### `tools/cry_asset_tracker.py`
+
+Uses `memory/asset_pipeline_tracker.json` to preserve roadmap state, active jobs, and resume context for future LLM sessions.
+
+```bash
+python3 tools/cry_asset_tracker.py status
+python3 tools/cry_asset_tracker.py next
+python3 tools/cry_asset_tracker.py resume
+```
 
 ## Key Engine Paths
 

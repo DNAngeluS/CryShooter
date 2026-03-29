@@ -1,0 +1,117 @@
+{
+  "_meta": {
+    "engine": "CRYENGINE 5.6",
+    "topic": "asset_pipeline",
+    "doc": "docs/asset_pipeline.md",
+    "version": 1
+  },
+  "summary": {
+    "goal": "Build Python tools that turn natural language into CRYENGINE-compatible asset packages with staged validation and persistent conversation memory.",
+    "first_slice": "level_generation",
+    "output_mode": "staged_publish",
+    "tracking_mode": "json_ledger"
+  },
+  "entrypoints": {
+    "pipeline_cli": "tools/cry_asset_pipeline.py",
+    "tracker_cli": "tools/cry_asset_tracker.py",
+    "stage_root": "user/asset_pipeline/jobs",
+    "tracker_file": "memory/asset_pipeline_tracker.json",
+    "interface_file": "memory/asset_pipeline_interface.json"
+  },
+  "supported_asset_kinds": [
+    {
+      "kind": "level",
+      "status": "implemented",
+      "capabilities": [
+        "prompt_to_spec",
+        "level_pak_generation",
+        "terraintexture_pak_generation",
+        "validation",
+        "publish_to_assets"
+      ]
+    },
+    {
+      "kind": "mesh_import",
+      "status": "implemented",
+      "capabilities": [
+        "source_staging",
+        "obj_sidecar_copy",
+        "import_recipe_generation",
+        "compiler_discovery",
+        "validation"
+      ]
+    },
+    {
+      "kind": "character_package",
+      "status": "planned",
+      "capabilities": [
+        "cdf_assembly",
+        "mannequin_stub_generation",
+        "skeleton_binding_rules"
+      ]
+    },
+    {
+      "kind": "vehicle_package",
+      "status": "planned",
+      "capabilities": [
+        "mesh_bundle_assembly",
+        "material_binding",
+        "physics_metadata_templates"
+      ]
+    }
+  ],
+  "commands": [
+    "create-job",
+    "plan-spec",
+    "build",
+    "validate",
+    "publish",
+    "run",
+    "convert-mesh"
+  ],
+  "defaults": {
+    "lighting_preset": "%ENGINE%/EngineAssets/Shading/default.env",
+    "ocean_water_level": -100,
+    "heightmap_z_ratio": 0.015625,
+    "sector_size": 32,
+    "llm_mode": "auto",
+    "mesh_obj_scope": "static_geometry_only"
+  },
+  "constraints": [
+    "OBJ is valid for static mesh imports but not for full skeletal character import.",
+    "Skeletal character and animated vehicle imports should use FBX or DAE source assets.",
+    "The pipeline stages outputs under user/ before copying validated assets into Assets/.",
+    "If CRYENGINE compiler tooling is unavailable, mesh imports remain staged instead of failing silently."
+  ],
+  "roadmap": [
+    {
+      "milestone": "M1-level-generation",
+      "status": "implemented",
+      "scope": [
+        "prompt_to_level_spec",
+        "level_package_build",
+        "validation",
+        "publish"
+      ]
+    },
+    {
+      "milestone": "M2-mesh-import",
+      "status": "implemented",
+      "scope": [
+        "mesh_source_staging",
+        "obj_sidecars",
+        "compiler_recipe",
+        "mesh_validation"
+      ]
+    },
+    {
+      "milestone": "M3-character-vehicle-packages",
+      "status": "planned",
+      "scope": [
+        "cdf_generation",
+        "adb_controller_templates",
+        "vehicle_bundle_templates"
+      ]
+    }
+  ]
+}

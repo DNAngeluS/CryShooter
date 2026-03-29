@@ -1,0 +1,17 @@
+{
+  "_meta": {
+    "engine": "CRYENGINE 5.6",
+    "topic": "asset_pipeline_tracker",
+    "version": 1,
+    "updated_at": "2026-03-29T00:00:00+00:00"
+  },
+  "roadmap": {
+    "active_milestone": "M1-level-generation",
+    "next_actions": [
+      "Run cry_asset_pipeline.py run --kind level with a real gameplay prompt to generate the first publishable level package.",
+      "Run cry_asset_pipeline.py convert-mesh on a local OBJ or FBX asset to stage the first importable mesh package.",
+      "Extend the pipeline with character_package support using docs/character_mesh.md and memory/character_mesh.json."
+    ]
+  },
+  "jobs": []
+}
