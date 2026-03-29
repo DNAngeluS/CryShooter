@@ -1,0 +1,63 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "gcc9",
+            "displayName": "GCC 9 Debug",
+            "description": "GCC 9, Debug build, deploys to linux_x64_gcc",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/../build/gcc",
+            "toolchainFile": "${sourceDir}/../cmake/toolchain/Linux_GCC_System.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_C_COMPILER": "gcc-9",
+                "CMAKE_CXX_COMPILER": "g++-9"
+            }
+        },
+        {
+            "name": "gcc14",
+            "displayName": "GCC 14 Debug",
+            "description": "GCC 14, Debug build, deploys to linux_x64_gcc",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/../build/gcc14",
+            "toolchainFile": "${sourceDir}/../cmake/toolchain/Linux_GCC_System.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_C_COMPILER": "gcc-14",
+                "CMAKE_CXX_COMPILER": "g++-14"
+            }
+        },
+        {
+            "name": "clang",
+            "displayName": "Clang Debug",
+            "description": "System Clang, Debug build, deploys to linux_x64_gcc",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/../build/clang",
+            "toolchainFile": "${sourceDir}/../cmake/toolchain/Linux_Clang_System.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CLANG_OUTPUT_DIR_NAME": "linux_x64_gcc"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "gcc9",
+            "displayName": "Build GCC 9",
+            "configurePreset": "gcc9",
+            "jobs": 0
+        },
+        {
+            "name": "gcc14",
+            "displayName": "Build GCC 14",
+            "configurePreset": "gcc14",
+            "jobs": 0
+        },
+        {
+            "name": "clang",
+            "displayName": "Build Clang",
+            "configurePreset": "clang",
+            "jobs": 0
+        }
+    ]
+}

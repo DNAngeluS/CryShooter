@@ -1,6 +1,7 @@
 # CLAUDE.md — FirstPersonShooter
 
-CRYENGINE 5.6 First Person Shooter game plugin project (C++, Linux/GCC-9).
+CRYENGINE 5.6 First Person Shooter game plugin project (C++, Linux).
+Supported compilers: GCC 9 (default), GCC 14, Clang 22.
 
 ## Prerequisites
 
@@ -64,10 +65,12 @@ The game is built as a shared library (`libGamePlugin.so`) loaded by the engine 
 
 ## Configure
 
-Run from the project root (`FirstPersonShooter/`):
+Run from the project root (`FirstPersonShooter/`). Three compiler options are supported:
+
+### GCC 9 (default)
 
 ```bash
-cmake -B build -G Ninja \
+cmake -B build/gcc -G Ninja \
   -S Code \
   -DCMAKE_BUILD_TYPE=Debug \
   -DCRYENGINE_DIR=$CRYENGINE_DIR \
@@ -76,19 +79,47 @@ cmake -B build -G Ninja \
   -DCMAKE_CXX_COMPILER=g++-9
 ```
 
+### GCC 14 (latest stable)
+
+```bash
+cmake -B build/gcc14 -G Ninja \
+  -S Code \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DCRYENGINE_DIR=$CRYENGINE_DIR \
+  -DCMAKE_TOOLCHAIN_FILE=$CRYENGINE_DIR/Tools/CMake/toolchain/linux/Linux_GCC.cmake \
+  -DCMAKE_C_COMPILER=gcc-14 \
+  -DCMAKE_CXX_COMPILER=g++-14
+```
+
+### Clang (system clang)
+
+Uses the project-local toolchain at `cmake/toolchain/Linux_Clang_System.cmake`.
+By default the plugin deploys to `linux_x64_gcc/` (where the GCC-compiled engine lives).
+Pass `-DCLANG_OUTPUT_DIR_NAME=linux_x64_clang` when building against a full Clang engine.
+
+```bash
+cmake -B build/clang -G Ninja \
+  -S Code \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DCRYENGINE_DIR=$CRYENGINE_DIR \
+  -DCMAKE_TOOLCHAIN_FILE=$(pwd)/cmake/toolchain/Linux_Clang_System.cmake
+```
+
 Change build type by replacing `-DCMAKE_BUILD_TYPE=Debug` with `Profile` or `Release`.
 
 ## Build
 
 ```bash
-cmake --build build --parallel $(nproc)
+cmake --build build/gcc --parallel $(nproc)    # GCC 9
+cmake --build build/gcc14 --parallel $(nproc)  # GCC 14
+cmake --build build/clang --parallel $(nproc)  # Clang
 ```
 
 Output: `bin/linux_x64_gcc/libGamePlugin.so` (project root).
 The post-build step also copies it to `$CRYENGINE_DIR/bin/linux_x64_gcc/` automatically.
 
-> **After deleting the build directory**, always do a full reconfigure (`rm -rf build && cmake -B build ...`).
-> A partial re-run of `cmake -B build` with a stale cache will not regenerate the uber files
+> **After deleting a build directory**, always do a full reconfigure (e.g. `rm -rf build/gcc && cmake -B build/gcc ...`).
+> A partial re-run with a stale cache will not regenerate the uber files
 > (`GamePlugin_uber.cpp`, `Components_uber.cpp`) and the build will fail.
 
 ## Run

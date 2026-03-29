@@ -178,7 +178,7 @@ void CGamePlugin::OnClientDisconnected(int channelId, EDisconnectionCause cause,
 
 void CGamePlugin::IterateOverPlayers(std::function<void(CPlayerComponent& player)> func) const
 {
-	for (const std::pair<int, EntityId>& playerPair : m_players)
+	for (const auto& playerPair : m_players)
 	{
 		if (IEntity* pPlayerEntity = gEnv->pEntitySystem->GetEntity(playerPair.second))
 		{

@@ -44,7 +44,7 @@ end_sources()
 
 CryEngineModule(GamePlugin PCH "StdAfx.cpp" SOLUTION_FOLDER "Project")
 
-target_include_directories(${THIS_PROJECT} PRIVATE
+target_include_directories(${THIS_PROJECT} SYSTEM PRIVATE
     "${CRYENGINE_DIR}/Code/CryEngine/CryCommon"
     "${CRYENGINE_DIR}/Code/CryEngine/CryAction"
     "${CRYENGINE_DIR}/Code/CryEngine/CrySchematyc/Core/Interface"
@@ -70,6 +70,9 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "[Cc]lang")
         -Wno-unused-lambda-capture
         -Wno-unused-function
         -Wno-tautological-constant-out-of-range-compare
+        # Clang 16+ warnings from CryEngine headers
+        -Wno-deprecated-copy
+        -Wno-mismatched-tags
     )
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_compile_options(${THIS_PROJECT} PRIVATE
@@ -95,6 +98,13 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         -Wno-format
         -Wno-switch
         -Wno-deprecated-declarations
+        # GCC 10+ warnings from CryEngine headers
+        $<$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},10.0>:-Wno-deprecated-copy>
+        $<$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},10.0>:-Wno-mismatched-tags>
+        $<$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},10.0>:-Wno-redundant-tags>
+        # GCC 12+ warnings from CryEngine headers
+        $<$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},12.0>:-Wno-array-parameter>
+        $<$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},12.0>:-Wno-dangling-pointer>
     )
 endif()
 

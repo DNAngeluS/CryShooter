@@ -1,119 +1,259 @@
 {
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "CMake Configure (Debug)",
-            "type": "shell",
-            "command": "cmake",
-            "args": [
-                "-B", "${workspaceFolder}/build",
-                "-G", "Ninja",
-                "-S", "${workspaceFolder}/Code",
-                "-DCMAKE_BUILD_TYPE=Debug",
-                "-DCRYENGINE_DIR=${config:cryengineDir}",
-                "-DCMAKE_TOOLCHAIN_FILE=${config:cryengineDir}/Tools/CMake/toolchain/linux/Linux_GCC.cmake",
-                "-DCMAKE_C_COMPILER=gcc-9",
-                "-DCMAKE_CXX_COMPILER=g++-9"
-            ],
-            "group": "build",
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared"
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "CMake Configure (Profile)",
-            "type": "shell",
-            "command": "cmake",
-            "args": [
-                "-B", "${workspaceFolder}/build",
-                "-G", "Ninja",
-                "-S", "${workspaceFolder}/Code",
-                "-DCMAKE_BUILD_TYPE=Profile",
-                "-DCRYENGINE_DIR=${config:cryengineDir}",
-                "-DCMAKE_TOOLCHAIN_FILE=${config:cryengineDir}/Tools/CMake/toolchain/linux/Linux_GCC.cmake",
-                "-DCMAKE_C_COMPILER=gcc-9",
-                "-DCMAKE_CXX_COMPILER=g++-9"
-            ],
-            "group": "build",
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared"
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "CMake Build",
-            "type": "shell",
-            "command": "cmake",
-            "args": [
-                "--build", "${workspaceFolder}/build",
-                "--parallel"
-            ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared"
-            },
-            "problemMatcher": {
-                "owner": "cpp",
-                "fileLocation": ["absolute"],
-                "pattern": {
-                    "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
-                    "file": 1,
-                    "line": 2,
-                    "column": 3,
-                    "severity": 4,
-                    "message": 5
-                }
-            }
-        },
-        {
-            "label": "Start Shader Server",
-            "type": "shell",
-            "command": "python3",
-            "args": ["${workspaceFolder}/tools/cry_shader_server.py"],
-            "options": {
-                "env": {
-                    "CRYENGINE_DIR": "${config:cryengineDir}"
-                }
-            },
-            "isBackground": true,
-            "problemMatcher": {
-                "pattern": {
-                    "regexp": "^NEVER_MATCH$"
-                },
-                "background": {
-                    "activeOnStart": true,
-                    "beginsPattern": "CryEngine shader compiler server",
-                    "endsPattern": "^NEVER_MATCH$"
-                }
-            },
-            "group": "none",
-            "presentation": {
-                "reveal": "always",
-                "panel": "dedicated",
-                "showReuseMessage": false
-            }
-        },
-        {
-            "label": "CMake Clean",
-            "type": "shell",
-            "command": "cmake",
-            "args": [
-                "--build", "${workspaceFolder}/build",
-                "--target", "clean"
-            ],
-            "group": "build",
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared"
-            },
-            "problemMatcher": []
-        }
-    ]
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "CMake Configure (Debug)",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"-B",
+				"${workspaceFolder}/build/gcc",
+				"-G",
+				"Ninja",
+				"-S",
+				"${workspaceFolder}/Code",
+				"-DCMAKE_BUILD_TYPE=Debug",
+				"-DCRYENGINE_DIR=${config:cryengineDir}",
+				"-DCMAKE_TOOLCHAIN_FILE=${config:cryengineDir}/Tools/CMake/toolchain/linux/Linux_GCC.cmake",
+				"-DCMAKE_C_COMPILER=gcc-9",
+				"-DCMAKE_CXX_COMPILER=g++-9"
+			],
+			"group": "build",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "CMake Configure (Profile)",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"-B",
+				"${workspaceFolder}/build/gcc",
+				"-G",
+				"Ninja",
+				"-S",
+				"${workspaceFolder}/Code",
+				"-DCMAKE_BUILD_TYPE=Profile",
+				"-DCRYENGINE_DIR=${config:cryengineDir}",
+				"-DCMAKE_TOOLCHAIN_FILE=${config:cryengineDir}/Tools/CMake/toolchain/linux/Linux_GCC.cmake",
+				"-DCMAKE_C_COMPILER=gcc-9",
+				"-DCMAKE_CXX_COMPILER=g++-9"
+			],
+			"group": "build",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "CMake Configure (Debug, GCC 14)",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"-B",
+				"${workspaceFolder}/build/gcc14",
+				"-G",
+				"Ninja",
+				"-S",
+				"${workspaceFolder}/Code",
+				"-DCMAKE_BUILD_TYPE=Debug",
+				"-DCRYENGINE_DIR=${config:cryengineDir}",
+				"-DCMAKE_TOOLCHAIN_FILE=${config:cryengineDir}/Tools/CMake/toolchain/linux/Linux_GCC.cmake",
+				"-DCMAKE_C_COMPILER=gcc-14",
+				"-DCMAKE_CXX_COMPILER=g++-14"
+			],
+			"group": "build",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "CMake Configure (Debug, Clang)",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"-B",
+				"${workspaceFolder}/build/clang",
+				"-G",
+				"Ninja",
+				"-S",
+				"${workspaceFolder}/Code",
+				"-DCMAKE_BUILD_TYPE=Debug",
+				"-DCRYENGINE_DIR=${config:cryengineDir}",
+				"-DCMAKE_TOOLCHAIN_FILE=${workspaceFolder}/cmake/toolchain/Linux_Clang_System.cmake",
+				"-DCLANG_OUTPUT_DIR_NAME=linux_x64_gcc"
+			],
+			"group": "build",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "CMake Configure (Debug, Clang [clang engine])",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"-B",
+				"${workspaceFolder}/build/clang",
+				"-G",
+				"Ninja",
+				"-S",
+				"${workspaceFolder}/Code",
+				"-DCMAKE_BUILD_TYPE=Debug",
+				"-DCRYENGINE_DIR=${config:cryengineDir}",
+				"-DCMAKE_TOOLCHAIN_FILE=${workspaceFolder}/cmake/toolchain/Linux_Clang_System.cmake",
+				"-DCLANG_OUTPUT_DIR_NAME=linux_x64_clang"
+			],
+			"group": "build",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "CMake Build (GCC 14)",
+			"type": "shell",
+			"command": "cmake",
+			"args": ["--build", "${workspaceFolder}/build/gcc14", "--parallel"],
+			"group": "build",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			},
+			"problemMatcher": {
+				"owner": "cpp",
+				"fileLocation": ["absolute"],
+				"pattern": {
+					"regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+					"file": 1,
+					"line": 2,
+					"column": 3,
+					"severity": 4,
+					"message": 5
+				}
+			}
+		},
+		{
+			"label": "CMake Build (Clang)",
+			"type": "shell",
+			"command": "cmake",
+			"args": ["--build", "${workspaceFolder}/build/clang", "--parallel"],
+			"group": "build",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			},
+			"problemMatcher": {
+				"owner": "cpp",
+				"fileLocation": ["absolute"],
+				"pattern": {
+					"regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+					"file": 1,
+					"line": 2,
+					"column": 3,
+					"severity": 4,
+					"message": 5
+				}
+			}
+		},
+		{
+			"label": "CMake Build",
+			"type": "shell",
+			"command": "cmake",
+			"args": ["--build", "${workspaceFolder}/build/gcc", "--parallel"],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			},
+			"problemMatcher": {
+				"owner": "cpp",
+				"fileLocation": ["absolute"],
+				"pattern": {
+					"regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+					"file": 1,
+					"line": 2,
+					"column": 3,
+					"severity": 4,
+					"message": 5
+				}
+			}
+		},
+		{
+			"label": "Start Shader Server",
+			"type": "shell",
+			"command": "python3",
+			"args": ["${workspaceFolder}/tools/cry_shader_server.py"],
+			"options": {
+				"env": {
+					"CRYENGINE_DIR": "${config:cryengineDir}"
+				}
+			},
+			"isBackground": true,
+			"problemMatcher": {
+				"pattern": {
+					"regexp": "^NEVER_MATCH$"
+				},
+				"background": {
+					"activeOnStart": true,
+					"beginsPattern": "CryEngine shader compiler server",
+					"endsPattern": "^NEVER_MATCH$"
+				}
+			},
+			"group": "none",
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated",
+				"showReuseMessage": false
+			}
+		},
+		{
+			"label": "CMake Clean (GCC)",
+			"type": "shell",
+			"command": "cmake",
+			"args": ["--build", "${workspaceFolder}/build/gcc", "--target", "clean"],
+			"group": "build",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "CMake Clean (GCC 14)",
+			"type": "shell",
+			"command": "cmake",
+			"args": ["--build", "${workspaceFolder}/build/gcc14", "--target", "clean"],
+			"group": "build",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "CMake Clean (Clang)",
+			"type": "shell",
+			"command": "cmake",
+			"args": ["--build", "${workspaceFolder}/build/clang", "--target", "clean"],
+			"group": "build",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		}
+	]
 }
