@@ -1,0 +1,10 @@
+# Core numeric/scientific (already system-installed; listed for venv reproducibility)
+numpy>=2.0
+scipy>=1.13
+
+# Graph algorithms for room connectivity (BSP, MST, WFC)
+networkx>=3.6
+
+# C-accelerated Perlin/simplex noise for heightmaps and density fields
+# Falls back to numpy-native approximation if unavailable
+noise==1.2.2

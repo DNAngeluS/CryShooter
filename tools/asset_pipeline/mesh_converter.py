@@ -155,9 +155,10 @@ def convert_mesh_job(
             "FBX is preferred for skeletal assets; OBJ is limited to static geometry.",
         ],
     }
+    staged_input = stage_root / "staged_assets" / "Assets" / (target + Path(staged["source_file"]).suffix)
     compiler = _discover_compiler(resolve_cryengine_dir(cryengine_dir_arg))
     if compiler:
-        import_recipe["compiler_command"] = f"{compiler} {copied_input}"
+        import_recipe["compiler_command"] = f"{compiler} {staged_input}"
     else:
         import_recipe["compiler_command"] = None
         import_recipe["notes"].append("No CRYENGINE compiler was discovered from CRYENGINE_DIR; the job is staged and ready for compilation when the engine toolchain is available.")

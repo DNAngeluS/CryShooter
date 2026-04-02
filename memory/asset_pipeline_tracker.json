@@ -3,7 +3,7 @@
     "engine": "CRYENGINE 5.6",
     "topic": "asset_pipeline_tracker",
     "version": 3,
-    "updated_at": "2026-04-02T17:05:54+00:00"
+    "updated_at": "2026-04-02T22:22:32+00:00"
   },
   "roadmap": {
     "active_milestone": "M2-bundle-graph-compiler",
@@ -18,16 +18,18 @@
     {
       "job_id": "level-fps-forest-basin",
       "asset_kind": "level",
-      "prompt": "High-fidelity FPS combat arena. Terrain: 1024x1024 meters featuring a central low-land basin surrounded by sloped ridges to create natural boundaries. Vegetation: Dense temperate forest zones on the perimeter with 'tactical spacing' between tree trunks to allow for player navigation and cover-to-cover movement. Ground: Multi-layered procedural grass and clover textures with dirt-path clearings. Lighting: Mid-afternoon sun with high-contrast shadows to enhance depth and player visibility.",
+      "prompt": "High-fidelity FPS combat arena. Terrain: 1024x1024 meters featuring a central low-land basin surrounded by sloped ridges to create natural boundaries. Vegetation: Dense temperate forest zones on the perimeter with tactical spacing between tree trunks to allow for player navigation and cover-to-cover movement. Ground: Multi-layered procedural grass and clover textures with dirt-path clearings. Lighting: Mid-afternoon sun with high-contrast shadows to enhance depth and player visibility.",
       "status": "published",
-      "created_at": "2026-03-30T13:19:09+00:00",
-      "updated_at": "2026-03-30T13:19:10+00:00",
+      "created_at": "2026-04-02T19:25:11+00:00",
+      "updated_at": "2026-04-02T22:22:32+00:00",
       "stage_dir": "user/asset_pipeline/jobs/level-fps-forest-basin",
       "target_package": "fps_forest_basin",
       "requested_capabilities": [],
       "published_paths": [
         "Materials/Generated/fps_forest_basin/clover_ground.mtl",
         "Materials/Generated/fps_forest_basin/clover_ground.mtl.cryasset",
+        "Materials/Generated/fps_forest_basin/dirt_path.mtl",
+        "Materials/Generated/fps_forest_basin/dirt_path.mtl.cryasset",
         "Materials/Generated/fps_forest_basin/forest_ground.mtl",
         "Materials/Generated/fps_forest_basin/forest_ground.mtl.cryasset",
         "Objects/Generated/fps_forest_basin/canopy_cluster.cgf",
@@ -43,6 +45,7 @@
         "Objects/Generated/fps_forest_basin/tree_trunk.cgf",
         "Objects/Generated/fps_forest_basin/tree_trunk.cgf.cryasset",
         "Textures/Generated/fps_forest_basin/clover_ground_albedo.png",
+        "Textures/Generated/fps_forest_basin/dirt_path_albedo.png",
         "Textures/Generated/fps_forest_basin/forest_ground_albedo.png",
         "levels/fps_forest_basin/filelist.xml",
         "levels/fps_forest_basin/fps_forest_basin.level",

@@ -41,6 +41,11 @@ def load_texture_preset_catalog(root: Path | None = None) -> dict[str, Any]:
     return _load_catalog(repo_root, "textures", "catalog.json")
 
 
+def load_procgen_catalog(root: Path | None = None) -> dict[str, Any]:
+    repo_root = root or project_root()
+    return _load_catalog(repo_root, "procgen", "catalog.json")
+
+
 def build_capability_catalog(root: Path | None = None) -> dict[str, Any]:
     repo_root = root or project_root()
     template_catalog = load_level_template_catalog(repo_root)
@@ -48,6 +53,7 @@ def build_capability_catalog(root: Path | None = None) -> dict[str, Any]:
     material_catalog = load_material_template_catalog(repo_root)
     character_catalog = load_character_template_catalog(repo_root)
     texture_catalog = load_texture_preset_catalog(repo_root)
+    procgen_catalog = load_procgen_catalog(repo_root)
     return {
         "graph_contract": {
             "top_level_fields": ["asset_kind", "bundle_kind", "bundle_slug", "summary", "root_scene", "nodes"],
@@ -55,6 +61,9 @@ def build_capability_catalog(root: Path | None = None) -> dict[str, Any]:
             "supported_node_types": [
                 "scene_level",
                 "terrain_archetype",
+                "terrain_procgen",
+                "interior_procgen",
+                "structured_procgen",
                 "texture_source",
                 "material_surface",
                 "mesh_procedural",
@@ -63,6 +72,7 @@ def build_capability_catalog(root: Path | None = None) -> dict[str, Any]:
                 "character_fp_package",
             ],
         },
+        "procgen": procgen_catalog,
         "asset_kinds": {
             "level": {
                 "authoring_mode": "bundle_graph",

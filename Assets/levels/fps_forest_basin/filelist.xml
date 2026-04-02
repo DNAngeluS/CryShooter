@@ -1,6 +1,6 @@
 <download name="fps_forest_basin" type="Map">
  <index src="filelist.xml" dest="filelist.xml"/>
  <files>
-  <file src="level.pak" dest="level.pak" size="49572" md5="c192d37f2c47ba8c2235092d004dbc9d"/>
+  <file src="level.pak" dest="level.pak" size="2212474" md5="6a2f35acc76cb2a61ca1eb2018312ad7"/>
  </files>
 </download>

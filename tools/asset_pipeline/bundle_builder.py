@@ -16,6 +16,12 @@ from .catalogs import (
     load_material_template_catalog,
     load_procedural_mesh_catalog,
 )
+from .procgen.terrain_gen import generate_open_terrain
+from .procgen.interior_gen import generate_interior
+from .procgen.structured_gen import generate_structured
+from .procgen.heightmap_writer import write_heightmap_dat, flat_heightmap
+from .procgen.mesh_writer import write_obj, write_mtl
+from .procgen.terrain_dat_writer import write_terrain_dat
 
 
 OVERRIDDEN_LEVEL_PAK_ENTRIES = {"leveldata.xml", "levelinfo.xml", "mission_mission0.xml"}
@@ -270,8 +276,27 @@ def _layer_xml(name: str, layer_type: int, guid: str, body_lines: list[str]) -> 
     )
 
 
-def _main_layer_xml(placements: list[dict[str, Any]], main_layer_guid: str) -> str:
+def _spawn_point_xml(pos: list, layer_guid: str) -> str:
+    """Emit a CSpawnPointComponent entity at the given world position.
+
+    TypeGUID matches the GUID registered in Code/Components/SpawnPoint.h.
+    EntityClass "Entity" is the CRYENGINE 5.6 default class for Schematyc-component-only entities.
+    """
+    return (
+        f'   <Object Type="Entity" EntityClass="Entity" Layer="Main" LayerGUID="{layer_guid}" '
+        f'Name="PlayerSpawnPoint" EntityGuid="{{{uuid.uuid4()}}}" '
+        f'Pos="{_format_csv(pos)}" Rotate="1,0,0,0" Scale="1,1,1">\n'
+        f'    <Components>\n'
+        f'     <Component TypeGUID="{{41316132-8A1E-4073-B0CD-A242FD3D2E90}}" />\n'
+        f'    </Components>\n'
+        f'   </Object>'
+    )
+
+
+def _main_layer_xml(placements: list[dict[str, Any]], main_layer_guid: str, spawn_pos: list | None = None) -> str:
     body_lines = ["  <LayerObjects>"]
+    if spawn_pos is not None:
+        body_lines.append(_spawn_point_xml(spawn_pos, main_layer_guid))
     for placement in placements:
         body_lines.append(_brush_object_xml(placement, main_layer_guid, placement["asset_path"], placement.get("material_override")))
     body_lines.append("  </LayerObjects>")
@@ -520,6 +545,8 @@ def _compile_scene_level(stage_root: Path, stage_assets_root: Path, bundle_slug:
 
     placement_reports = [build_state[item]["placements"] for item in node["inputs"]["placement_sets"]]
     placements = [placement for group in placement_reports for placement in group]
+    # Merge auto_placements from interior/structured terrain nodes
+    placements = list(terrain_report.get("auto_placements", [])) + placements
     main_layer_guid = str(uuid.uuid4())
     terrain_layer_guid = str(uuid.uuid4())
     write_text(level_root / f"{level_slug}.level", _level_file_xml(level_slug, scene_spec, main_layer_guid, world["heightmap_size"]))
@@ -528,19 +555,25 @@ def _compile_scene_level(stage_root: Path, stage_assets_root: Path, bundle_slug:
     write_text(level_root / "leveldata" / "terraintexture.xml", _terrain_texture_xml(world["heightmap_size"]))
     write_text(level_root / "leveldata" / "gametokens.xml", "<GameTokens />\n")
     write_text(level_root / "leveldata" / "objectives.xml", "<Objectives />\n")
-    write_text(level_root / "layers" / "main.lyr", _main_layer_xml(placements, main_layer_guid))
+    spawn_pos = scene_spec["spawn"]["transform"]["position"]
+    write_text(level_root / "layers" / "main.lyr", _main_layer_xml(placements, main_layer_guid, spawn_pos))
     write_text(level_root / "layers" / "terrain.lyr", _terrain_layer_xml(terrain_layer_guid))
 
     template_level_pak = template_level_root / "level.pak"
     level_pak = level_root / "level.pak"
+    terrain_dat_path = terrain_report.get("terrain_dat_path")
+    # Skip the template's terrain.dat only when we have a procgen replacement.
+    pak_overrides = OVERRIDDEN_LEVEL_PAK_ENTRIES | ({"terrain/terrain.dat"} if terrain_dat_path else set())
     with zipfile.ZipFile(template_level_pak) as source_archive, zipfile.ZipFile(level_pak, "w", zipfile.ZIP_DEFLATED) as target_archive:
         for name in sorted(source_archive.namelist()):
-            if name in OVERRIDDEN_LEVEL_PAK_ENTRIES:
+            if name in pak_overrides:
                 continue
             target_archive.writestr(name, source_archive.read(name))
         target_archive.writestr("leveldata.xml", _leveldata_xml(level_slug, world, terrain_report["paint_material_assets"]))
         target_archive.writestr("levelinfo.xml", _levelinfo_xml(level_slug, world))
         target_archive.writestr("mission_mission0.xml", _mission_xml(scene_spec, world["heightmap_size"]))
+        if terrain_dat_path:
+            target_archive.write(root / terrain_dat_path, "terrain/terrain.dat")
 
     filelist = "\n".join(
         [
@@ -567,6 +600,211 @@ def _compile_scene_level(stage_root: Path, stage_assets_root: Path, bundle_slug:
     return report
 
 
+def _nearest_flat_template(root: Path) -> dict[str, Any]:
+    """Return the smallest available flat_arena template for use as underlay."""
+    catalog = load_level_template_catalog(root)
+    for size in (512, 1024, 2048):
+        for t in catalog["templates"]:
+            if t["profile"] == "flat_arena" and t["heightmap_size"] == size and t.get("available"):
+                return t
+    # Fallback: first available template of any profile
+    for t in catalog["templates"]:
+        if t.get("available"):
+            return t
+    raise ValueError("No available level templates found")
+
+
+def _compile_terrain_procgen_node(
+    stage_root: Path, stage_assets_root: Path, bundle_slug: str,
+    node: dict[str, Any], build_state: dict[str, Any], root: Path,
+) -> dict[str, Any]:
+    spec = node["spec"]
+    seed = int(spec.get("seed", 0))
+    heightmap_size = int(spec.get("heightmap_size", 1024))
+    max_height_m = float(spec.get("max_height_m", 1024.0))
+
+    result = generate_open_terrain(spec, seed, heightmap_size, max_height_m)
+
+    terrain_stage_root = stage_root / "compiled_nodes" / node["id"]
+    terrain_stage_root.mkdir(parents=True, exist_ok=True)
+
+    heightmap_target = terrain_stage_root / "heightmap.dat"
+    write_heightmap_dat(heightmap_target, result.heights_uint16, max_height_m=max_height_m)
+
+    terrain_dat_target = terrain_stage_root / "terrain.dat"
+    write_terrain_dat(
+        terrain_dat_target,
+        result.heights_uint16,
+        unit_size_m=1.0,
+        sector_size_m=32,
+        max_height_m=max_height_m,
+        ocean_water_level=-100.0,
+    )
+
+    # PROCGEN_TODO: vegetationmap.dat copied from template (foliage_hints available for future use).
+    fallback_template = _nearest_flat_template(root)
+    template_level_root = root / fallback_template["source_level_dir"]
+    vegetation_target = terrain_stage_root / "vegetationmap.dat"
+    shutil.copy2(template_level_root / "leveldata" / "vegetationmap.dat", vegetation_target)
+
+    # Build terraintexture.pak from first paint material
+    first_material = build_state[node["inputs"]["paint_materials"][0]]
+    diffuse_node = next(v for v in build_state.values() if v.get("asset_path") == first_material["diffuse_texture"])
+    pixel_data = diffuse_node.get("pixel_data")
+    if pixel_data:
+        terraintexture_report = build_terraintexture_pak(
+            terrain_stage_root / "terraintexture.pak",
+            pixel_data["pixels"], pixel_data["width"], pixel_data["height"],
+            heightmap_size // 32,
+        )
+    else:
+        pixels, _ = generate_texture_pixels({"mode": "solid_color", "width": 64, "height": 64, "rgba": diffuse_node["average_rgba"]})
+        terraintexture_report = build_terraintexture_pak(
+            terrain_stage_root / "terraintexture.pak", pixels, 64, 64, heightmap_size // 32,
+        )
+
+    terrain_manifest = {
+        "template_id": f"procgen:{spec.get('subtype', 'forest')}:{seed}",
+        "paint_zones": [{"material_node": item, "zone": "base"} for item in node["inputs"]["paint_materials"]],
+        "paint_zone_hints": result.procgen_json.get("paint_zone_hints", []),
+        "foliage_zones": [],
+        "foliage_hints": result.procgen_json.get("foliage_hints", []),
+        "paint_material_assets": [build_state[item]["asset_path"] for item in node["inputs"]["paint_materials"]],
+        "foliage_mesh_assets": [],
+    }
+    write_json(terrain_stage_root / "terrain_manifest.json", terrain_manifest)
+    write_json(terrain_stage_root / "procgen_mesh.json", result.procgen_json)
+
+    report = {
+        "node_id": node["id"],
+        "type": node["type"],
+        "status": "built",
+        "template_id": terrain_manifest["template_id"],
+        "heightmap_size": heightmap_size,
+        "heightmap_path": relative_to_repo(heightmap_target, base=root),
+        "terrain_dat_path": relative_to_repo(terrain_dat_target, base=root),
+        "vegetationmap_path": relative_to_repo(vegetation_target, base=root),
+        "terraintexture_pak_path": relative_to_repo(Path(terraintexture_report["path"]), base=root),
+        "paint_material_assets": terrain_manifest["paint_material_assets"],
+        "manifest_path": relative_to_repo(terrain_stage_root / "terrain_manifest.json", base=root),
+        "template_level_dir": fallback_template["source_level_dir"],
+        "world": {
+            "heightmap_size": heightmap_size,
+            "unit_size": 1,
+            "sector_size": 32,
+            "heightmap_z_ratio": 0.015625,
+            "max_height": int(max_height_m),
+            "ocean_water_level": -100,
+        },
+    }
+    build_state[node["id"]] = report
+    return report
+
+
+def _compile_interior_or_structured_node(
+    stage_root: Path, stage_assets_root: Path, bundle_slug: str,
+    node: dict[str, Any], build_state: dict[str, Any], root: Path,
+) -> dict[str, Any]:
+    spec = node["spec"]
+    seed = int(spec.get("seed", 0))
+    world_size_m = float(spec.get("world_size_m", 128.0))
+    node_type = node["type"]
+
+    # Generate geometry
+    if node_type == "interior_procgen":
+        result = generate_interior(spec, seed, world_size_m)
+    else:
+        result = generate_structured(spec, seed, world_size_m)
+
+    terrain_stage_root = stage_root / "compiled_nodes" / node["id"]
+    terrain_stage_root.mkdir(parents=True, exist_ok=True)
+
+    # Write OBJ + MTL
+    obj_path = terrain_stage_root / "geometry.obj"
+    mtl_path = terrain_stage_root / "geometry.mtl"
+    write_obj(obj_path, result.vertices, result.faces, result.uvs, result.uv_indices,
+              result.material_ids, result.material_names)
+    write_mtl(mtl_path, result.material_names)
+
+    # Stage OBJ into Assets
+    target_rel = f"Objects/Generated/{bundle_slug}/{spec.get('name', node['id'])}_geometry"
+    staged = stage_mesh_asset(
+        stage_root=terrain_stage_root,
+        stage_assets_root=stage_assets_root,
+        input_path=obj_path,
+        target=target_rel,
+        kind="static_mesh",
+        repo_root=root,
+    )
+
+    # CRYENGINE_TODO: interior levels require a terrain base. Flat underlay placed at Z=-5 m.
+    flat_size = 512
+    flat_heights = flat_heightmap(flat_size, elevation_m=0.0)
+    heightmap_target = terrain_stage_root / "heightmap.dat"
+    write_heightmap_dat(heightmap_target, flat_heights, max_height_m=256.0)
+
+    fallback_template = _nearest_flat_template(root)
+    template_level_root = root / fallback_template["source_level_dir"]
+    vegetation_target = terrain_stage_root / "vegetationmap.dat"
+    shutil.copy2(template_level_root / "leveldata" / "vegetationmap.dat", vegetation_target)
+
+    pixels, _ = generate_texture_pixels({"mode": "solid_color", "width": 64, "height": 64, "rgba": [80, 80, 80, 255]})
+    terraintexture_report = build_terraintexture_pak(
+        terrain_stage_root / "terraintexture.pak", pixels, 64, 64, flat_size // 32,
+    )
+
+    terrain_manifest = {
+        "template_id": f"procgen:{spec.get('subtype', 'cave')}:{seed}",
+        "paint_zone_hints": [],
+        "foliage_hints": [],
+        "paint_material_assets": [],
+        "foliage_mesh_assets": [],
+    }
+    write_json(terrain_stage_root / "terrain_manifest.json", terrain_manifest)
+    write_json(terrain_stage_root / "procgen_mesh.json", result.procgen_json)
+
+    # Derive spawn position from procgen JSON
+    spawn_hints = result.procgen_json.get("spawn_hints", [])
+    auto_spawn = spawn_hints[0]["position_m"] if spawn_hints else [world_size_m / 2, world_size_m / 2, 1.8]
+
+    report = {
+        "node_id": node["id"],
+        "type": node["type"],
+        "status": "built",
+        "template_id": terrain_manifest["template_id"],
+        "heightmap_size": flat_size,
+        "heightmap_path": relative_to_repo(heightmap_target, base=root),
+        "vegetationmap_path": relative_to_repo(vegetation_target, base=root),
+        "terraintexture_pak_path": relative_to_repo(Path(terraintexture_report["path"]), base=root),
+        "paint_material_assets": [],
+        "manifest_path": relative_to_repo(terrain_stage_root / "terrain_manifest.json", base=root),
+        "template_level_dir": fallback_template["source_level_dir"],
+        "world": {
+            "heightmap_size": flat_size,
+            "unit_size": 1,
+            "sector_size": 32,
+            "heightmap_z_ratio": 0.015625,
+            "max_height": 256,
+            "ocean_water_level": -100,
+        },
+        "auto_placements": [
+            {
+                "name": f"procgen_{spec.get('name', node['id'])}",
+                "asset_path": staged["asset_path"],
+                "material_override": None,
+                "transform": {
+                    "position": [0.0, 0.0, 0.0],
+                    "rotation": [0.0, 0.0, 0.0, 1.0],
+                    "scale": [1.0, 1.0, 1.0],
+                },
+            }
+        ],
+        "auto_spawn": auto_spawn,
+    }
+    build_state[node["id"]] = report
+    return report
+
+
 def build_asset_bundle(stage_root: Path, asset_graph: dict[str, Any], root: Path | None = None) -> dict[str, Any]:
     repo_root = root or project_root()
     stage_assets_root = stage_root / "staged_assets"
@@ -583,6 +821,10 @@ def build_asset_bundle(stage_root: Path, asset_graph: dict[str, Any], root: Path
             report = _compile_mesh_import_node(stage_root, stage_assets_root, node, build_state, repo_root)
         elif node["type"] == "terrain_archetype":
             report = _compile_terrain_node(stage_root, stage_assets_root, asset_graph["bundle_slug"], node, build_state, repo_root)
+        elif node["type"] == "terrain_procgen":
+            report = _compile_terrain_procgen_node(stage_root, stage_assets_root, asset_graph["bundle_slug"], node, build_state, repo_root)
+        elif node["type"] in ("interior_procgen", "structured_procgen"):
+            report = _compile_interior_or_structured_node(stage_root, stage_assets_root, asset_graph["bundle_slug"], node, build_state, repo_root)
         elif node["type"] == "object_placement_set":
             report = _compile_object_placement_set(node, build_state)
         elif node["type"] == "scene_level":

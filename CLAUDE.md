@@ -158,6 +158,21 @@ $CRYENGINE_DIR/bin/linux_x64_gcc/GameLauncher \
 
 The repo now includes a staged Python asset pipeline for **LLM-authored, bundle-graph-driven** CRYENGINE packages.
 
+### Python venv (required for procgen)
+
+The procgen modules require the `noise` package. Set up a venv once:
+
+```bash
+python3 -m venv tools/.venv
+tools/.venv/bin/pip install -r tools/requirements.txt
+```
+
+Run tests with the venv interpreter:
+
+```bash
+tools/.venv/bin/python3 -m pytest tests/ -v
+```
+
 ### `tools/cry_asset_pipeline.py`
 
 Implemented slices:
@@ -199,15 +214,33 @@ still lands in `Assets/levels/fps_forest_basin/` instead of duplicating the path
 The pipeline no longer asks Python to interpret prose into terrain, geometry, materials, textures,
 or character structure. The LLM authors the canonical bundle `asset_graph.json`, Python validates
 that graph against the checked-in capability/template catalogs, then compiles node dependencies in
-order. Supported node types are `scene_level`, `terrain_archetype`, `texture_source`,
-`material_surface`, `mesh_procedural`, `mesh_import`, `object_placement_set`, and
-`character_fp_package`.
+order. Supported node types:
+
+| Node type | Description |
+|-----------|-------------|
+| `scene_level` | Top-level level assembly node |
+| `terrain_archetype` | Golden-template terrain (copy from verified template) |
+| `terrain_procgen` | Procedurally generated open terrain (forest/desert/tundra/swamp/savanna/volcanic) |
+| `interior_procgen` | Procedurally generated interior (cave/dungeon/ship/bunker/sewer) |
+| `structured_procgen` | Procedurally generated structured level (castle/arena/fortress/warehouse/ruins) |
+| `texture_source` | Texture input (baked or imagegen-requested) |
+| `material_surface` | Material combining texture nodes |
+| `mesh_procedural` | Procedurally generated mesh |
+| `mesh_import` | Imported FBX/OBJ/DAE mesh |
+| `object_placement_set` | Placement list referencing mesh/material nodes |
+| `character_fp_package` | First-person character package |
 
 Level compilation copies golden terrain binaries from verified templates, rebuilds terrain texture
 packs, writes level layers from placement nodes, and validates `heightmap.dat`, `terrain.dat`,
-`terraintexture.pak`, cross-file XML consistency, and placement references. Character compilation
+`terraintexture.pak`, cross-file XML consistency, and placement references. For `terrain_procgen`
+nodes the pipeline generates `terrain.dat` natively from the procgen heightmap via
+`tools/asset_pipeline/procgen/terrain_dat_writer.py` — no Sandbox required. Character compilation
 packages imported FBX/DAE sources into the first-person runtime contract used by `Player.cpp`,
 including `.cdf`, controller definition XML, and `.adb` outputs.
+
+The pipeline auto-inserts a `CSpawnPointComponent` entity into `main.lyr` at the position
+specified in `scene_spec["spawn"]["transform"]["position"]`. `SpawnPoint.h::GetFirstSpawnPointTransform()`
+falls back to terrain center + 10 m elevation when no spawn point exists in the level.
 
 `imagegen` is now a supported texture node mode in the graph contract, but the current compiler only
 emits image-generation request artifacts plus deterministic fallback PNGs; it does not call an

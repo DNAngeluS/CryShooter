@@ -1,4 +1,4 @@
-<AssetMetadata version="0" type="Mesh" guid="38040c45-c31e-400d-8d8e-9989682140ec">
+<AssetMetadata version="0" type="Mesh" guid="9175728f-b92e-47f7-afda-05133475906f">
  <Files>
   <File path="cover_wall.cgf"/>
  </Files>
@@ -6,6 +6,6 @@
   <Detail name="materialCount">1</Detail>
  </Details>
  <Dependencies>
-  <Path usageCount="1">Materials/Generated/fps_forest_basin/forest_ground.mtl</Path>
+  <Path usageCount="1">Materials/Generated/fps_forest_basin/dirt_path.mtl</Path>
  </Dependencies>
 </AssetMetadata>

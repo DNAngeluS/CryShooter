@@ -17,6 +17,9 @@ from .common import normalize_level_target_package, project_root, slugify
 SUPPORTED_NODE_TYPES = {
     "scene_level",
     "terrain_archetype",
+    "terrain_procgen",
+    "interior_procgen",
+    "structured_procgen",
     "texture_source",
     "material_surface",
     "mesh_procedural",
@@ -35,6 +38,13 @@ TERRAIN_SPEC_KEYS = {"template_profile", "heightmap_size", "paint_zones", "folia
 PLACEMENT_SET_SPEC_KEYS = {"placements"}
 SCENE_LEVEL_SPEC_KEYS = {"level_slug", "display_name", "lighting", "spawn"}
 CHARACTER_SPEC_KEYS = {"character_name", "controller_scope", "default_fragment", "skeleton_file", "skin_file", "attachment_bone"}
+TERRAIN_PROCGEN_SPEC_KEYS = {"name", "subtype", "heightmap_size", "world_size_m", "max_height_m", "seed", "erosion_passes", "paint_zone_config", "foliage_density", "template_profile"}
+INTERIOR_PROCGEN_SPEC_KEYS = {"name", "subtype", "world_size_m", "seed", "min_rooms", "max_rooms", "corridor_width_m", "wall_height_m"}
+STRUCTURED_PROCGEN_SPEC_KEYS = {"name", "subtype", "world_size_m", "seed", "cell_size_m", "wall_height_m"}
+
+_OPEN_SUBTYPES = {"forest", "desert", "tundra", "swamp", "savanna", "volcanic"}
+_INTERIOR_SUBTYPES = {"cave", "dungeon", "ship", "bunker", "sewer"}
+_STRUCTURED_SUBTYPES = {"castle", "arena", "fortress", "warehouse", "ruins"}
 
 
 class AssetGraphValidationError(ValueError):
@@ -415,6 +425,48 @@ def _validate_character_node(node: dict[str, Any], root: Path) -> None:
         raise AssetGraphValidationError(f'node[{node["id"]}] controller_scope must match the first-person template scope')
 
 
+def _validate_terrain_procgen_node(node: dict[str, Any]) -> None:
+    spec = node["spec"]
+    _assert_exact_keys(spec, TERRAIN_PROCGEN_SPEC_KEYS, f'node[{node["id"]}].spec')
+    _require_string(spec, "name", f'node[{node["id"]}].spec')
+    subtype = _require_string(spec, "subtype", f'node[{node["id"]}].spec')
+    if subtype not in _OPEN_SUBTYPES:
+        raise AssetGraphValidationError(f'node[{node["id"]}] subtype must be one of {sorted(_OPEN_SUBTYPES)}')
+    heightmap_size = _require_int(spec, "heightmap_size", f'node[{node["id"]}].spec')
+    if heightmap_size not in {512, 1024, 2048}:
+        raise AssetGraphValidationError(f'node[{node["id"]}] heightmap_size must be 512, 1024, or 2048')
+    _require_int(spec, "seed", f'node[{node["id"]}].spec')
+    paint_materials = node["inputs"].get("paint_materials", [])
+    if not isinstance(paint_materials, list) or not paint_materials:
+        raise AssetGraphValidationError(f'node[{node["id"]}] must declare at least one paint_material input')
+
+
+def _validate_interior_procgen_node(node: dict[str, Any]) -> None:
+    spec = node["spec"]
+    _assert_exact_keys(spec, INTERIOR_PROCGEN_SPEC_KEYS, f'node[{node["id"]}].spec')
+    _require_string(spec, "name", f'node[{node["id"]}].spec')
+    subtype = _require_string(spec, "subtype", f'node[{node["id"]}].spec')
+    if subtype not in _INTERIOR_SUBTYPES:
+        raise AssetGraphValidationError(f'node[{node["id"]}] subtype must be one of {sorted(_INTERIOR_SUBTYPES)}')
+    _require_int(spec, "seed", f'node[{node["id"]}].spec')
+    world_size = spec.get("world_size_m")
+    if not isinstance(world_size, (int, float)) or world_size <= 0:
+        raise AssetGraphValidationError(f'node[{node["id"]}].spec.world_size_m must be a positive number')
+
+
+def _validate_structured_procgen_node(node: dict[str, Any]) -> None:
+    spec = node["spec"]
+    _assert_exact_keys(spec, STRUCTURED_PROCGEN_SPEC_KEYS, f'node[{node["id"]}].spec')
+    _require_string(spec, "name", f'node[{node["id"]}].spec')
+    subtype = _require_string(spec, "subtype", f'node[{node["id"]}].spec')
+    if subtype not in _STRUCTURED_SUBTYPES:
+        raise AssetGraphValidationError(f'node[{node["id"]}] subtype must be one of {sorted(_STRUCTURED_SUBTYPES)}')
+    _require_int(spec, "seed", f'node[{node["id"]}].spec')
+    world_size = spec.get("world_size_m")
+    if not isinstance(world_size, (int, float)) or world_size <= 0:
+        raise AssetGraphValidationError(f'node[{node["id"]}].spec.world_size_m must be a positive number')
+
+
 def validate_asset_graph(asset_graph: dict[str, Any], root: Path | None = None) -> dict[str, Any]:
     repo_root = root or project_root()
     asset_graph = dict(asset_graph)
@@ -472,6 +524,12 @@ def validate_asset_graph(asset_graph: dict[str, Any], root: Path | None = None) 
             _validate_mesh_import_node(node, repo_root)
         elif node["type"] == "terrain_archetype":
             _validate_terrain_node(node, repo_root)
+        elif node["type"] == "terrain_procgen":
+            _validate_terrain_procgen_node(node)
+        elif node["type"] == "interior_procgen":
+            _validate_interior_procgen_node(node)
+        elif node["type"] == "structured_procgen":
+            _validate_structured_procgen_node(node)
         elif node["type"] == "object_placement_set":
             _validate_placement_node(node)
         elif node["type"] == "scene_level":
