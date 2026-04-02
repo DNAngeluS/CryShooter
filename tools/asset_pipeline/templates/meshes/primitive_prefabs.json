@@ -1,0 +1,23 @@
+{
+  "_meta": {
+    "version": 1,
+    "description": "Primitive prefab references allowed in authored level graphs."
+  },
+  "prefabs": [
+    {
+      "name": "box",
+      "asset_path": "Objects/default/primitive_box.cgf",
+      "description": "General-purpose box volume."
+    },
+    {
+      "name": "wall",
+      "asset_path": "Objects/default/primitive_plane_noproxy.cgf",
+      "description": "Thin wall or blocker plane."
+    },
+    {
+      "name": "ramp",
+      "asset_path": "Objects/default/primitive_pyramid.cgf",
+      "description": "Simple sloped surface primitive."
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-CRYENGINE asset pipeline for natural-language driven asset generation.
+CRYENGINE asset pipeline for authored asset-graph driven generation.
 
-Supports staged level generation, validation, publish, and mesh import jobs.
+Supports staged level generation, authored graphs, validation, publish, and mesh import jobs.
 """
 
 from __future__ import annotations
@@ -24,20 +24,24 @@ def _print(data: dict) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="CRYENGINE natural-language asset pipeline")
+    parser = argparse.ArgumentParser(description="CRYENGINE authored asset pipeline")
     sub = parser.add_subparsers(dest="command", required=True)
 
     create = sub.add_parser("create-job", help="Create a staged asset job")
-    create.add_argument("--kind", required=True, choices=["level", "mesh_import"])
+    create.add_argument("--kind", required=True, choices=["level", "mesh_import", "character_package"])
     create.add_argument("--prompt", required=True)
     create.add_argument("--target-package")
     create.add_argument("--source-input", action="append", default=[])
+    create.add_argument("--capability", action="append", default=[])
 
-    plan = sub.add_parser("plan-spec", help="Create a structured asset spec")
+    plan = sub.add_parser("plan-spec", help="Prepare prompt/capability/template authoring artifacts")
     plan.add_argument("--job", required=True)
-    plan.add_argument("--llm-mode", default="auto", choices=["auto", "prompts-only"])
 
-    edit = sub.add_parser("edit", help="Edit an existing job request/spec")
+    author = sub.add_parser("author-spec", help="Validate and store an authored asset_graph.json")
+    author.add_argument("--job", required=True)
+    author.add_argument("--json-file", required=True)
+
+    edit = sub.add_parser("edit", help="Edit an existing job request or authored graph")
     edit.add_argument("--job", required=True)
     edit.add_argument("--prompt")
     edit.add_argument("--set", action="append", default=[], metavar="PATH=VALUE")
@@ -54,13 +58,14 @@ def build_parser() -> argparse.ArgumentParser:
     publish = sub.add_parser("publish", help="Publish validated assets into Assets/")
     publish.add_argument("--job", required=True)
 
-    run = sub.add_parser("run", help="Create, plan, build, validate, and optionally publish a job")
-    run.add_argument("--kind", required=True, choices=["level", "mesh_import"])
+    run = sub.add_parser("run", help="Create, plan, author, build, validate, and optionally publish a job")
+    run.add_argument("--kind", required=True, choices=["level", "mesh_import", "character_package"])
     run.add_argument("--prompt", required=True)
     run.add_argument("--target-package")
     run.add_argument("--source-input", action="append", default=[])
-    run.add_argument("--llm-mode", default="auto", choices=["auto", "prompts-only"])
-    run.add_argument("--no-publish", action="store_true")
+    run.add_argument("--capability", action="append", default=[])
+    run.add_argument("--asset-graph")
+    run.add_argument("--publish", action="store_true")
     run.add_argument("--compile-mesh", action="store_true")
     run.add_argument("--cryengine-dir")
 
@@ -70,7 +75,7 @@ def build_parser() -> argparse.ArgumentParser:
     convert.add_argument("--prompt", default="Import mesh into a CRYENGINE-compatible package")
     convert.add_argument("--compile", action="store_true")
     convert.add_argument("--cryengine-dir")
-    convert.add_argument("--no-publish", action="store_true")
+    convert.add_argument("--publish", action="store_true")
 
     return parser
 
@@ -97,10 +102,13 @@ def main() -> int:
                 args.prompt,
                 target_package=args.target_package,
                 source_inputs=args.source_input,
+                requested_capabilities=args.capability,
             )
         )
     elif args.command == "plan-spec":
-        _print(pipeline.plan_spec(args.job, llm_mode=args.llm_mode))
+        _print(pipeline.plan_spec(args.job))
+    elif args.command == "author-spec":
+        _print(pipeline.author_spec(args.job, json_file=args.json_file))
     elif args.command == "edit":
         merge_patch = None
         if args.json_file:
@@ -126,8 +134,9 @@ def main() -> int:
                 args.prompt,
                 target_package=args.target_package,
                 source_inputs=args.source_input,
-                llm_mode=args.llm_mode,
-                publish=not args.no_publish,
+                requested_capabilities=args.capability,
+                asset_graph_file=args.asset_graph,
+                publish=args.publish,
                 compile_mesh=args.compile_mesh,
                 cryengine_dir=args.cryengine_dir,
             )
@@ -140,7 +149,7 @@ def main() -> int:
                 args.prompt,
                 target_package=args.target,
                 source_inputs=[str(input_path)],
-                publish=not args.no_publish,
+                publish=args.publish,
                 compile_mesh=args.compile,
                 cryengine_dir=args.cryengine_dir,
             )

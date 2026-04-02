@@ -1,0 +1,11 @@
+<AssetMetadata version="0" type="Mesh" guid="8d425e6e-86bc-4f95-8b37-4e70648328c5">
+ <Files>
+  <File path="cover_ramp.cgf"/>
+ </Files>
+ <Details>
+  <Detail name="materialCount">1</Detail>
+ </Details>
+ <Dependencies>
+  <Path usageCount="1">Materials/Generated/fps_forest_basin/forest_ground.mtl</Path>
+ </Dependencies>
+</AssetMetadata>

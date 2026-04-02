@@ -1,0 +1,41 @@
+{
+  "_meta": {
+    "version": 1,
+    "description": "Texture generation presets and supported source modes."
+  },
+  "modes": [
+    "import",
+    "imagegen",
+    "solid_color",
+    "procedural_pattern"
+  ],
+  "presets": [
+    {
+      "name": "terrain_ground",
+      "recommended_mode": "procedural_pattern",
+      "recommended_size": [
+        256,
+        256
+      ],
+      "recommended_alpha": false
+    },
+    {
+      "name": "decal_sheet",
+      "recommended_mode": "imagegen",
+      "recommended_size": [
+        512,
+        512
+      ],
+      "recommended_alpha": true
+    },
+    {
+      "name": "ambient_card",
+      "recommended_mode": "imagegen",
+      "recommended_size": [
+        1024,
+        512
+      ],
+      "recommended_alpha": false
+    }
+  ]
+}

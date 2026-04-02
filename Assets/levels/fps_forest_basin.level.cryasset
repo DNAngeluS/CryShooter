@@ -1,0 +1,24 @@
+<AssetMetadata version="0" type="Level" guid="d9b44977-9056-482e-98e5-b6e496fd1522" source="" timestamp="1777777777">
+ <Files>
+  <File path="fps_forest_basin/fps_forest_basin.level"/>
+ </Files>
+ <Dependencies>
+  <Path usageCount="1">%ENGINE%/EngineAssets/Shading/default.env</Path>
+  <Path>%editor%/crydesigner_timeofday.xml</Path>
+  <Path>%editor%/default_time_of_day.xml</Path>
+  <Path>%editor%/leveltemplates.xml</Path>
+  <Path>%editor%/mapscreenshotsettings.xml</Path>
+  <Path>%editor%/mbttemplates.xml</Path>
+  <Path>%editor%/modellingpanel.xml</Path>
+  <Path>%editor%/objecttemplates.xml</Path>
+  <Path>%editor%/propertyenumerations.xml</Path>
+  <Path>%editor%/soundtemplates.xml</Path>
+  <Path>%editor%/toolbox.xml</Path>
+  <Path>%editor%/usertools.xml</Path>
+  <Path>%engine%/engineassets/materials/fog/fogvolumebox.mtl</Path>
+  <Path>%engine%/engineassets/materials/fog/fogvolumeellipsoid.mtl</Path>
+  <Path>%engine%/engineassets/materials/material_terrain_default.mtl</Path>
+  <Path>%engine%/engineassets/materials/sky/sky.mtl</Path>
+  <Path>%engine%/engineassets/materials/water/ocean_default.mtl</Path>
+ </Dependencies>
+</AssetMetadata>

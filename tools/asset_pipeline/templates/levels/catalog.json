@@ -1,0 +1,100 @@
+{
+  "_meta": {
+    "version": 1,
+    "description": "Checked-in level template catalog for deterministic CRYENGINE level compilation."
+  },
+  "templates": [
+    {
+      "template_id": "plain-512-flat_arena",
+      "profile": "flat_arena",
+      "heightmap_size": 512,
+      "default_for_authoring": false,
+      "available": true,
+      "source_level_dir": "Assets/levels/plain",
+      "source_cryasset": "Assets/levels/plain.level.cryasset",
+      "default_texture_profile": "temperate_grass_clover",
+      "default_foliage_profile": "temperate_sparse"
+    },
+    {
+      "template_id": "example-1024-basin",
+      "profile": "basin",
+      "heightmap_size": 1024,
+      "default_for_authoring": true,
+      "available": true,
+      "source_level_dir": "Assets/levels/example",
+      "source_cryasset": "Assets/levels/example.level.cryasset",
+      "default_texture_profile": "temperate_grass_clover",
+      "default_foliage_profile": "temperate_forest_edge"
+    },
+    {
+      "template_id": "example-1024-ridge-ring",
+      "profile": "ridge_ring",
+      "heightmap_size": 1024,
+      "default_for_authoring": false,
+      "available": true,
+      "source_level_dir": "Assets/levels/example",
+      "source_cryasset": "Assets/levels/example.level.cryasset",
+      "default_texture_profile": "temperate_grass_clover",
+      "default_foliage_profile": "temperate_forest_edge"
+    },
+    {
+      "template_id": "example-1024-valley",
+      "profile": "valley",
+      "heightmap_size": 1024,
+      "default_for_authoring": false,
+      "available": true,
+      "source_level_dir": "Assets/levels/example",
+      "source_cryasset": "Assets/levels/example.level.cryasset",
+      "default_texture_profile": "temperate_grass_clover",
+      "default_foliage_profile": "temperate_forest_edge"
+    },
+    {
+      "template_id": "future-2048-flat_arena",
+      "profile": "flat_arena",
+      "heightmap_size": 2048,
+      "default_for_authoring": false,
+      "available": false,
+      "status": "blocked_until_golden_template_is_checked_in",
+      "source_level_dir": null,
+      "source_cryasset": null,
+      "default_texture_profile": "temperate_grass_clover",
+      "default_foliage_profile": "temperate_sparse"
+    },
+    {
+      "template_id": "future-2048-basin",
+      "profile": "basin",
+      "heightmap_size": 2048,
+      "default_for_authoring": false,
+      "available": false,
+      "status": "blocked_until_golden_template_is_checked_in",
+      "source_level_dir": null,
+      "source_cryasset": null,
+      "default_texture_profile": "temperate_grass_clover",
+      "default_foliage_profile": "temperate_forest_edge"
+    },
+    {
+      "template_id": "future-2048-ridge-ring",
+      "profile": "ridge_ring",
+      "heightmap_size": 2048,
+      "default_for_authoring": false,
+      "available": false,
+      "status": "blocked_until_golden_template_is_checked_in",
+      "source_level_dir": null,
+      "source_cryasset": null,
+      "default_texture_profile": "temperate_grass_clover",
+      "default_foliage_profile": "temperate_forest_edge"
+    },
+    {
+      "template_id": "future-2048-valley",
+      "profile": "valley",
+      "heightmap_size": 2048,
+      "default_for_authoring": false,
+      "available": false,
+      "status": "blocked_until_golden_template_is_checked_in",
+      "source_level_dir": null,
+      "source_cryasset": null,
+      "default_texture_profile": "temperate_grass_clover",
+      "default_foliage_profile": "temperate_forest_edge"
+    }
+  ]
+}

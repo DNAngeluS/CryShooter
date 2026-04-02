@@ -1,0 +1,11 @@
+<AssetMetadata version="0" type="Mesh" guid="cffbf061-f156-4648-b652-5a6bc29f24e7">
+ <Files>
+  <File path="cover_box.cgf"/>
+ </Files>
+ <Details>
+  <Detail name="materialCount">1</Detail>
+ </Details>
+ <Dependencies>
+  <Path usageCount="1">Materials/Generated/fps_forest_basin/forest_ground.mtl</Path>
+ </Dependencies>
+</AssetMetadata>

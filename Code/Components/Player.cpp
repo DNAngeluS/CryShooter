@@ -152,7 +152,7 @@ void CPlayerComponent::InitializeLocalPlayer()
 																		{
 		if (activationMode == eAAM_OnPress)
 		{
-			gEnv->pSystem->Quit();
+			m_quitRequested = true;
 		} });
 	m_pInputComponent->BindAction("player", "quit", eAID_KeyboardMouse, EKeyId::eKI_Escape);
 }
@@ -175,6 +175,13 @@ void CPlayerComponent::ProcessEvent(const SEntityEvent &event)
 	break;
 	case Cry::Entity::EEvent::Update:
 	{
+		if (m_quitRequested)
+		{
+			m_quitRequested = false;
+			gEnv->pSystem->Quit();
+			return;
+		}
+
 		// Don't update the player if we haven't spawned yet
 		if (!m_isAlive)
 			return;

@@ -1,0 +1,53 @@
+{
+  "_meta": {
+    "version": 1,
+    "description": "Procedural/parametric archetypes mapped to CRYENGINE-safe primitive bases."
+  },
+  "archetypes": [
+    {
+      "name": "box",
+      "base_asset": "Objects/default/primitive_box.cgf",
+      "dependency_material": "Objects/default/editorprimitive.mtl"
+    },
+    {
+      "name": "wall",
+      "base_asset": "Objects/default/primitive_plane_noproxy.cgf",
+      "dependency_material": "Objects/default/plane.mtl"
+    },
+    {
+      "name": "ramp",
+      "base_asset": "Objects/default/primitive_pyramid.cgf",
+      "dependency_material": "Objects/default/editorprimitive.mtl"
+    },
+    {
+      "name": "platform",
+      "base_asset": "Objects/default/primitive_cube.cgf",
+      "dependency_material": "Objects/default/editorprimitive.mtl"
+    },
+    {
+      "name": "stairs",
+      "base_asset": "Objects/default/primitive_cube_small.cgf",
+      "dependency_material": "Objects/default/editorprimitive.mtl"
+    },
+    {
+      "name": "cylinder",
+      "base_asset": "Objects/default/primitive_cylinder.cgf",
+      "dependency_material": "Objects/default/editorprimitive.mtl"
+    },
+    {
+      "name": "rock_cluster",
+      "base_asset": "Objects/default/primitive_sphere.cgf",
+      "dependency_material": "Objects/default/sphere.mtl"
+    },
+    {
+      "name": "tree_trunk",
+      "base_asset": "Objects/default/primitive_cylinder_noproxy.cgf",
+      "dependency_material": "Objects/default/editorprimitive.mtl"
+    },
+    {
+      "name": "canopy_cluster",
+      "base_asset": "Objects/default/primitive_sphere_small.cgf",
+      "dependency_material": "Objects/default/sphere.mtl"
+    }
+  ]
+}

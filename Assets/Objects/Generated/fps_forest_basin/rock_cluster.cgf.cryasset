@@ -1,0 +1,11 @@
+<AssetMetadata version="0" type="Mesh" guid="6c4a4ee7-98d0-4d35-843c-0a05740342f8">
+ <Files>
+  <File path="rock_cluster.cgf"/>
+ </Files>
+ <Details>
+  <Detail name="materialCount">1</Detail>
+ </Details>
+ <Dependencies>
+  <Path usageCount="1">Materials/Generated/fps_forest_basin/forest_ground.mtl</Path>
+ </Dependencies>
+</AssetMetadata>

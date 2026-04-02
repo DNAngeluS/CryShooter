@@ -1,170 +1,94 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
-from .common import slugify
+from .catalogs import (
+    build_asset_graph_stub,
+    build_capability_catalog,
+    load_character_template_catalog,
+    load_level_template_catalog,
+    load_material_template_catalog,
+    load_procedural_mesh_catalog,
+    load_texture_preset_catalog,
+)
+from .common import normalize_level_target_package, slugify
 
 
-def _detect_size(prompt: str) -> int:
-    text = prompt.lower()
-    if any(token in text for token in ("tiny", "small", "compact")):
-        return 512
-    if any(token in text for token in ("huge", "massive", "large")):
-        return 2048
-    if any(token in text for token in ("medium", "mid-sized")):
-        return 1024
-    return 1024
-
-
-def _detect_time_of_day(prompt: str) -> tuple[str, int]:
-    text = prompt.lower()
-    mapping = {
-        "dawn": ("dawn", 6),
-        "sunrise": ("dawn", 6),
-        "morning": ("morning", 9),
-        "noon": ("noon", 12),
-        "midday": ("noon", 12),
-        "afternoon": ("afternoon", 15),
-        "dusk": ("dusk", 18),
-        "sunset": ("dusk", 18),
-        "night": ("night", 22),
-    }
-    for key, value in mapping.items():
-        if key in text:
-            return value
-    return ("noon", 12)
-
-
-def _detect_biome(prompt: str) -> str:
-    text = prompt.lower()
-    for biome in ("desert", "forest", "snow", "arctic", "urban", "jungle", "volcanic", "grassland"):
-        if biome in text:
-            return biome
-    return "temperate"
-
-
-def _detect_height_profile(prompt: str) -> str:
-    text = prompt.lower()
-    if any(token in text for token in ("flat", "arena", "test")):
-        return "flat"
-    if any(token in text for token in ("mountain", "cliff", "steep")):
-        return "mountainous"
-    if any(token in text for token in ("hill", "rolling", "valley")):
-        return "hilly"
-    return "gentle"
-
-
-def _terrain_color(biome: str) -> list[int]:
-    mapping = {
-        "desert": [140, 120, 90, 255],
-        "snow": [220, 224, 230, 255],
-        "arctic": [210, 220, 225, 255],
-        "forest": [78, 105, 72, 255],
-        "jungle": [58, 96, 64, 255],
-        "urban": [118, 118, 118, 255],
-        "volcanic": [74, 62, 60, 255],
-        "grassland": [108, 132, 84, 255],
-        "temperate": [118, 108, 86, 255],
-    }
-    return mapping[biome]
-
-
-def synthesize_spec(request: dict, project_root: Path) -> dict:
-    prompt = request["natural_language_prompt"]
-    kind = request["asset_kind"]
-    if kind != "level":
-        raise ValueError(f"Unsupported automatic spec synthesis for asset_kind={kind}")
-
-    size = _detect_size(prompt)
-    slug = request.get("target_package") or slugify(prompt[:48])
-    biome = _detect_biome(prompt)
-    time_label, time_hour = _detect_time_of_day(prompt)
-    height_profile = _detect_height_profile(prompt)
-    center = size // 2
-    tile_count = max(1, size // 256)
-    return {
-        "asset_kind": "level",
-        "slug": slug,
-        "display_name": slug.replace("-", " ").title(),
-        "summary": prompt.strip(),
-        "world": {
-            "heightmap_size": size,
-            "unit_size": 1,
-            "sector_size": 32,
-            "heightmap_z_ratio": 0.015625,
-            "max_height": 1024,
-            "height_profile": height_profile,
-            "ocean_water_level": -100,
-        },
-        "terrain": {
-            "biome": biome,
-            "diffuse_rgba": _terrain_color(biome),
-            "height_rgba": [128, 128, 0, 0],
-            "tile_resolution": 512,
-            "tile_count_x": tile_count,
-            "tile_count_y": tile_count,
-        },
-        "lighting": {
-            "preset": "%ENGINE%/EngineAssets/Shading/default.env",
-            "time_label": time_label,
-            "time_hour": time_hour,
-            "sun_rotation": 240,
-            "sun_height": 80 if time_hour == 12 else 32 if time_hour in (6, 18) else 16,
-            "sun_vector": "-0.51961529,-0.29999986,-0.79999995",
-        },
-        "spawn": {
-            "mode": "center_fallback",
-            "position": [center, center, 42],
-        },
-        "level_paths": {
-            "level_root": f"Assets/levels/{slug}",
-            "level_file": f"Assets/levels/{slug}/{slug}.level",
-            "cryasset_file": f"Assets/levels/{slug}.level.cryasset",
-        },
-        "source_context": {
-            "docs": [
-                "docs/terrain.md",
-                "docs/textures.md",
-                "docs/lighting.md",
-                "docs/lod.md",
-            ],
-            "memory": [
-                "memory/terrain.json",
-                "memory/textures.json",
-                "memory/lighting.json",
-                "memory/lod.json",
-            ],
-            "project_root": project_root.as_posix(),
-        },
-    }
-
-
-def build_prompt_pack(request: dict) -> str:
+def build_prompt_pack(request: dict, project_root: Path) -> str:
+    target_package = normalize_level_target_package(request.get("target_package")) or slugify(request["job_id"])
+    capabilities = build_capability_catalog(project_root)
+    node_types = capabilities["graph_contract"]["supported_node_types"]
+    procedural_meshes = [item["name"] for item in capabilities["procedural_meshes"]]
+    texture_modes = capabilities["texture_modes"]
     return "\n".join(
         [
-            "# CRYENGINE Asset Prompt Pack",
+            "# CRYENGINE Asset Bundle Authoring Pack",
+            "",
+            "Author a strict dependency graph. Python will compile the graph deterministically and will not infer missing assets from prose.",
             "",
             f"Asset kind: {request['asset_kind']}",
-            f"Prompt: {request['natural_language_prompt']}",
+            f"User brief: {request['natural_language_prompt']}",
+            f"Requested target package: {target_package}",
+            f"Requested capabilities: {', '.join(request.get('requested_capabilities', [])) or 'none'}",
             "",
-            "Return strict JSON matching this shape:",
-            "{",
-            '  "asset_kind": "level",',
-            '  "slug": "kebab-case-package-name",',
-            '  "display_name": "Human Title",',
-            '  "summary": "short summary",',
-            '  "world": {"heightmap_size": 512|1024|2048, "unit_size": 1, "sector_size": 32, "heightmap_z_ratio": 0.015625, "max_height": 1024, "height_profile": "flat|gentle|hilly|mountainous", "ocean_water_level": -100},',
-            '  "terrain": {"biome": "desert|forest|snow|urban|temperate|...", "diffuse_rgba": [r,g,b,a], "height_rgba": [r,g,b,a], "tile_resolution": 512, "tile_count_x": 2|4|8, "tile_count_y": 2|4|8},',
-            '  "lighting": {"preset": "%ENGINE%/EngineAssets/Shading/default.env", "time_label": "dawn|noon|dusk|night", "time_hour": 0-24, "sun_rotation": 0-360, "sun_height": 0-90, "sun_vector": "x,y,z"},',
-            '  "spawn": {"mode": "center_fallback", "position": [x,y,z]}',
-            "}",
+            "Top-level graph shape:",
+            json.dumps(
+                {
+                    "asset_kind": request["asset_kind"],
+                    "bundle_kind": "environment_package" if request["asset_kind"] == "level" else "character_package",
+                    "bundle_slug": target_package,
+                    "summary": request["natural_language_prompt"].strip(),
+                    "root_scene": "scene_main",
+                    "nodes": [
+                        {
+                            "id": "texture_ground",
+                            "type": "texture_source",
+                            "inputs": {},
+                            "outputs": {},
+                            "spec": {
+                                "name": "forest_ground_albedo",
+                                "mode": "procedural_pattern",
+                                "width": 256,
+                                "height": 256,
+                                "pattern": "checker",
+                                "palette": [[88, 110, 58, 255], [116, 96, 62, 255], [132, 126, 84, 255]],
+                            },
+                        }
+                    ],
+                },
+                indent=2,
+            ),
             "",
-            "Hard constraints:",
-            "- Output paths must be relative to Assets/ and CRYENGINE conventions.",
-            "- Levels must be publishable into Assets/levels/<slug>/.",
-            "- Use %ENGINE%/EngineAssets/Shading/default.env unless explicitly overridden.",
-            "- Terrain texture output must be valid and non-empty.",
-            "- Spawn must be safe even when no Sandbox-authored spawn entities exist.",
+            "Required graph rules:",
+            f"- Node types must be one of {node_types}.",
+            f"- texture_source.mode must be one of {texture_modes}.",
+            f"- mesh_procedural.archetype must be one of {procedural_meshes}.",
+            "- Put all node dependencies in node.inputs.",
+            "- scene_level root nodes must depend on terrain_archetype and object_placement_set nodes.",
+            "- terrain_archetype nodes must declare non-empty paint_materials and non-empty paint_zones.",
+            "- character_fp_package nodes must target the first-person runtime package contract used by Player.cpp.",
+            "- Do not invent freeform vertex arrays or arbitrary binary formats.",
+            "- If geometry cannot be represented procedurally, use mesh_import instead.",
+            "- imagegen texture nodes may be requested, but the graph still needs a complete concrete texture node definition.",
         ]
     )
 
+
+def build_template_catalog(root: Path) -> dict:
+    return {
+        "levels": load_level_template_catalog(root),
+        "procedural_meshes": load_procedural_mesh_catalog(root),
+        "materials": load_material_template_catalog(root),
+        "characters": load_character_template_catalog(root),
+        "textures": load_texture_preset_catalog(root),
+    }
+
+
+def build_authoring_artifacts(request: dict, project_root: Path) -> dict:
+    return {
+        "prompt_pack": build_prompt_pack(request, project_root),
+        "capability_catalog": build_capability_catalog(project_root),
+        "asset_graph_stub": build_asset_graph_stub(request, project_root),
+        "template_catalog": build_template_catalog(project_root),
+    }

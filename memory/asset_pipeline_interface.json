@@ -3,9 +3,9 @@
     "engine": "CRYENGINE 5.6",
     "topic": "asset_pipeline_interface",
     "doc": "docs/asset_pipeline.md",
-    "version": 1
+    "version": 3
   },
-  "purpose": "LLM-facing contract for deciding how to trigger the CRYENGINE asset pipeline and tracker from natural-language requests.",
+  "purpose": "LLM-facing contract for a bundle-graph CRYENGINE asset pipeline where Python compiles validated dependency graphs instead of interpreting prose.",
   "entrypoints": {
     "pipeline_cli": "python3 tools/cry_asset_pipeline.py",
     "tracker_cli": "python3 tools/cry_asset_tracker.py",
@@ -17,24 +17,79 @@
       "resume",
       "status",
       "create",
+      "plan_spec",
+      "author_spec",
       "edit",
       "build",
       "validate",
       "publish",
+      "run",
       "convert_mesh"
     ],
     "defaults": {
       "asset_kind": "level",
-      "llm_mode": "auto",
-      "publish_after_success": true
+      "publish_after_success": false,
+      "authoring_mode": "bundle_graph"
     },
     "routing_notes": [
-      "Use create when the user is asking for a new asset from natural language.",
-      "Use edit when the user wants to revise an existing staged job or change a generated spec.",
-      "Use build when a job already has request/spec data and needs staged artifacts.",
-      "Use validate before publish unless the run command already performed validation.",
-      "Use convert_mesh for local geometry import requests such as OBJ, FBX, DAE, DXF, or 3DS.",
-      "Use tracker status/next/resume for conversation continuity and job discovery."
+      "Treat the prose brief as authoring context only. Python does not infer missing terrain, geometry, lighting, or character structure from prose.",
+      "Use create to persist the brief, bundle target, source inputs, and requested capabilities.",
+      "Use plan_spec to emit prompt_pack.md, capability_catalog.json, asset_graph.stub.json, and template_catalog.json.",
+      "Use author_spec after the LLM has produced a strict dependency graph with bundle_kind, bundle_slug, root_scene, and nodes[].",
+      "Use build only after asset_graph.json has been validated and stored for the job.",
+      "Use validate before publish; publish is always a separate explicit step.",
+      "Use run only when an authored asset_graph.json is already available for level or character_package jobs.",
+      "Use convert_mesh for direct local import staging when no bundle graph authoring step is needed."
+    ]
+  },
+  "graph_contract": {
+    "top_level_fields": [
+      "asset_kind",
+      "bundle_kind",
+      "bundle_slug",
+      "summary",
+      "root_scene",
+      "nodes"
+    ],
+    "node_fields": [
+      "id",
+      "type",
+      "inputs",
+      "outputs",
+      "spec"
+    ],
+    "supported_node_types": [
+      "scene_level",
+      "terrain_archetype",
+      "texture_source",
+      "material_surface",
+      "mesh_procedural",
+      "mesh_import",
+      "object_placement_set",
+      "character_fp_package"
+    ],
+    "texture_modes": [
+      "import",
+      "imagegen",
+      "solid_color",
+      "procedural_pattern"
+    ],
+    "terrain_profiles": [
+      "flat_arena",
+      "basin",
+      "ridge_ring",
+      "valley"
+    ],
+    "procedural_mesh_archetypes": [
+      "box",
+      "wall",
+      "ramp",
+      "platform",
+      "stairs",
+      "cylinder",
+      "rock_cluster",
+      "tree_trunk",
+      "canopy_cluster"
     ]
   },
   "verbs": {
@@ -45,25 +100,65 @@
         "generate",
         "make"
       ],
-      "intent": "Create a new asset job and generate its structured spec.",
+      "intent": "Create a staged asset job and persist the user brief.",
       "required_inputs": [
         "prompt"
       ],
       "optional_inputs": [
         "asset_kind",
         "target_package",
-        "llm_mode",
-        "source_input"
+        "source_input",
+        "capability"
       ],
       "command_templates": [
-        "python3 tools/cry_asset_pipeline.py create-job --kind <asset_kind> --prompt <prompt> [--target-package <target_package>] [--source-input <path>]",
-        "python3 tools/cry_asset_pipeline.py plan-spec --job <job_id> [--llm-mode auto|prompts-only]"
+        "python3 tools/cry_asset_pipeline.py create-job --kind <asset_kind> --prompt <prompt> [--target-package <target_package>] [--source-input <path>] [--capability <name>]"
       ],
-      "preferred_shortcut": "python3 tools/cry_asset_pipeline.py run --kind <asset_kind> --prompt <prompt> [--target-package <target_package>]",
       "outputs": [
-        "user/asset_pipeline/jobs/<job_id>/request.json",
+        "user/asset_pipeline/jobs/<job_id>/request.json"
+      ],
+      "next_verbs": [
+        "plan_spec"
+      ]
+    },
+    "plan_spec": {
+      "aliases": [
+        "plan_spec",
+        "prepare_authoring",
+        "prompt_pack"
+      ],
+      "intent": "Emit the bundle-graph authoring artifacts the LLM needs to produce a strict asset graph.",
+      "required_inputs": [
+        "job_id"
+      ],
+      "command_templates": [
+        "python3 tools/cry_asset_pipeline.py plan-spec --job <job_id>"
+      ],
+      "outputs": [
         "user/asset_pipeline/jobs/<job_id>/prompt_pack.md",
-        "user/asset_pipeline/jobs/<job_id>/asset_spec.json"
+        "user/asset_pipeline/jobs/<job_id>/capability_catalog.json",
+        "user/asset_pipeline/jobs/<job_id>/asset_graph.stub.json",
+        "user/asset_pipeline/jobs/<job_id>/template_catalog.json"
+      ],
+      "next_verbs": [
+        "author_spec"
+      ]
+    },
+    "author_spec": {
+      "aliases": [
+        "author_spec",
+        "submit_graph",
+        "validate_graph"
+      ],
+      "intent": "Validate and store the canonical bundle-graph asset_graph.json for a job.",
+      "required_inputs": [
+        "job_id",
+        "json_file"
+      ],
+      "command_templates": [
+        "python3 tools/cry_asset_pipeline.py author-spec --job <job_id> --json-file <asset_graph.json>"
+      ],
+      "outputs": [
+        "user/asset_pipeline/jobs/<job_id>/asset_graph.json"
       ],
       "next_verbs": [
         "build",
@@ -79,7 +174,7 @@
         "change",
         "tweak"
       ],
-      "intent": "Modify an existing job request or structured spec before rebuilding.",
+      "intent": "Modify an existing request, authored asset graph, or authoring stub before rebuilding.",
       "required_inputs": [
         "job_id"
       ],
@@ -90,15 +185,16 @@
       ],
       "command_templates": [
         "python3 tools/cry_asset_pipeline.py edit --job <job_id> [--prompt <new_prompt>]",
-        "python3 tools/cry_asset_pipeline.py edit --job <job_id> --set lighting.time_hour=18 --set terrain.biome=\"desert\"",
+        "python3 tools/cry_asset_pipeline.py edit --job <job_id> --set nodes.0.spec.width=512",
         "python3 tools/cry_asset_pipeline.py edit --job <job_id> --json-file <merge_patch.json>"
       ],
       "behavior": [
-        "If prompt is provided for a level job, regenerate the level spec from the updated prompt.",
-        "Apply dotted-path overrides after prompt regeneration.",
-        "Mark the tracker status as edited."
+        "Prompt edits update request.json only; Python does not regenerate a graph from prose.",
+        "If asset_graph.json exists, edits are validated and saved back as the canonical authored graph.",
+        "If only asset_graph.stub.json exists, edits remain in the authoring-prep phase."
       ],
       "next_verbs": [
+        "author_spec",
         "build",
         "validate",
         "publish"
@@ -110,7 +206,7 @@
         "stage",
         "assemble"
       ],
-      "intent": "Generate staged CRYENGINE-compatible artifacts for a job.",
+      "intent": "Compile staged CRYENGINE artifacts from a validated bundle graph or deterministic mesh import recipe.",
       "required_inputs": [
         "job_id"
       ],
@@ -124,6 +220,7 @@
       ],
       "outputs": [
         "user/asset_pipeline/jobs/<job_id>/build_manifest.json",
+        "user/asset_pipeline/jobs/<job_id>/node_build_reports.json",
         "user/asset_pipeline/jobs/<job_id>/staged_assets/Assets/..."
       ],
       "next_verbs": [
@@ -145,7 +242,8 @@
         "python3 tools/cry_asset_pipeline.py validate --job <job_id>"
       ],
       "outputs": [
-        "user/asset_pipeline/jobs/<job_id>/validation_report.json"
+        "user/asset_pipeline/jobs/<job_id>/validation_report.json",
+        "user/asset_pipeline/jobs/<job_id>/smoke_report.json"
       ],
       "next_verbs": [
         "publish"
@@ -173,6 +271,33 @@
         "user/asset_pipeline/jobs/<job_id>/publish_manifest.json"
       ]
     },
+    "run": {
+      "aliases": [
+        "run",
+        "full_run"
+      ],
+      "intent": "Create, plan, author, build, validate, and optionally publish a job.",
+      "required_inputs": [
+        "asset_kind",
+        "prompt"
+      ],
+      "optional_inputs": [
+        "target_package",
+        "source_input",
+        "asset_graph",
+        "publish",
+        "compile_mesh",
+        "cryengine_dir"
+      ],
+      "command_templates": [
+        "python3 tools/cry_asset_pipeline.py run --kind <asset_kind> --prompt <prompt> [--target-package <target_package>] [--source-input <path>] [--asset-graph <asset_graph.json>] [--publish]",
+        "python3 tools/cry_asset_pipeline.py run --kind mesh_import --prompt <prompt> --source-input <path> --target-package Objects/Imported/<name> [--compile-mesh] [--publish]"
+      ],
+      "constraints": [
+        "Level and character_package runs require --asset-graph.",
+        "Publish is opt-in; run does not auto-publish unless --publish is passed."
+      ]
+    },
     "convert_mesh": {
       "aliases": [
         "convert_mesh",
@@ -188,15 +313,16 @@
         "prompt",
         "compile",
         "cryengine_dir",
-        "no_publish"
+        "publish"
       ],
       "command_templates": [
         "python3 tools/cry_asset_pipeline.py convert-mesh --input <path> --target Objects/Imported/<name>",
-        "python3 tools/cry_asset_pipeline.py convert-mesh --input <path> --target Objects/Imported/<name> --compile [--cryengine-dir <path>]"
+        "python3 tools/cry_asset_pipeline.py convert-mesh --input <path> --target Objects/Imported/<name> --compile [--cryengine-dir <path>]",
+        "python3 tools/cry_asset_pipeline.py convert-mesh --input <path> --target Objects/Imported/<name> --publish"
       ],
       "constraints": [
         "OBJ is static geometry only.",
-        "Use FBX or DAE for skeletal character or animated vehicle import.",
+        "Use FBX or DAE for skeletal character import.",
         "If CRYENGINE compiler tooling is unavailable, keep the job staged instead of failing silently."
       ]
     },
@@ -229,38 +355,78 @@
     }
   },
   "skills": {
-    "create_level_package": {
+    "create_environment_package": {
       "when_to_trigger": [
-        "The user describes a new level, terrain, arena, or environment in natural language.",
-        "The user wants a CRYENGINE-compatible package published into Assets/levels/."
+        "The user describes a new gameplay space or environment in prose and wants terrain, materials, textures, and object composition inferred into a bundle graph.",
+        "The user wants a CRYENGINE-compatible environment package prepared for Assets/levels/."
       ],
       "verb_sequence": [
         "create",
+        "plan_spec",
+        "author_spec",
         "build",
         "validate",
         "publish"
       ],
       "defaults": {
         "asset_kind": "level",
-        "llm_mode": "auto"
+        "publish_after_success": false
       }
     },
-    "edit_level_package": {
+    "create_level_package": {
       "when_to_trigger": [
-        "The user wants to revise an existing generated level package.",
-        "The user names a job id or asks to tweak biome, size, lighting, terrain, or prompt."
+        "The user asks for a new level, terrain, arena, or environment package."
       ],
       "verb_sequence": [
-        "edit",
+        "create_environment_package"
+      ],
+      "defaults": {
+        "asset_kind": "level",
+        "publish_after_success": false
+      }
+    },
+    "create_object_package": {
+      "when_to_trigger": [
+        "The user wants rich static object assets inferred into procedural or imported mesh nodes and then used in a compiled bundle."
+      ],
+      "verb_sequence": [
+        "create",
+        "plan_spec",
+        "author_spec",
         "build",
         "validate",
         "publish"
+      ],
+      "constraints": [
+        "Standalone top-level object_bundle asset kinds are not implemented yet.",
+        "Use mesh_procedural and mesh_import nodes inside an environment bundle, or use convert_mesh for direct import staging."
       ]
     },
-    "import_static_mesh": {
+    "create_character_package": {
       "when_to_trigger": [
-        "The user provides or references a local OBJ/FBX/DAE/DXF/3DS asset to bring into the project.",
-        "The user asks to convert bought/downloaded geometry into a CRYENGINE-compatible mesh package."
+        "The user wants to package an imported character mesh into a first-person CRYENGINE-ready runtime bundle."
+      ],
+      "verb_sequence": [
+        "create",
+        "plan_spec",
+        "author_spec",
+        "build",
+        "validate",
+        "publish"
+      ],
+      "defaults": {
+        "asset_kind": "character_package",
+        "publish_after_success": false
+      },
+      "constraints": [
+        "Character packaging is first-person only in the current milestone.",
+        "Character source imports require FBX or DAE."
+      ]
+    },
+    "import_asset_bundle": {
+      "when_to_trigger": [
+        "The user provides a local OBJ, FBX, DAE, DXF, 3DS, or CGF asset to normalize into the project.",
+        "The user wants to stage an imported mesh without authoring a full environment bundle."
       ],
       "verb_sequence": [
         "convert_mesh"
@@ -283,14 +449,14 @@
   "llm_response_contract": {
     "before_execution": [
       "Choose the verb or skill that best matches the request.",
-      "Infer sensible defaults when the user did not provide explicit values.",
-      "Prefer run/create_level_package for a new level request unless the user explicitly wants a staged-only result."
+      "For new environment or character requests, author a strict bundle graph before build.",
+      "Do not rely on Python to invent missing mesh topology, terrain semantics, or character runtime structure from prose."
     ],
     "after_execution": [
       "Report the selected verb or skill.",
       "Report the concrete command that was run.",
       "Report the job_id when a job was created or reused.",
-      "Report key output files or published asset paths.",
+      "Report key authoring artifacts, node reports, validation reports, or published asset paths.",
       "If validation failed, summarize the blocking errors and stop before publish."
     ]
   }

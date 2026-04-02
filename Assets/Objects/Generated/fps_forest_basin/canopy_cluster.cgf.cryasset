@@ -1,0 +1,11 @@
+<AssetMetadata version="0" type="Mesh" guid="856d3d53-2f37-42d3-8d6e-2410b5639611">
+ <Files>
+  <File path="canopy_cluster.cgf"/>
+ </Files>
+ <Details>
+  <Detail name="materialCount">1</Detail>
+ </Details>
+ <Dependencies>
+  <Path usageCount="1">Materials/Generated/fps_forest_basin/clover_ground.mtl</Path>
+ </Dependencies>
+</AssetMetadata>

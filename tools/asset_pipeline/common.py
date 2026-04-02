@@ -24,6 +24,30 @@ def slugify(value: str) -> str:
     return value or "asset-job"
 
 
+def normalize_level_target_package(target_package: str | None) -> str | None:
+    if target_package is None:
+        return None
+
+    candidate = target_package.strip().replace("\\", "/")
+    candidate = candidate.lstrip("./").strip("/")
+    if not candidate:
+        return None
+
+    parts = [part for part in candidate.split("/") if part]
+    if len(parts) >= 2 and parts[0].lower() == "assets" and parts[1].lower() == "levels":
+        parts = parts[2:]
+    elif parts and parts[0].lower() == "levels":
+        parts = parts[1:]
+
+    if not parts:
+        return None
+
+    leaf = parts[-1]
+    if re.fullmatch(r"[A-Za-z0-9_-]+", leaf):
+        return leaf
+    return slugify(leaf)
+
+
 def read_json(path: Path, default: Any | None = None) -> Any:
     if not path.exists():
         return default

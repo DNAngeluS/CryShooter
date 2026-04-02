@@ -1,0 +1,17 @@
+{
+  "_meta": {
+    "version": 1,
+    "description": "Material templates for generated asset bundles."
+  },
+  "templates": [
+    {
+      "name": "default_illum",
+      "shader": "Illum",
+      "surface_type": "mat_default",
+      "diffuse": "1,1,1",
+      "specular": "0.0030352699,0.0030352699,0.0030352699",
+      "shininess": "10",
+      "opacity": "1"
+    }
+  ]
+}

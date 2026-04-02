@@ -1,0 +1,19 @@
+{
+  "_meta": {
+    "version": 1,
+    "description": "First-person character packaging templates."
+  },
+  "templates": [
+    {
+      "name": "first_person_default",
+      "controller_scope": "FirstPersonCharacter",
+      "default_fragment": "Idle",
+      "required_files": [
+        "firstperson.cdf",
+        "Animations/Mannequin/ADB/<CharacterName>FirstPerson.adb",
+        "Animations/Mannequin/ADB/<CharacterName>FirstPersonControllerDefinition.xml"
+      ],
+      "default_attachment_bone": "R_hand"
+    }
+  ]
+}

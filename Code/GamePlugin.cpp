@@ -13,6 +13,11 @@
 // Included only once per DLL module.
 #include <CryCore/Platform/platform_impl.inl>
 
+namespace
+{
+	constexpr const char *kStartupLevel = "fps_forest_basin";
+}
+
 CGamePlugin::~CGamePlugin()
 {
 	// Remove any registered listeners before 'this' becomes invalid
@@ -29,11 +34,11 @@ CGamePlugin::~CGamePlugin()
 	}
 }
 
-bool CGamePlugin::Initialize(SSystemGlobalEnvironment& env, const SSystemInitParams& initParams)
+bool CGamePlugin::Initialize(SSystemGlobalEnvironment &env, const SSystemInitParams &initParams)
 {
 	// Register for engine system events, in our case we need ESYSTEM_EVENT_GAME_POST_INIT to load the map
 	gEnv->pSystem->GetISystemEventDispatcher()->RegisterListener(this, "CGamePlugin");
-	
+
 	return true;
 }
 
@@ -41,72 +46,72 @@ void CGamePlugin::OnSystemEvent(ESystemEvent event, UINT_PTR wparam, UINT_PTR lp
 {
 	switch (event)
 	{
-		// Called when the game framework has initialized and we are ready for game logic to start
-		case ESYSTEM_EVENT_GAME_POST_INIT:
+	// Called when the game framework has initialized and we are ready for game logic to start
+	case ESYSTEM_EVENT_GAME_POST_INIT:
+	{
+		// Listen for client connection events, in order to create the local player
+		if (gEnv->pGameFramework != nullptr)
 		{
-			// Listen for client connection events, in order to create the local player
-			if (gEnv->pGameFramework != nullptr)
-			{
-				gEnv->pGameFramework->AddNetworkedClientListener(*this);
-			}
-
-			// Don't need to load the map in editor
-			if (!gEnv->IsEditor())
-			{
-				// Load the example map in client server mode
-				gEnv->pConsole->ExecuteString("map example s", false, true);
-			}
+			gEnv->pGameFramework->AddNetworkedClientListener(*this);
 		}
-		break;
 
-		case ESYSTEM_EVENT_REGISTER_SCHEMATYC_ENV:
+		// Don't need to load the map in editor
+		if (!gEnv->IsEditor())
 		{
-			// Register all components that belong to this plug-in
-			auto staticAutoRegisterLambda = [](Schematyc::IEnvRegistrar& registrar)
-			{
-				// Call all static callback registered with the CRY_STATIC_AUTO_REGISTER_WITH_PARAM
-				Detail::CStaticAutoRegistrar<Schematyc::IEnvRegistrar&>::InvokeStaticCallbacks(registrar);
-			};
+			// Load the default gameplay test map in client-server mode.
+			string mapCommand;
+			mapCommand.Format("map %s s", kStartupLevel);
+			gEnv->pConsole->ExecuteString(mapCommand.c_str(), false, true);
+		}
+	}
+	break;
 
-			if (gEnv->pSchematyc)
-			{
-				gEnv->pSchematyc->GetEnvRegistry().RegisterPackage(
+	case ESYSTEM_EVENT_REGISTER_SCHEMATYC_ENV:
+	{
+		// Register all components that belong to this plug-in
+		auto staticAutoRegisterLambda = [](Schematyc::IEnvRegistrar &registrar)
+		{
+			// Call all static callback registered with the CRY_STATIC_AUTO_REGISTER_WITH_PARAM
+			Detail::CStaticAutoRegistrar<Schematyc::IEnvRegistrar &>::InvokeStaticCallbacks(registrar);
+		};
+
+		if (gEnv->pSchematyc)
+		{
+			gEnv->pSchematyc->GetEnvRegistry().RegisterPackage(
 					stl::make_unique<Schematyc::CEnvPackage>(
-						CGamePlugin::GetCID(),
-						"EntityComponents",
-						"Crytek GmbH",
-						"Components",
-						staticAutoRegisterLambda
-						)
-				);
-			}
+							CGamePlugin::GetCID(),
+							"EntityComponents",
+							"Crytek GmbH",
+							"Components",
+							staticAutoRegisterLambda));
 		}
-		break;
-		
-		case ESYSTEM_EVENT_LEVEL_LOAD_END:
-		{
-			// Disable ocean surface and its bottom quad — they sit coplanar with the
-			// terrain surface and cause z-fighting even when the water level is low.
-			gEnv->pConsole->ExecuteString("e_WaterOcean 0",       false, true);
-			gEnv->pConsole->ExecuteString("e_WaterOceanBottom 0", false, true);
+	}
+	break;
 
-			// Tighten terrain LOD error and extend the fine-mesh radius so sector
-			// seams don't produce near-coplanar triangles at any visible distance.
-			// Defaults: ErrorRatio=0.05, DistanceRatio=0.5
-			gEnv->pConsole->ExecuteString("e_TerrainLodErrorRatio 0.001",    false, true);
-			gEnv->pConsole->ExecuteString("e_TerrainLodDistanceRatio 4.0",   false, true);
+	case ESYSTEM_EVENT_LEVEL_LOAD_END:
+	{
+		// Disable ocean surface and its bottom quad — they sit coplanar with the
+		// terrain surface and cause z-fighting even when the water level is low.
+		gEnv->pConsole->ExecuteString("e_WaterOcean 0", false, true);
+		gEnv->pConsole->ExecuteString("e_WaterOceanBottom 0", false, true);
 
-			// The terrain texture pak is empty (base texture was never baked in the
-			// Sandbox editor), so auto-generate it from terrain material info.
-			gEnv->pConsole->ExecuteString("e_TerrainAutoGenerateBaseTexture 1", false, true);
-		}
-		break;
+		// Tighten terrain LOD error and extend the fine-mesh radius so sector
+		// seams don't produce near-coplanar triangles at any visible distance.
+		// Defaults: ErrorRatio=0.05, DistanceRatio=0.5
+		gEnv->pConsole->ExecuteString("e_TerrainLodErrorRatio 0.001", false, true);
+		gEnv->pConsole->ExecuteString("e_TerrainLodDistanceRatio 4.0", false, true);
 
-		case ESYSTEM_EVENT_LEVEL_UNLOAD:
-		{
-			m_players.clear();
-		}
-		break;
+		// The terrain texture pak is empty (base texture was never baked in the
+		// Sandbox editor), so auto-generate it from terrain material info.
+		gEnv->pConsole->ExecuteString("e_TerrainAutoGenerateBaseTexture 1", false, true);
+	}
+	break;
+
+	case ESYSTEM_EVENT_LEVEL_UNLOAD:
+	{
+		m_players.clear();
+	}
+	break;
 	}
 }
 
@@ -115,11 +120,11 @@ bool CGamePlugin::OnClientConnectionReceived(int channelId, bool bIsReset)
 	// Connection received from a client, create a player entity and component
 	SEntitySpawnParams spawnParams;
 	spawnParams.pClass = gEnv->pEntitySystem->GetClassRegistry()->GetDefaultClass();
-	
+
 	// Set a unique name for the player entity
 	const string playerName = string().Format("Player%" PRISIZE_T, m_players.size());
 	spawnParams.sName = playerName;
-	
+
 	// Set local player details
 	if (m_players.empty() && !gEnv->IsDedicated())
 	{
@@ -128,13 +133,13 @@ bool CGamePlugin::OnClientConnectionReceived(int channelId, bool bIsReset)
 	}
 
 	// Spawn the player entity
-	if (IEntity* pPlayerEntity = gEnv->pEntitySystem->SpawnEntity(spawnParams))
+	if (IEntity *pPlayerEntity = gEnv->pEntitySystem->SpawnEntity(spawnParams))
 	{
 		// Set the local player entity channel id, and bind it to the network so that it can support Multiplayer contexts
 		pPlayerEntity->GetNetEntity()->SetChannelId(channelId);
 
 		// Create the player component instance
-		CPlayerComponent* pPlayer = pPlayerEntity->GetOrCreateComponentClass<CPlayerComponent>();
+		CPlayerComponent *pPlayer = pPlayerEntity->GetOrCreateComponentClass<CPlayerComponent>();
 
 		if (pPlayer != nullptr)
 		{
@@ -152,9 +157,9 @@ bool CGamePlugin::OnClientReadyForGameplay(int channelId, bool bIsReset)
 	auto it = m_players.find(channelId);
 	if (it != m_players.end())
 	{
-		if (IEntity* pPlayerEntity = gEnv->pEntitySystem->GetEntity(it->second))
+		if (IEntity *pPlayerEntity = gEnv->pEntitySystem->GetEntity(it->second))
 		{
-			if (CPlayerComponent* pPlayer = pPlayerEntity->GetComponent<CPlayerComponent>())
+			if (CPlayerComponent *pPlayer = pPlayerEntity->GetComponent<CPlayerComponent>())
 			{
 				pPlayer->OnReadyForGameplayOnServer();
 			}
@@ -164,7 +169,7 @@ bool CGamePlugin::OnClientReadyForGameplay(int channelId, bool bIsReset)
 	return true;
 }
 
-void CGamePlugin::OnClientDisconnected(int channelId, EDisconnectionCause cause, const char* description, bool bKeepClient)
+void CGamePlugin::OnClientDisconnected(int channelId, EDisconnectionCause cause, const char *description, bool bKeepClient)
 {
 	// Client disconnected, remove the entity and from map
 	auto it = m_players.find(channelId);
@@ -176,13 +181,13 @@ void CGamePlugin::OnClientDisconnected(int channelId, EDisconnectionCause cause,
 	}
 }
 
-void CGamePlugin::IterateOverPlayers(std::function<void(CPlayerComponent& player)> func) const
+void CGamePlugin::IterateOverPlayers(std::function<void(CPlayerComponent &player)> func) const
 {
-	for (const auto& playerPair : m_players)
+	for (const auto &playerPair : m_players)
 	{
-		if (IEntity* pPlayerEntity = gEnv->pEntitySystem->GetEntity(playerPair.second))
+		if (IEntity *pPlayerEntity = gEnv->pEntitySystem->GetEntity(playerPair.second))
 		{
-			if (CPlayerComponent* pPlayer = pPlayerEntity->GetComponent<CPlayerComponent>())
+			if (CPlayerComponent *pPlayer = pPlayerEntity->GetComponent<CPlayerComponent>())
 			{
 				func(*pPlayer);
 			}

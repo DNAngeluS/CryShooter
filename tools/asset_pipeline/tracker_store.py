@@ -14,14 +14,15 @@ def default_tracker() -> dict[str, Any]:
         "_meta": {
             "engine": "CRYENGINE 5.6",
             "topic": "asset_pipeline_tracker",
-            "version": 1,
+            "version": 2,
             "updated_at": utc_now(),
         },
         "roadmap": {
-            "active_milestone": "M1-level-generation",
+            "active_milestone": "M2-bundle-graph-compiler",
             "next_actions": [
-                "Use cry_asset_pipeline.py run --kind level --prompt 'small desert combat arena at noon' to create the first generated level package.",
-                "Use cry_asset_pipeline.py convert-mesh --input path/to/model.obj --target Objects/Imported/model to stage a mesh import job.",
+                "Use cry_asset_pipeline.py create-job --kind level or --kind character_package to capture the brief and bundle target.",
+                "Use cry_asset_pipeline.py plan-spec to emit the bundle graph prompt pack, capability catalog, and node-aware stub graph.",
+                "Author bundle graphs with texture_source, material_surface, mesh_procedural, mesh_import, terrain_archetype, object_placement_set, scene_level, and character_fp_package nodes.",
             ],
         },
         "jobs": [],
@@ -74,4 +75,3 @@ class TrackerStore:
 
     def snapshot(self) -> dict[str, Any]:
         return self.load()
-

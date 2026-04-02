@@ -156,21 +156,34 @@ $CRYENGINE_DIR/bin/linux_x64_gcc/GameLauncher \
 
 ## Asset Pipeline Tools
 
-The repo now includes a staged Python asset pipeline for natural-language driven CRYENGINE packages.
+The repo now includes a staged Python asset pipeline for **LLM-authored, bundle-graph-driven** CRYENGINE packages.
 
 ### `tools/cry_asset_pipeline.py`
 
 Implemented slices:
-- `level` jobs: prompt -> spec -> staged CRYENGINE level package -> validate -> publish into `Assets/levels/`
+- `level` jobs: brief -> authoring artifacts -> authored bundle graph -> staged CRYENGINE level package -> validate -> publish into `Assets/levels/`
+- `character_package` jobs: imported character source -> authored bundle graph -> first-person runtime package -> validate -> publish into `Assets/`
 - `mesh_import` jobs: local source mesh -> staged import package -> validation -> optional compiler hand-off
 
 Examples:
 
 ```bash
-python3 tools/cry_asset_pipeline.py run \
+python3 tools/cry_asset_pipeline.py create-job \
   --kind level \
   --prompt "small desert combat arena at noon" \
   --target-package desert_arena
+
+python3 tools/cry_asset_pipeline.py plan-spec --job level-desert-arena
+python3 tools/cry_asset_pipeline.py author-spec --job level-desert-arena --json-file ./asset_graph.json
+python3 tools/cry_asset_pipeline.py build --job level-desert-arena
+python3 tools/cry_asset_pipeline.py validate --job level-desert-arena
+python3 tools/cry_asset_pipeline.py publish --job level-desert-arena
+
+python3 tools/cry_asset_pipeline.py create-job \
+  --kind character_package \
+  --prompt "first-person rifleman" \
+  --target-package fps_rifleman \
+  --source-input /path/to/fps_rifleman.fbx
 
 python3 tools/cry_asset_pipeline.py convert-mesh \
   --input /path/to/model.obj \
@@ -178,6 +191,33 @@ python3 tools/cry_asset_pipeline.py convert-mesh \
 ```
 
 The staging root is `user/asset_pipeline/jobs/`.
+
+Level jobs accept either a package slug (for example `fps_forest_basin`) or a full level path like
+`Assets/levels/fps_forest_basin`; the pipeline normalizes the latter so the publish destination
+still lands in `Assets/levels/fps_forest_basin/` instead of duplicating the path segments.
+
+The pipeline no longer asks Python to interpret prose into terrain, geometry, materials, textures,
+or character structure. The LLM authors the canonical bundle `asset_graph.json`, Python validates
+that graph against the checked-in capability/template catalogs, then compiles node dependencies in
+order. Supported node types are `scene_level`, `terrain_archetype`, `texture_source`,
+`material_surface`, `mesh_procedural`, `mesh_import`, `object_placement_set`, and
+`character_fp_package`.
+
+Level compilation copies golden terrain binaries from verified templates, rebuilds terrain texture
+packs, writes level layers from placement nodes, and validates `heightmap.dat`, `terrain.dat`,
+`terraintexture.pak`, cross-file XML consistency, and placement references. Character compilation
+packages imported FBX/DAE sources into the first-person runtime contract used by `Player.cpp`,
+including `.cdf`, controller definition XML, and `.adb` outputs.
+
+`imagegen` is now a supported texture node mode in the graph contract, but the current compiler only
+emits image-generation request artifacts plus deterministic fallback PNGs; it does not call an
+external image generator directly yet.
+
+`Code/GamePlugin.cpp` auto-loads `fps_forest_basin` on `ESYSTEM_EVENT_GAME_POST_INIT` when the
+game runs outside the editor so newly generated gameplay levels can be smoke-tested from
+`GameLauncher` without changing the startup map command each time. `Esc` remains bound in the
+local player input path, but shutdown is now deferred to the next update tick instead of calling
+`gEnv->pSystem->Quit()` directly inside the input callback.
 
 ### `tools/cry_asset_tracker.py`
 

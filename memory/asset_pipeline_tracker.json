@@ -2,16 +2,64 @@
   "_meta": {
     "engine": "CRYENGINE 5.6",
     "topic": "asset_pipeline_tracker",
-    "version": 1,
-    "updated_at": "2026-03-29T00:00:00+00:00"
+    "version": 3,
+    "updated_at": "2026-04-02T17:05:54+00:00"
   },
   "roadmap": {
-    "active_milestone": "M1-level-generation",
+    "active_milestone": "M2-bundle-graph-compiler",
     "next_actions": [
-      "Run cry_asset_pipeline.py run --kind level with a real gameplay prompt to generate the first publishable level package.",
-      "Run cry_asset_pipeline.py convert-mesh on a local OBJ or FBX asset to stage the first importable mesh package.",
-      "Extend the pipeline with character_package support using docs/character_mesh.md and memory/character_mesh.json."
+      "Smoke-test the published fps_forest_basin environment in GameLauncher with CRY_ASSET_PIPELINE_ENABLE_SMOKE=1 so the bundle is validated through a real level-load path.",
+      "Improve authored environment fidelity beyond the current template-backed terrain payloads by expanding paint zones, foliage population, and richer texture/material generation.",
+      "Keep character_package on the first-person import path while imagegen remains request-artifact plus fallback-PNG only.",
+      "Verify that deferred ESC shutdown removes noisy teardown errors without regressing the existing player-level quit behavior."
     ]
   },
-  "jobs": []
+  "jobs": [
+    {
+      "job_id": "level-fps-forest-basin",
+      "asset_kind": "level",
+      "prompt": "High-fidelity FPS combat arena. Terrain: 1024x1024 meters featuring a central low-land basin surrounded by sloped ridges to create natural boundaries. Vegetation: Dense temperate forest zones on the perimeter with 'tactical spacing' between tree trunks to allow for player navigation and cover-to-cover movement. Ground: Multi-layered procedural grass and clover textures with dirt-path clearings. Lighting: Mid-afternoon sun with high-contrast shadows to enhance depth and player visibility.",
+      "status": "published",
+      "created_at": "2026-03-30T13:19:09+00:00",
+      "updated_at": "2026-03-30T13:19:10+00:00",
+      "stage_dir": "user/asset_pipeline/jobs/level-fps-forest-basin",
+      "target_package": "fps_forest_basin",
+      "requested_capabilities": [],
+      "published_paths": [
+        "Materials/Generated/fps_forest_basin/clover_ground.mtl",
+        "Materials/Generated/fps_forest_basin/clover_ground.mtl.cryasset",
+        "Materials/Generated/fps_forest_basin/forest_ground.mtl",
+        "Materials/Generated/fps_forest_basin/forest_ground.mtl.cryasset",
+        "Objects/Generated/fps_forest_basin/canopy_cluster.cgf",
+        "Objects/Generated/fps_forest_basin/canopy_cluster.cgf.cryasset",
+        "Objects/Generated/fps_forest_basin/cover_box.cgf",
+        "Objects/Generated/fps_forest_basin/cover_box.cgf.cryasset",
+        "Objects/Generated/fps_forest_basin/cover_ramp.cgf",
+        "Objects/Generated/fps_forest_basin/cover_ramp.cgf.cryasset",
+        "Objects/Generated/fps_forest_basin/cover_wall.cgf",
+        "Objects/Generated/fps_forest_basin/cover_wall.cgf.cryasset",
+        "Objects/Generated/fps_forest_basin/rock_cluster.cgf",
+        "Objects/Generated/fps_forest_basin/rock_cluster.cgf.cryasset",
+        "Objects/Generated/fps_forest_basin/tree_trunk.cgf",
+        "Objects/Generated/fps_forest_basin/tree_trunk.cgf.cryasset",
+        "Textures/Generated/fps_forest_basin/clover_ground_albedo.png",
+        "Textures/Generated/fps_forest_basin/forest_ground_albedo.png",
+        "levels/fps_forest_basin/filelist.xml",
+        "levels/fps_forest_basin/fps_forest_basin.level",
+        "levels/fps_forest_basin/layers/main.lyr",
+        "levels/fps_forest_basin/layers/terrain.lyr",
+        "levels/fps_forest_basin/level.pak",
+        "levels/fps_forest_basin/leveldata/environment.xml",
+        "levels/fps_forest_basin/leveldata/gametokens.xml",
+        "levels/fps_forest_basin/leveldata/heightmap.dat",
+        "levels/fps_forest_basin/leveldata/objectives.xml",
+        "levels/fps_forest_basin/leveldata/terrain_manifest.json",
+        "levels/fps_forest_basin/leveldata/terraintexture.xml",
+        "levels/fps_forest_basin/leveldata/timeofday.xml",
+        "levels/fps_forest_basin/leveldata/vegetationmap.dat",
+        "levels/fps_forest_basin/terraintexture.pak",
+        "levels/fps_forest_basin.level.cryasset"
+      ]
+    }
+  ]
 }

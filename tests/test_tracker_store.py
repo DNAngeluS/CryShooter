@@ -20,7 +20,7 @@ class TrackerStoreTests(unittest.TestCase):
             store = TrackerStore(path)
 
             tracker = store.load()
-            self.assertEqual(tracker["roadmap"]["active_milestone"], "M1-level-generation")
+            self.assertEqual(tracker["roadmap"]["active_milestone"], "M2-bundle-graph-compiler")
             self.assertEqual(tracker["jobs"], [])
 
             store.add_job(
@@ -33,6 +33,7 @@ class TrackerStoreTests(unittest.TestCase):
                     "updated_at": "2026-03-29T00:00:00+00:00",
                     "stage_dir": "user/asset_pipeline/jobs/level-test",
                     "target_package": "level-test",
+                    "requested_capabilities": [],
                     "published_paths": [],
                 }
             )

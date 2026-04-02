@@ -8,7 +8,7 @@ from pathlib import Path
 from .common import relative_to_repo, resolve_cryengine_dir, write_json, write_text
 
 
-SUPPORTED_EXTENSIONS = {".fbx", ".obj", ".dae", ".dxf", ".3ds"}
+SUPPORTED_EXTENSIONS = {".fbx", ".obj", ".dae", ".dxf", ".3ds", ".cgf"}
 SKELETAL_EXTENSIONS = {".fbx", ".dae"}
 
 
@@ -76,12 +76,13 @@ def _discover_compiler(cryengine_dir: Path | None) -> str | None:
     return None
 
 
-def convert_mesh_job(
+def stage_mesh_asset(
+    *,
     stage_root: Path,
+    stage_assets_root: Path,
     input_path: Path,
     target: str,
     kind: str,
-    cryengine_dir_arg: str | None = None,
     repo_root: Path | None = None,
 ) -> dict:
     if input_path.suffix.lower() not in SUPPORTED_EXTENSIONS:
@@ -112,17 +113,43 @@ def convert_mesh_job(
                         shutil.copy2(texture_path, source_root / texture_path.name)
                         sidecars.append(texture_path.name)
 
-    staged_assets_root = stage_root / "staged_assets" / "Assets" / target
-    staged_assets_root.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(copied_input, staged_assets_root.with_suffix(input_path.suffix))
+    staged_target = stage_assets_root / "Assets" / target
+    staged_target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(copied_input, staged_target.with_suffix(input_path.suffix))
     for sidecar_name in sidecars:
-        shutil.copy2(source_root / sidecar_name, staged_assets_root.parent / sidecar_name)
+        shutil.copy2(source_root / sidecar_name, staged_target.parent / sidecar_name)
+    return {
+        "inspection": inspection,
+        "asset_path": f"{target}{input_path.suffix}",
+        "source_file": copied_input.name,
+        "sidecar_files": sorted(set(sidecars)),
+        "preferred_output": f"{target}.cgf",
+        "kind": kind,
+    }
+
+
+def convert_mesh_job(
+    stage_root: Path,
+    input_path: Path,
+    target: str,
+    kind: str,
+    cryengine_dir_arg: str | None = None,
+    repo_root: Path | None = None,
+) -> dict:
+    staged = stage_mesh_asset(
+        stage_root=stage_root,
+        stage_assets_root=stage_root / "staged_assets",
+        input_path=input_path,
+        target=target,
+        kind=kind,
+        repo_root=repo_root,
+    )
     import_recipe = {
         "target": target,
         "kind": kind,
-        "input_file": copied_input.name,
-        "sidecar_files": sorted(set(sidecars)),
-        "preferred_output": f"{target}.cgf",
+        "input_file": staged["source_file"],
+        "sidecar_files": staged["sidecar_files"],
+        "preferred_output": staged["preferred_output"],
         "notes": [
             "CRYENGINE importer expects the compiled mesh beside the source asset.",
             "FBX is preferred for skeletal assets; OBJ is limited to static geometry.",
@@ -140,9 +167,9 @@ def convert_mesh_job(
     write_text(stage_root / "mesh_import_summary.md", json.dumps(import_recipe, indent=2) + "\n")
 
     return {
-        "inspection": inspection,
+        "inspection": staged["inspection"],
         "import_recipe": import_recipe,
-        "staged_asset": relative_to_repo(staged_assets_root.with_suffix(input_path.suffix), base=repo_root),
+        "staged_asset": staged["asset_path"],
         "compiler_available": bool(compiler),
     }
 

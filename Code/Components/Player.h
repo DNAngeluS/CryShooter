@@ -148,6 +148,7 @@ protected:
 protected:
 	bool m_isAlive = false;
 	bool m_wantsToJump = false;
+	bool m_quitRequested = false;
 
 	Cry::DefaultComponents::CCameraComponent* m_pCameraComponent = nullptr;
 	Cry::DefaultComponents::CCharacterControllerComponent* m_pCharacterController = nullptr;

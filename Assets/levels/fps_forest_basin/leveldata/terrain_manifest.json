@@ -1,0 +1,21 @@
+{
+  "template_id": "example-1024-basin",
+  "paint_zones": [
+    {
+      "material_node": "material_ground",
+      "zone": "base",
+      "coverage": 0.7
+    },
+    {
+      "material_node": "material_clover",
+      "zone": "basin",
+      "coverage": 0.3
+    }
+  ],
+  "foliage_zones": [],
+  "paint_material_assets": [
+    "Materials/Generated/fps_forest_basin/forest_ground.mtl",
+    "Materials/Generated/fps_forest_basin/clover_ground.mtl"
+  ],
+  "foliage_mesh_assets": []
+}
