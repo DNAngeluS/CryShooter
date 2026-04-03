@@ -157,6 +157,19 @@ void CPlayerComponent::InitializeLocalPlayer()
 			m_quitRequested = true;
 		} });
 	m_pInputComponent->BindAction("player", "quit", eAID_KeyboardMouse, EKeyId::eKI_Escape);
+
+	// Take a debug screenshot on Ctrl+P
+	m_pInputComponent->RegisterAction("player", "screenshot", [this](int activationMode, float value)
+	{
+		if (activationMode == eAAM_OnPress)
+		{
+			if (gEnv->pInput->GetModifiers() & eMM_Ctrl)
+			{
+				TakeDebugScreenshot();
+			}
+		}
+	});
+	m_pInputComponent->BindAction("player", "screenshot", eAID_KeyboardMouse, EKeyId::eKI_P);
 }
 
 Cry::Entity::EventFlags CPlayerComponent::GetEventMask() const
