@@ -9,6 +9,7 @@
 #include <CryCore/StaticInstanceList.h>
 #include <CryNetwork/Rmi.h>
 #include <CrySystem/IProjectManager.h>
+#include <ctime>
 
 #define MOUSE_DELTA_TRESHOLD 0.0001f
 
@@ -531,7 +532,13 @@ void CPlayerComponent::TakeDebugScreenshot()
 
 	// Build timestamped filename
 	time_t now = time(nullptr);
-	struct tm* t = localtime(&now);
+	struct tm t_buf;
+	struct tm* t = localtime_r(&now, &t_buf);
+	if (!t)
+	{
+		CryWarning(VALIDATOR_MODULE_GAME, VALIDATOR_WARNING, "[Screenshot] Failed to get local time");
+		return;
+	}
 	char filename[256];
 	cry_sprintf(filename, "screenshot_%04d%02d%02d_%02d%02d%02d.jpg",
 		t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
