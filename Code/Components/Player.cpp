@@ -158,18 +158,21 @@ void CPlayerComponent::InitializeLocalPlayer()
 		} });
 	m_pInputComponent->BindAction("player", "quit", eAID_KeyboardMouse, EKeyId::eKI_Escape);
 
-	// Take a debug screenshot on Ctrl+P
-	m_pInputComponent->RegisterAction("player", "screenshot", [this](int activationMode, float value)
+	// Toggle debug mode on K
+	m_pInputComponent->RegisterAction("player", "debug_toggle", [this](int activationMode, float value)
 	{
 		if (activationMode == eAAM_OnPress)
-		{
-			if (gEnv->pInput->GetModifiers() & eMM_Ctrl)
-			{
-				TakeDebugScreenshot();
-			}
-		}
+			m_debugMode = !m_debugMode;
 	});
-	m_pInputComponent->BindAction("player", "screenshot", eAID_KeyboardMouse, EKeyId::eKI_P);
+	m_pInputComponent->BindAction("player", "debug_toggle", eAID_KeyboardMouse, EKeyId::eKI_K);
+
+	// Take a debug screenshot on P (only in debug mode)
+	m_pInputComponent->RegisterAction("player", "debug_screenshot", [this](int activationMode, float value)
+	{
+		if (activationMode == eAAM_OnPress && m_debugMode)
+			TakeDebugScreenshot();
+	});
+	m_pInputComponent->BindAction("player", "debug_screenshot", eAID_KeyboardMouse, EKeyId::eKI_P);
 }
 
 Cry::Entity::EventFlags CPlayerComponent::GetEventMask() const
@@ -217,6 +220,11 @@ void CPlayerComponent::ProcessEvent(const SEntityEvent &event)
 		{
 			// Update the camera component offset
 			UpdateCamera(frameTime);
+
+			if (m_debugMode)
+			{
+				IRenderAuxText::Draw2dLabel(10.f, 570.f, 2.0f, ColorF(1, 0, 0, 1), false, "DEBUG");
+			}
 		}
 	}
 	break;
