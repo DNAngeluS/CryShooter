@@ -512,3 +512,33 @@ void CPlayerComponent::HandleInputFlagChange(const CEnumFlags<EInputFlag> flags,
 		NetMarkAspectsDirty(InputAspect);
 	}
 }
+
+void CPlayerComponent::TakeDebugScreenshot()
+{
+	// Resolve project root (e.g. /home/user/projects/FirstPersonShooter)
+	const char* szGameFolder = gEnv->pCryPak->GetGameFolder();
+	if (!szGameFolder || szGameFolder[0] == '\0')
+	{
+		CryWarning(VALIDATOR_MODULE_GAME, VALIDATOR_WARNING, "[Screenshot] Could not resolve game folder");
+		return;
+	}
+
+	// Ensure Screenshots/ directory exists
+	char screenshotsDir[512];
+	cry_sprintf(screenshotsDir, "%s/Screenshots", szGameFolder);
+	gEnv->pCryPak->MakeDir(screenshotsDir);
+
+	// Build timestamped filename
+	time_t now = time(nullptr);
+	struct tm* t = localtime(&now);
+	char filename[256];
+	cry_sprintf(filename, "screenshot_%04d%02d%02d_%02d%02d%02d.jpg",
+		t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
+		t->tm_hour, t->tm_min, t->tm_sec);
+
+	char fullPath[768];
+	cry_sprintf(fullPath, "%s/%s", screenshotsDir, filename);
+
+	gEnv->pRenderer->ScreenShot(fullPath);
+	CryLog("[Screenshot] Saved to %s", fullPath);
+}
