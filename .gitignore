@@ -114,3 +114,6 @@ Thumbs.db
 # Backup files
 *.bak
 CMakeUserPresets.json
+
+# Debug screenshots
+Screenshots/
