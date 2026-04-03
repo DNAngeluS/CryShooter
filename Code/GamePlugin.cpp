@@ -15,7 +15,7 @@
 
 namespace
 {
-	constexpr const char *kStartupLevel = "fps_forest_basin";
+	constexpr const char *kStartupLevel = "fps_tech_ruins_interior";
 }
 
 CGamePlugin::~CGamePlugin()
@@ -101,9 +101,10 @@ void CGamePlugin::OnSystemEvent(ESystemEvent event, UINT_PTR wparam, UINT_PTR lp
 		gEnv->pConsole->ExecuteString("e_TerrainLodErrorRatio 0.001", false, true);
 		gEnv->pConsole->ExecuteString("e_TerrainLodDistanceRatio 4.0", false, true);
 
-		// The terrain texture pak is empty (base texture was never baked in the
-		// Sandbox editor), so auto-generate it from terrain material info.
-		gEnv->pConsole->ExecuteString("e_TerrainAutoGenerateBaseTexture 1", false, true);
+		// Do NOT set e_TerrainAutoGenerateBaseTexture 1 here.
+		// The asset pipeline generates a valid cover.ctc for every level.
+		// Setting it to 1 causes sectors to be replaced with black tiles for
+		// any terrain that was not painted inside the Sandbox editor.
 	}
 	break;
 

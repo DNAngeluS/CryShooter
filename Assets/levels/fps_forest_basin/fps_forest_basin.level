@@ -3,7 +3,7 @@
  <Fog Fog="" Terrain="" EnvState="" VolFogShadows="" VolumetricCloud="" SkyBox="" Ocean="" OceanAnimation="" DynTexSource=""/>
  <Missions Current="Mission0">
   <Mission Name="Mission0" Description="" PlayerEquipPack="" Script="" MissionTime="12:00">
-   <ObjectLayers LayerVersion="2" Current="Main" CurrentGUID="b72a0be7-461b-4aef-a917-e1fafaa60ead"/>
+   <ObjectLayers LayerVersion="2" Current="Main" CurrentGUID="74c981d7-1bb9-4380-8a94-8ab9db36e7c0"/>
    <Objects />
    <Lighting SunRotation="240" SunHeight="52" Algorithm="3" Lighting="1" Shadows="1" ShadowIntensity="100" ILQuality="1" HemiSamplQuality="5" Longitude="90" DawnTime="355" DawnDuration="10" DuskTime="365" DuskDuration="10" SunVector="-0.51961529,-0.29999986,-0.79999995"/>
    <Weapons>

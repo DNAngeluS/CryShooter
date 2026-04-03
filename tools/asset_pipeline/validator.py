@@ -148,10 +148,14 @@ def _validate_scene_bundle(stage_root: Path, asset_graph: dict, node_reports: di
     terrain_manifest_path = assets_root / "leveldata" / "terrain_manifest.json"
     if terrain_manifest_path.exists():
         terrain_manifest = read_json(terrain_manifest_path)
-        if not terrain_manifest.get("paint_zones"):
-            errors.append("terrain_manifest.json is missing paint_zones")
-        if not terrain_manifest.get("paint_material_assets"):
-            errors.append("terrain_manifest.json is missing paint material assets")
+        # Interior/structured procgen levels use paint_zone_hints instead of paint_zones;
+        # skip the paint-layer checks for those template types.
+        is_procgen_interior = str(terrain_manifest.get("template_id", "")).startswith("procgen:")
+        if not is_procgen_interior:
+            if not terrain_manifest.get("paint_zones"):
+                errors.append("terrain_manifest.json is missing paint_zones")
+            if not terrain_manifest.get("paint_material_assets"):
+                errors.append("terrain_manifest.json is missing paint material assets")
 
     level_pak = assets_root / "level.pak"
     if level_pak.exists():

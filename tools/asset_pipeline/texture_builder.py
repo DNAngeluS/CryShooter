@@ -120,7 +120,9 @@ def make_cover_ctc(diffuse_pixels: bytes, width: int, height: int, sector_table_
     hmap_pix = 32
     diff_data = _resample_rgba(diffuse_pixels, width, height, diff_pix, diff_pix)
     average = average_rgba(diffuse_pixels)
-    hmap_data = bytes([average[0], average[1], 0, 0]) * (hmap_pix * hmap_pix)
+    # Layer 1 encodes terrain surface normals: [128, 128, 0, 0] = neutral flat-surface normal (Nx=0, Ny=0).
+    # Using the diffuse colour average here was wrong — it encoded a tilted normal that darkened terrain.
+    hmap_data = bytes([128, 128, 0, 0]) * (hmap_pix * hmap_pix)
     diff_bytes = len(diff_data)
     hmap_bytes = len(hmap_data)
     depth = 0

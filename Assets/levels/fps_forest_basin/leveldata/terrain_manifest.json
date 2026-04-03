@@ -19,41 +19,23 @@
       "zone": "base",
       "material_key": "base",
       "material_slot": "material_forest_ground",
-      "coverage_fraction": 0.6873197555541992
+      "coverage_fraction": 0.6639375686645508
     },
     {
       "zone": "ridge",
       "material_key": "ridge",
       "material_slot": "material_dirt_path",
-      "coverage_fraction": 0.16512489318847656
+      "coverage_fraction": 0.16121578216552734
     },
     {
       "zone": "basin",
       "material_key": "basin",
       "material_slot": "material_clover_ground",
-      "coverage_fraction": 0.14755535125732422
+      "coverage_fraction": 0.17484664916992188
     }
   ],
   "foliage_zones": [],
   "foliage_hints": [
-    {
-      "position_m": [
-        1380.0,
-        1430.0,
-        0.0
-      ],
-      "type": "tree",
-      "density_weight": 0.7
-    },
-    {
-      "position_m": [
-        382.0,
-        1092.0,
-        0.0
-      ],
-      "type": "tree",
-      "density_weight": 0.7
-    },
     {
       "position_m": [
         1778.0,
@@ -78,8 +60,8 @@
         480.0,
         0.0
       ],
-      "type": "rock",
-      "density_weight": 0.27999999999999997
+      "type": "tree",
+      "density_weight": 0.7
     },
     {
       "position_m": [
@@ -96,8 +78,8 @@
         1844.0,
         0.0
       ],
-      "type": "rock",
-      "density_weight": 0.27999999999999997
+      "type": "tree",
+      "density_weight": 0.7
     },
     {
       "position_m": [
@@ -137,12 +119,21 @@
     },
     {
       "position_m": [
+        670.0,
+        844.0,
+        0.0
+      ],
+      "type": "tree",
+      "density_weight": 0.7
+    },
+    {
+      "position_m": [
         356.0,
         2034.0,
         0.0
       ],
-      "type": "rock",
-      "density_weight": 0.27999999999999997
+      "type": "tree",
+      "density_weight": 0.7
     },
     {
       "position_m": [
@@ -173,6 +164,15 @@
     },
     {
       "position_m": [
+        932.0,
+        1230.0,
+        0.0
+      ],
+      "type": "tree",
+      "density_weight": 0.7
+    },
+    {
+      "position_m": [
         0.0,
         1610.0,
         0.0
@@ -182,12 +182,30 @@
     },
     {
       "position_m": [
+        924.0,
+        1236.0,
+        0.0
+      ],
+      "type": "tree",
+      "density_weight": 0.7
+    },
+    {
+      "position_m": [
+        1304.0,
+        660.0,
+        0.0
+      ],
+      "type": "tree",
+      "density_weight": 0.7
+    },
+    {
+      "position_m": [
         400.0,
         1858.0,
         0.0
       ],
-      "type": "rock",
-      "density_weight": 0.27999999999999997
+      "type": "tree",
+      "density_weight": 0.7
     },
     {
       "position_m": [
@@ -195,8 +213,8 @@
         56.0,
         0.0
       ],
-      "type": "tree",
-      "density_weight": 0.7
+      "type": "rock",
+      "density_weight": 0.27999999999999997
     },
     {
       "position_m": [
@@ -254,8 +272,8 @@
     },
     {
       "position_m": [
-        1564.0,
-        1324.0,
+        1024.0,
+        294.0,
         0.0
       ],
       "type": "tree",
@@ -263,8 +281,8 @@
     },
     {
       "position_m": [
-        1024.0,
-        294.0,
+        794.0,
+        1336.0,
         0.0
       ],
       "type": "tree",
@@ -276,8 +294,8 @@
         22.0,
         0.0
       ],
-      "type": "tree",
-      "density_weight": 0.7
+      "type": "rock",
+      "density_weight": 0.27999999999999997
     },
     {
       "position_m": [
@@ -290,26 +308,8 @@
     },
     {
       "position_m": [
-        1462.0,
-        834.0,
-        0.0
-      ],
-      "type": "tree",
-      "density_weight": 0.7
-    },
-    {
-      "position_m": [
         592.0,
         1892.0,
-        0.0
-      ],
-      "type": "rock",
-      "density_weight": 0.27999999999999997
-    },
-    {
-      "position_m": [
-        692.0,
-        732.0,
         0.0
       ],
       "type": "tree",
@@ -357,8 +357,8 @@
         60.0,
         0.0
       ],
-      "type": "tree",
-      "density_weight": 0.7
+      "type": "rock",
+      "density_weight": 0.27999999999999997
     },
     {
       "position_m": [
@@ -407,6 +407,15 @@
     },
     {
       "position_m": [
+        1198.0,
+        1120.0,
+        0.0
+      ],
+      "type": "tree",
+      "density_weight": 0.7
+    },
+    {
+      "position_m": [
         348.0,
         820.0,
         0.0
@@ -438,17 +447,8 @@
         176.0,
         0.0
       ],
-      "type": "tree",
-      "density_weight": 0.7
-    },
-    {
-      "position_m": [
-        1304.0,
-        1366.0,
-        0.0
-      ],
-      "type": "tree",
-      "density_weight": 0.7
+      "type": "rock",
+      "density_weight": 0.27999999999999997
     },
     {
       "position_m": [
@@ -510,8 +510,8 @@
         1880.0,
         0.0
       ],
-      "type": "rock",
-      "density_weight": 0.27999999999999997
+      "type": "tree",
+      "density_weight": 0.7
     },
     {
       "position_m": [
@@ -555,8 +555,8 @@
         868.0,
         0.0
       ],
-      "type": "tree",
-      "density_weight": 0.7
+      "type": "rock",
+      "density_weight": 0.27999999999999997
     },
     {
       "position_m": [
@@ -564,8 +564,8 @@
         1736.0,
         0.0
       ],
-      "type": "rock",
-      "density_weight": 0.27999999999999997
+      "type": "tree",
+      "density_weight": 0.7
     },
     {
       "position_m": [
@@ -600,8 +600,8 @@
         34.0,
         0.0
       ],
-      "type": "tree",
-      "density_weight": 0.7
+      "type": "rock",
+      "density_weight": 0.27999999999999997
     },
     {
       "position_m": [
@@ -618,8 +618,8 @@
         1962.0,
         0.0
       ],
-      "type": "rock",
-      "density_weight": 0.27999999999999997
+      "type": "tree",
+      "density_weight": 0.7
     },
     {
       "position_m": [
@@ -704,8 +704,8 @@
     },
     {
       "position_m": [
-        1292.0,
-        1132.0,
+        190.0,
+        1246.0,
         0.0
       ],
       "type": "tree",
@@ -713,8 +713,8 @@
     },
     {
       "position_m": [
-        190.0,
-        1246.0,
+        1304.0,
+        522.0,
         0.0
       ],
       "type": "tree",
@@ -726,8 +726,8 @@
         98.0,
         0.0
       ],
-      "type": "tree",
-      "density_weight": 0.7
+      "type": "rock",
+      "density_weight": 0.27999999999999997
     },
     {
       "position_m": [
@@ -735,8 +735,8 @@
         1824.0,
         0.0
       ],
-      "type": "rock",
-      "density_weight": 0.27999999999999997
+      "type": "tree",
+      "density_weight": 0.7
     },
     {
       "position_m": [
@@ -807,8 +807,8 @@
         700.0,
         0.0
       ],
-      "type": "tree",
-      "density_weight": 0.7
+      "type": "rock",
+      "density_weight": 0.27999999999999997
     },
     {
       "position_m": [
@@ -841,6 +841,15 @@
       "position_m": [
         2012.0,
         1164.0,
+        0.0
+      ],
+      "type": "tree",
+      "density_weight": 0.7
+    },
+    {
+      "position_m": [
+        1304.0,
+        486.0,
         0.0
       ],
       "type": "tree",
@@ -888,8 +897,8 @@
         1892.0,
         0.0
       ],
-      "type": "rock",
-      "density_weight": 0.27999999999999997
+      "type": "tree",
+      "density_weight": 0.7
     },
     {
       "position_m": [
@@ -942,8 +951,8 @@
         1826.0,
         0.0
       ],
-      "type": "rock",
-      "density_weight": 0.27999999999999997
+      "type": "tree",
+      "density_weight": 0.7
     },
     {
       "position_m": [
@@ -960,8 +969,8 @@
         138.0,
         0.0
       ],
-      "type": "tree",
-      "density_weight": 0.7
+      "type": "rock",
+      "density_weight": 0.27999999999999997
     },
     {
       "position_m": [
@@ -969,8 +978,8 @@
         520.0,
         0.0
       ],
-      "type": "tree",
-      "density_weight": 0.7
+      "type": "rock",
+      "density_weight": 0.27999999999999997
     },
     {
       "position_m": [
@@ -978,8 +987,8 @@
         2020.0,
         0.0
       ],
-      "type": "rock",
-      "density_weight": 0.27999999999999997
+      "type": "tree",
+      "density_weight": 0.7
     },
     {
       "position_m": [
@@ -987,8 +996,8 @@
         440.0,
         0.0
       ],
-      "type": "tree",
-      "density_weight": 0.7
+      "type": "rock",
+      "density_weight": 0.27999999999999997
     },
     {
       "position_m": [
@@ -1014,8 +1023,8 @@
         94.0,
         0.0
       ],
-      "type": "tree",
-      "density_weight": 0.7
+      "type": "rock",
+      "density_weight": 0.27999999999999997
     },
     {
       "position_m": [
@@ -1032,8 +1041,8 @@
         1880.0,
         0.0
       ],
-      "type": "rock",
-      "density_weight": 0.27999999999999997
+      "type": "tree",
+      "density_weight": 0.7
     },
     {
       "position_m": [
@@ -1046,44 +1055,17 @@
     },
     {
       "position_m": [
-        1190.0,
-        1362.0,
-        0.0
-      ],
-      "type": "tree",
-      "density_weight": 0.7
-    },
-    {
-      "position_m": [
         1454.0,
         1996.0,
         0.0
       ],
-      "type": "rock",
-      "density_weight": 0.27999999999999997
+      "type": "tree",
+      "density_weight": 0.7
     },
     {
       "position_m": [
         1552.0,
         152.0,
-        0.0
-      ],
-      "type": "tree",
-      "density_weight": 0.7
-    },
-    {
-      "position_m": [
-        1206.0,
-        1310.0,
-        0.0
-      ],
-      "type": "tree",
-      "density_weight": 0.7
-    },
-    {
-      "position_m": [
-        1350.0,
-        1452.0,
         0.0
       ],
       "type": "tree",
@@ -1104,8 +1086,8 @@
         1948.0,
         0.0
       ],
-      "type": "rock",
-      "density_weight": 0.27999999999999997
+      "type": "tree",
+      "density_weight": 0.7
     },
     {
       "position_m": [
@@ -1140,8 +1122,8 @@
         60.0,
         0.0
       ],
-      "type": "tree",
-      "density_weight": 0.7
+      "type": "rock",
+      "density_weight": 0.27999999999999997
     },
     {
       "position_m": [
@@ -1149,13 +1131,13 @@
         1962.0,
         0.0
       ],
-      "type": "rock",
-      "density_weight": 0.27999999999999997
+      "type": "tree",
+      "density_weight": 0.7
     },
     {
       "position_m": [
-        1314.0,
-        1418.0,
+        836.0,
+        1260.0,
         0.0
       ],
       "type": "tree",
@@ -1167,8 +1149,8 @@
         1978.0,
         0.0
       ],
-      "type": "rock",
-      "density_weight": 0.27999999999999997
+      "type": "tree",
+      "density_weight": 0.7
     },
     {
       "position_m": [
@@ -1185,8 +1167,8 @@
         1990.0,
         0.0
       ],
-      "type": "rock",
-      "density_weight": 0.27999999999999997
+      "type": "tree",
+      "density_weight": 0.7
     },
     {
       "position_m": [
@@ -1210,15 +1192,6 @@
       "position_m": [
         2028.0,
         1096.0,
-        0.0
-      ],
-      "type": "tree",
-      "density_weight": 0.7
-    },
-    {
-      "position_m": [
-        1458.0,
-        884.0,
         0.0
       ],
       "type": "tree",
@@ -1271,8 +1244,8 @@
     },
     {
       "position_m": [
-        624.0,
-        1366.0,
+        1410.0,
+        614.0,
         0.0
       ],
       "type": "tree",
@@ -1291,6 +1264,33 @@
       "position_m": [
         170.0,
         658.0,
+        0.0
+      ],
+      "type": "tree",
+      "density_weight": 0.7
+    },
+    {
+      "position_m": [
+        536.0,
+        414.0,
+        0.0
+      ],
+      "type": "tree",
+      "density_weight": 0.7
+    },
+    {
+      "position_m": [
+        1298.0,
+        1746.0,
+        0.0
+      ],
+      "type": "tree",
+      "density_weight": 0.7
+    },
+    {
+      "position_m": [
+        1874.0,
+        936.0,
         0.0
       ],
       "type": "tree",
