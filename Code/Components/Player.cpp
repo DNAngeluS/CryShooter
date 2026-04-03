@@ -8,7 +8,6 @@
 #include <CrySchematyc/Env/Elements/EnvComponent.h>
 #include <CryCore/StaticInstanceList.h>
 #include <CryNetwork/Rmi.h>
-#include <CrySystem/IProjectManager.h>
 #include <ctime>
 
 #define MOUSE_DELTA_TRESHOLD 0.0001f
@@ -224,6 +223,12 @@ void CPlayerComponent::ProcessEvent(const SEntityEvent &event)
 			if (m_debugMode)
 			{
 				IRenderAuxText::Draw2dLabel(10.f, 570.f, 2.0f, ColorF(1, 0, 0, 1), false, "DEBUG");
+			}
+
+			if (m_screenshotMessageTimer > 0.f)
+			{
+				IRenderAuxText::Draw2dLabel(10.f, 545.f, 1.5f, ColorF(1, 1, 0, 1), false, "Screenshot saved!");
+				m_screenshotMessageTimer -= frameTime;
 			}
 		}
 	}
@@ -538,20 +543,8 @@ void CPlayerComponent::HandleInputFlagChange(const CEnumFlags<EInputFlag> flags,
 
 void CPlayerComponent::TakeDebugScreenshot()
 {
-	// Resolve project root (e.g. /home/user/projects/FirstPersonShooter)
-	const char* szProjectDir = gEnv->pSystem->GetIProjectManager()->GetCurrentProjectDirectoryAbsolute();
-	if (!szProjectDir || szProjectDir[0] == '\0')
-	{
-		CryWarning(VALIDATOR_MODULE_GAME, VALIDATOR_WARNING, "[Screenshot] Could not resolve game folder");
-		return;
-	}
-
-	// Ensure Screenshots/ directory exists
-	char screenshotsDir[512];
-	cry_sprintf(screenshotsDir, "%s/Screenshots", szProjectDir);
-	gEnv->pCryPak->MakeDir(screenshotsDir);
-
-	// Build timestamped filename
+	// Build a timestamped path under the engine's user directory (%USER% is a
+	// CryPak alias that always resolves correctly in both editor and launcher).
 	time_t now = time(nullptr);
 	struct tm t_buf;
 	struct tm* t = localtime_r(&now, &t_buf);
@@ -560,14 +553,19 @@ void CPlayerComponent::TakeDebugScreenshot()
 		CryWarning(VALIDATOR_MODULE_GAME, VALIDATOR_WARNING, "[Screenshot] Failed to get local time");
 		return;
 	}
-	char filename[256];
-	cry_sprintf(filename, "screenshot_%04d%02d%02d_%02d%02d%02d.jpg",
+
+	char path[512];
+	cry_sprintf(path, "%%USER%%/Screenshots/screenshot_%04d%02d%02d_%02d%02d%02d.jpg",
 		t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
 		t->tm_hour, t->tm_min, t->tm_sec);
 
-	char fullPath[768];
-	cry_sprintf(fullPath, "%s/%s", screenshotsDir, filename);
-
-	gEnv->pRenderer->ScreenShot(fullPath);
-	CryLog("[Screenshot] Saved to %s", fullPath);
+	if (gEnv->pRenderer->ScreenShot(path))
+	{
+		CryLog("[Screenshot] Saved to %s", path);
+		m_screenshotMessageTimer = 2.f;
+	}
+	else
+	{
+		CryWarning(VALIDATOR_MODULE_GAME, VALIDATOR_WARNING, "[Screenshot] ScreenShot() failed");
+	}
 }

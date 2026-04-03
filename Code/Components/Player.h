@@ -152,6 +152,7 @@ protected:
 	bool m_wantsToJump = false;
 	bool m_quitRequested = false;
 	bool m_debugMode = false;
+	float m_screenshotMessageTimer = 0.f;
 
 	Cry::DefaultComponents::CCameraComponent* m_pCameraComponent = nullptr;
 	Cry::DefaultComponents::CCharacterControllerComponent* m_pCharacterController = nullptr;
