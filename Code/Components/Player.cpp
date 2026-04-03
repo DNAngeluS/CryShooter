@@ -8,6 +8,7 @@
 #include <CrySchematyc/Env/Elements/EnvComponent.h>
 #include <CryCore/StaticInstanceList.h>
 #include <CryNetwork/Rmi.h>
+#include <CrySystem/IProjectManager.h>
 
 #define MOUSE_DELTA_TRESHOLD 0.0001f
 
@@ -516,8 +517,8 @@ void CPlayerComponent::HandleInputFlagChange(const CEnumFlags<EInputFlag> flags,
 void CPlayerComponent::TakeDebugScreenshot()
 {
 	// Resolve project root (e.g. /home/user/projects/FirstPersonShooter)
-	const char* szGameFolder = gEnv->pCryPak->GetGameFolder();
-	if (!szGameFolder || szGameFolder[0] == '\0')
+	const char* szProjectDir = gEnv->pSystem->GetIProjectManager()->GetCurrentProjectDirectoryAbsolute();
+	if (!szProjectDir || szProjectDir[0] == '\0')
 	{
 		CryWarning(VALIDATOR_MODULE_GAME, VALIDATOR_WARNING, "[Screenshot] Could not resolve game folder");
 		return;
@@ -525,7 +526,7 @@ void CPlayerComponent::TakeDebugScreenshot()
 
 	// Ensure Screenshots/ directory exists
 	char screenshotsDir[512];
-	cry_sprintf(screenshotsDir, "%s/Screenshots", szGameFolder);
+	cry_sprintf(screenshotsDir, "%s/Screenshots", szProjectDir);
 	gEnv->pCryPak->MakeDir(screenshotsDir);
 
 	// Build timestamped filename
