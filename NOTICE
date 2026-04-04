@@ -1,0 +1,16 @@
+FirstPersonShooter
+Copyright (c) 2026 DNAngeluS
+
+This project is a game plugin built against the CRYENGINE SDK. The engine
+itself is not distributed here; it is an external dependency resolved at
+build time via the CRYENGINE_DIR environment variable.
+
+-------------------------------------------------------------------------------
+Third-party components
+-------------------------------------------------------------------------------
+
+Code/StdAfx.h
+  Derived from the CRYENGINE project template.
+  Copyright 2001-2019 Crytek GmbH / Crytek Group. All rights reserved.
+  Used and modified under the terms of the CryEngine License Agreement.
+  See: https://www.cryengine.com/ce-terms
