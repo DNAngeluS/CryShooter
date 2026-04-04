@@ -1,0 +1,11 @@
+<AssetMetadata version="0" type="Mesh" guid="d946298f-3f06-4b18-ac03-61902d2efa69">
+ <Files>
+  <File path="server_rack.cgf"/>
+ </Files>
+ <Details>
+  <Detail name="materialCount">1</Detail>
+ </Details>
+ <Dependencies>
+  <Path usageCount="1">Materials/Generated/fps_tech_ruins_interior/tech_metal.mtl</Path>
+ </Dependencies>
+</AssetMetadata>

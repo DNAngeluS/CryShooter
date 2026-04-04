@@ -1,0 +1,11 @@
+<AssetMetadata version="0" type="Mesh" guid="91554a82-a796-4f24-a3bc-22613a5211cc">
+ <Files>
+  <File path="power_conduit.cgf"/>
+ </Files>
+ <Details>
+  <Detail name="materialCount">1</Detail>
+ </Details>
+ <Dependencies>
+  <Path usageCount="1">Materials/Generated/fps_tech_ruins_interior/glow_conduit.mtl</Path>
+ </Dependencies>
+</AssetMetadata>

@@ -1,0 +1,11 @@
+<AssetMetadata version="0" type="Mesh" guid="e088e785-65ec-4418-85cc-4f8b28928136">
+ <Files>
+  <File path="holographic_terminal.cgf"/>
+ </Files>
+ <Details>
+  <Detail name="materialCount">1</Detail>
+ </Details>
+ <Dependencies>
+  <Path usageCount="1">Materials/Generated/fps_tech_ruins_interior/tech_metal.mtl</Path>
+ </Dependencies>
+</AssetMetadata>

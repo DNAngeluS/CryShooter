@@ -1,0 +1,15 @@
+newmtl ruins_wall
+Ka 0.2 0.2 0.2
+Kd 0.8 0.8 0.8
+Ks 0.0 0.0 0.0
+
+newmtl ruins_floor
+Ka 0.2 0.2 0.2
+Kd 0.8 0.8 0.8
+Ks 0.0 0.0 0.0
+
+newmtl ruins_tower
+Ka 0.2 0.2 0.2
+Kd 0.8 0.8 0.8
+Ks 0.0 0.0 0.0
+

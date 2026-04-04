@@ -1,0 +1,11 @@
+<AssetMetadata version="0" type="Mesh" guid="4f227cb6-fbf3-410a-851e-d937dbbfb800">
+ <Files>
+  <File path="cover_wall.cgf"/>
+ </Files>
+ <Details>
+  <Detail name="materialCount">1</Detail>
+ </Details>
+ <Dependencies>
+  <Path usageCount="1">Materials/Generated/fps_tech_ruins_interior/ruins_stone.mtl</Path>
+ </Dependencies>
+</AssetMetadata>

@@ -1,0 +1,6 @@
+<download name="fps_tech_ruins_interior" type="Map">
+ <index src="filelist.xml" dest="filelist.xml"/>
+ <files>
+  <file src="level.pak" dest="level.pak" size="13109" md5="95c83740347ae3517b0bb30551ed828f"/>
+ </files>
+</download>
