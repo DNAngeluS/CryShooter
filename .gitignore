@@ -11,6 +11,7 @@ user/
 
 # Claude Code local settings
 .claude/
+.codex
 
 # VS Code generated/personal files (shared configs in .vscode/ are committed)
 .vscode/.browse.c_cpp.db*

@@ -543,8 +543,13 @@ void CPlayerComponent::HandleInputFlagChange(const CEnumFlags<EInputFlag> flags,
 
 void CPlayerComponent::TakeDebugScreenshot()
 {
-	// Build a timestamped path under the engine's user directory (%USER% is a
-	// CryPak alias that always resolves correctly in both editor and launcher).
+	// AdjustFileName expands %USER% and returns an absolute OS path regardless of
+	// the caller's working directory, so the render thread can use it safely.
+	CryPathString dir;
+	gEnv->pCryPak->AdjustFileName("%USER%/Screenshots", dir,
+		ICryPak::FLAGS_PATH_REAL | ICryPak::FLAGS_FOR_WRITING);
+	gEnv->pCryPak->MakeDir(dir.c_str());
+
 	time_t now = time(nullptr);
 	struct tm t_buf;
 	struct tm* t = localtime_r(&now, &t_buf);
@@ -555,17 +560,32 @@ void CPlayerComponent::TakeDebugScreenshot()
 	}
 
 	char path[512];
-	cry_sprintf(path, "%%USER%%/Screenshots/screenshot_%04d%02d%02d_%02d%02d%02d.jpg",
+	cry_sprintf(path, "%s/screenshot_%04d%02d%02d_%02d%02d%02d.jpg",
+		dir.c_str(),
 		t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
 		t->tm_hour, t->tm_min, t->tm_sec);
 
-	if (gEnv->pRenderer->ScreenShot(path))
+	// Use the engine's CaptureFrameBuffer() mechanism rather than ScreenShot().
+	// ScreenShot() dispatches an async render-thread command that reads from
+	// GetPresentedBackBuffer() — a swapchain image the app no longer owns after
+	// vkQueuePresentKHR, producing black/corrupted output at high frame rates.
+	// CaptureFrameBuffer() runs BEFORE vkQueuePresentKHR each frame; at that point
+	// GetPresentedBackBuffer() is the previous frame's image, which has already been
+	// re-acquired by vkAcquireNextImageKHR and is safely owned by the app.
+	ICVar* pCaptureName   = gEnv->pConsole->GetCVar("capture_file_name");
+	ICVar* pCaptureOnce   = gEnv->pConsole->GetCVar("capture_frame_once");
+	ICVar* pCaptureFrames = gEnv->pConsole->GetCVar("capture_frames");
+
+	if (pCaptureName && pCaptureOnce && pCaptureFrames)
 	{
-		CryLog("[Screenshot] Saved to %s", path);
+		pCaptureName->Set(path);
+		pCaptureOnce->Set(1);
+		pCaptureFrames->Set(1);
+		CryLog("[Screenshot] Capturing to %s", path);
 		m_screenshotMessageTimer = 2.f;
 	}
 	else
 	{
-		CryWarning(VALIDATOR_MODULE_GAME, VALIDATOR_WARNING, "[Screenshot] ScreenShot() failed");
+		CryWarning(VALIDATOR_MODULE_GAME, VALIDATOR_WARNING, "[Screenshot] capture CVars not found");
 	}
 }

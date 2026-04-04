@@ -9,6 +9,7 @@
 
 #include <IGameObjectSystem.h>
 #include <IGameObject.h>
+#include <CrySystem/ConsoleRegistration.h>
 
 // Included only once per DLL module.
 #include <CryCore/Platform/platform_impl.inl>
@@ -16,6 +17,44 @@
 namespace
 {
 	constexpr const char *kStartupLevel = "fps_tech_ruins_interior";
+}
+
+static void GotoCommand(IConsoleCmdArgs* pArgs)
+{
+	// With no arguments: log current player position/angle so it can be pasted back
+	// as "goto x y z yaw pitch" in the console. This is what the engine calls after
+	// every screenshot (DriverD3D.cpp) to record the camera location in the log.
+	if (pArgs->GetArgCount() == 1)
+	{
+		if (IEntity* pPlayer = gEnv->pEntitySystem->GetEntity(LOCAL_PLAYER_ENTITY_ID))
+		{
+			const Vec3 pos = pPlayer->GetWorldPos();
+			const Ang3 ang(pPlayer->GetWorldRotation());
+			CryLog("goto %.2f %.2f %.2f %.2f %.2f 0",
+				pos.x, pos.y, pos.z,
+				RAD2DEG(ang.z), RAD2DEG(ang.x));
+		}
+		return;
+	}
+
+	// With arguments: teleport the local player to the given position/angle.
+	// Usage: goto x y z [yaw [pitch]]
+	if (pArgs->GetArgCount() >= 4)
+	{
+		if (IEntity* pPlayer = gEnv->pEntitySystem->GetEntity(LOCAL_PLAYER_ENTITY_ID))
+		{
+			Vec3 pos(
+				(float)atof(pArgs->GetArg(1)),
+				(float)atof(pArgs->GetArg(2)),
+				(float)atof(pArgs->GetArg(3)));
+
+			Ang3 ang(0.f, 0.f, 0.f);
+			if (pArgs->GetArgCount() >= 5) ang.z = DEG2RAD((float)atof(pArgs->GetArg(4)));
+			if (pArgs->GetArgCount() >= 6) ang.x = DEG2RAD((float)atof(pArgs->GetArg(5)));
+
+			pPlayer->SetWorldTM(Matrix34::Create(Vec3(1.f), Quat(ang), pos));
+		}
+	}
 }
 
 CGamePlugin::~CGamePlugin()
@@ -38,6 +77,13 @@ bool CGamePlugin::Initialize(SSystemGlobalEnvironment &env, const SSystemInitPar
 {
 	// Register for engine system events, in our case we need ESYSTEM_EVENT_GAME_POST_INIT to load the map
 	gEnv->pSystem->GetISystemEventDispatcher()->RegisterListener(this, "CGamePlugin");
+
+	// Register the "goto" console command. The engine's ScreenShot() (DriverD3D.cpp)
+	// always executes "goto" after taking a screenshot to log the camera position.
+	// Without this registration the launcher prints "Unknown command: goto" every time.
+	REGISTER_COMMAND("goto", GotoCommand, 0,
+		"With no args: log current player position/angle. "
+		"With args (x y z [yaw [pitch]]): teleport local player.");
 
 	return true;
 }
