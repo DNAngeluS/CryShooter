@@ -29,16 +29,17 @@ Re-run `grep -iE "\[Warning\]|\[Error\]" game.log | grep -v "Vulkan"` to refresh
 
 ## Warnings — Wrong Texture Format
 
-All five report format `Unknown` when the engine expects a compressed normal map format (BC5/DXT5n).
-These use fallback textures and may affect visual quality.
+All five were in DXT1/BC1 format (engine expects BC5/ATI2 for `_ddn` normal maps).
+Fixed by recompressing DXT1 → BC5 (ATI2) using a Python converter (R+G channels preserved).
+The engine check at `Texture.cpp:1186` only accepts `eTF_BC5U/S`, `eTF_BC7`, or `eTF_EAC_RG11` for `_ddn` textures.
 
 | ID  | Status | File |
 |-----|--------|------|
-| W7  | open   | `%engine%/engineassets/textures/perlinnoisenormal_ddn.dds` |
-| W8  | open   | `%engine%/engineassets/textures/oceanwaves_ddn.dds` |
-| W9  | open   | `%engine%/engineassets/textures/screenfrost_ddn.dds` |
-| W10 | open   | `%engine%/engineassets/textures/hex_ddn.dds` |
-| W11 | open   | `%engine%/engineassets/textures/glass_decalatlas_ddn.dds` |
+| W7  | fixed  | `%engine%/engineassets/textures/perlinnoisenormal_ddn.dds` |
+| W8  | fixed  | `%engine%/engineassets/textures/oceanwaves_ddn.dds` |
+| W9  | fixed  | `%engine%/engineassets/textures/screenfrost_ddn.dds` |
+| W10 | fixed  | `%engine%/engineassets/textures/hex_ddn.dds` |
+| W11 | fixed  | `%engine%/engineassets/textures/glass_decalatlas_ddn.dds` |
 
 ---
 
