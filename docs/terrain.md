@@ -1,5 +1,8 @@
 # CRYENGINE 5.6 — Terrain
 
+> **Read this when:** You need to know how a level is laid out on disk, why terrain renders wrong (water, spawn), or how to edit a level without Sandbox.
+> **Related:** [Terrain textures](textures.md) · [LOD](lod.md) · [Lighting](lighting.md) · [All docs](README.md)
+
 ## Overview
 
 Terrain in CRYENGINE is a heightmap-based mesh divided into sectors. Each sector is a square

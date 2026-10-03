@@ -1,0 +1,16 @@
+{
+  "when": "you hit a term used in this project and want its meaning and where it lives",
+  "terms": [
+    {"term": "bundle graph", "means": "the strict asset_graph.json (nodes with id/type/inputs/outputs/spec) that an LLM authors and Python compiles", "not": "a free-form scene description", "lives_in": "tools/asset_pipeline/asset_graph.py"},
+    {"term": "golden template", "means": "checked-in, engine-verified level terrain binaries copied by terrain_archetype nodes", "not": "a procedurally generated terrain", "lives_in": "tools/asset_pipeline/templates/levels"},
+    {"term": "procgen", "means": "procedural generation node types terrain_procgen / interior_procgen / structured_procgen (milestone M3)", "not": "imagegen", "lives_in": "tools/asset_pipeline/procgen"},
+    {"term": "cover.ctc", "means": "compiled terrain texture inside terraintexture.pak: base colour + normal-ish layer tiles over the terrain quadtree", "not": "a material or a PNG", "lives_in": "tools/asset_pipeline/texture_builder.py, docs/textures.md"},
+    {"term": "terrain.dat", "means": "binary terrain quadtree inside level.pak", "not": "heightmap.dat (raw samples)", "lives_in": "tools/asset_pipeline/procgen/terrain_dat_writer.py"},
+    {"term": "level.pak", "means": "ZIP archive with levelinfo.xml, leveldata.xml, mission XML and terrain/terrain.dat", "not": "terraintexture.pak", "lives_in": "docs/terrain.md"},
+    {"term": "TOD / .env preset", "means": "time-of-day spline preset XML driving sun, sky and fog", "not": "an environment-variable file", "lives_in": "docs/lighting.md"},
+    {"term": "uber file", "means": "generated unity-build .cpp (GamePlugin_uber.cpp, Components_uber.cpp) created at CMake configure time", "not": "a source file in the repo", "lives_in": "Code/CMakeLists.txt"},
+    {"term": "Mannequin / CDF / ADB", "means": "CRYENGINE animation system; character definition file; animation database", "not": "a physics ragdoll", "lives_in": "docs/character_mesh.md"},
+    {"term": "smoke test", "means": "optional GameLauncher level-load run triggered by CRY_ASSET_PIPELINE_ENABLE_SMOKE=1", "not": "a unit test", "lives_in": "tools/asset_pipeline/validator.py"},
+    {"term": "staged job", "means": "a pipeline job directory under user/asset_pipeline/jobs/ before publish", "not": "a published asset", "lives_in": "tools/asset_pipeline/pipeline.py"}
+  ]
+}

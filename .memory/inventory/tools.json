@@ -1,0 +1,31 @@
+{
+  "when": "you need to locate the file that does something specific inside tools/ or tests/",
+  "component": "tools",
+  "path": "tools",
+  "generated": "2026-10-03",
+  "files": [
+    {"path": "cry_asset_pipeline.py", "role": "route", "does": "pipeline CLI (create-job … convert-mesh)", "loc": 163},
+    {"path": "cry_asset_tracker.py", "role": "route", "does": "tracker CLI status/next/resume", "loc": 81},
+    {"path": "cry_shader_server.py", "role": "service", "does": "remote shader compile server over Wine+DXC", "loc": 247},
+    {"path": "asset_pipeline/pipeline.py", "role": "service", "does": "job orchestration across stages", "loc": 272},
+    {"path": "asset_pipeline/asset_graph.py", "role": "model", "does": "graph schema and node-type validators", "loc": 551},
+    {"path": "asset_pipeline/bundle_builder.py", "role": "service", "does": "node compilers, level XML/layer writers, scene_level assembly", "loc": 851},
+    {"path": "asset_pipeline/validator.py", "role": "service", "does": "post-build validation and smoke report", "loc": 266},
+    {"path": "asset_pipeline/catalogs.py", "role": "config", "does": "loads capability/template catalogs", "loc": 259},
+    {"path": "asset_pipeline/texture_builder.py", "role": "service", "does": "PNG masters, cover.ctc, terraintexture.pak", "loc": 154},
+    {"path": "asset_pipeline/character_builder.py", "role": "service", "does": "first-person .cdf/.adb/controller package", "loc": 82},
+    {"path": "asset_pipeline/mesh_converter.py", "role": "service", "does": "mesh import staging and compiler hand-off", "loc": 192},
+    {"path": "asset_pipeline/dds_normalmap_fix.py", "role": "service", "does": "DXT1→BC5 normal-map conversion", "loc": 435},
+    {"path": "asset_pipeline/tracker_store.py", "role": "model", "does": "tracker persistence in memory/asset_pipeline_tracker.json", "loc": 77},
+    {"path": "asset_pipeline/procgen/terrain_gen.py", "role": "service", "does": "open-terrain heightmap, erosion, paint/foliage hints", "loc": 267},
+    {"path": "asset_pipeline/procgen/interior_gen.py", "role": "service", "does": "cave/dungeon/ship/bunker/sewer generators", "loc": 391},
+    {"path": "asset_pipeline/procgen/structured_gen.py", "role": "service", "does": "castle/arena/fortress/warehouse/ruins generators", "loc": 237},
+    {"path": "asset_pipeline/procgen/terrain_dat_writer.py", "role": "service", "does": "native terrain.dat writer (quadtree chunks)", "loc": 246},
+    {"path": "asset_pipeline/procgen/classifier.py", "role": "service", "does": "classifies a brief into a procgen kind", "loc": 58},
+    {"path": "asset_pipeline/templates/levels/catalog.json", "role": "config", "does": "golden terrain templates"},
+    {"path": "asset_pipeline/templates/procgen/catalog.json", "role": "config", "does": "procgen biome/layout catalog"},
+    {"path": "../tests/test_procgen.py", "role": "test", "does": "procgen suite", "loc": 608},
+    {"path": "../tests/test_asset_pipeline.py", "role": "test", "does": "pipeline suite", "loc": 449}
+  ],
+  "roles": ["route", "service", "model", "config", "test"]
+}

@@ -1,5 +1,8 @@
 # CRYENGINE 5.6 — Lighting
 
+> **Read this when:** The scene is black or poorly lit, or you are editing time-of-day, sun, sky or shadows.
+> **Related:** [Terrain](terrain.md) · [LOD](lod.md) · [All docs](README.md)
+
 ## Overview
 
 CRYENGINE lighting has three layers that must all be correctly wired together:

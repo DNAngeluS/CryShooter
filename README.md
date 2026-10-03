@@ -188,3 +188,11 @@ FirstPersonShooter/
 | `Debug` | `_DEBUG`, `DEBUG` | `-O0 -g` |
 | `Profile` | `_PROFILE`, `NDEBUG` | `-O2` |
 | `Release` | `_RELEASE`, `NDEBUG` | `-O3` |
+
+## Documentation
+
+- [docs/](docs/README.md) — architecture overview, asset pipeline guide, known issues, and the CRYENGINE 5.6 knowledge base (terrain, textures, LOD, lighting, characters, DDS formats), with a "something looks wrong" symptom table.
+
+## Working with AI agents
+
+This project carries a maintained agent context layer: [`AGENTS.md`](AGENTS.md) (entry point), `.agents/` (conventions, workflows, status, workstreams) and `.memory/` (indexes and component cards). `CLAUDE.md` only adds Claude-specific notes. Regenerate or refresh it with the `khem:project-agentize` skill after significant changes.

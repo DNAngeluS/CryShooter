@@ -1,5 +1,8 @@
 # DDS Normal Map Format Requirements (`_ddn.dds`)
 
+> **Read this when:** The log says "Wrong format … for normal map texture", or you are adding `_ddn` textures.
+> **Related:** [Known issues](known-issues.md) · [All docs](README.md)
+
 ## The Problem
 
 CryEngine 5.6 requires that any texture whose filename ends with `_ddn` uses a

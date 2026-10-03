@@ -1,5 +1,8 @@
 # CRYENGINE 5.6 — Terrain Textures (`cover.ctc`)
 
+> **Read this when:** Terrain renders solid black, or you are generating `cover.ctc` yourself.
+> **Related:** [Terrain](terrain.md) · [Asset pipeline](asset_pipeline.md) · [All docs](README.md)
+
 ## Overview
 
 Terrain base colour is stored in `terraintexture.pak` as a single binary file:
@@ -167,6 +170,15 @@ from `cover.ctc`. Requires:
 2. Terrain detail materials to be painted onto sectors in Sandbox.
 
 Without condition 1 the CVar has no effect. Without condition 2 it generates black.
+
+> **Warning for generated levels.** Do not enable this CVar on levels produced by the asset
+> pipeline. Their terrain layers are never painted in Sandbox, so once a valid `cover.ctc` exists the
+> engine lazily overwrites its tiles with auto-generated ones — which are solid black — as each sector
+> becomes visible. The symptom is a diagonal wave of black sectors spreading as the player moves,
+> which looks like a lighting bug. Leave it at its default (`0`).
+>
+> Likewise, the heightmap/normal layer (layer 1) of generated tiles must use the neutral pixel
+> `[128, 128, 0, 0]`, not an average of the diffuse colour — otherwise the terrain is lit as if tilted.
 
 ---
 

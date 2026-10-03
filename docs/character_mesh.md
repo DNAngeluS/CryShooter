@@ -1,5 +1,8 @@
 # CRYENGINE 5.6 — Character Mesh & Animation
 
+> **Read this when:** You are changing the first-person character, animation setup, camera or weapon attachment.
+> **Related:** [Asset pipeline](asset_pipeline.md) · [Known issues](known-issues.md) · [All docs](README.md)
+
 ## Overview
 
 Characters in CRYENGINE are driven by the **Mannequin** animation system. A character requires:

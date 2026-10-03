@@ -1,0 +1,25 @@
+{
+  "when": "you need to pick up work, report progress, or estimate what is left",
+  "backend": "local",
+  "updated": "2026-10-03",
+  "epics": [
+    {
+      "id": "E-01",
+      "title": "Clean the engine log: first-person character and missing engine assets",
+      "goal": "game.log has no errors and only deliberately-deferred warnings",
+      "status": "ready",
+      "components": ["code", "tools"],
+      "file": "epics/E-01.md",
+      "updated": "2026-10-03"
+    },
+    {
+      "id": "E-02",
+      "title": "Asset pipeline: smoke-tested, higher-fidelity levels",
+      "goal": "A generated level is validated through a real GameLauncher load and looks like a designed environment",
+      "status": "ready",
+      "components": ["tools", "code"],
+      "file": "epics/E-02.md",
+      "updated": "2026-10-03"
+    }
+  ]
+}

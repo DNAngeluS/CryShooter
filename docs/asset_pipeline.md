@@ -1,5 +1,8 @@
 # CRYENGINE 5.6 — Bundle Graph Asset Pipeline
 
+> **Read this when:** You want to generate or change a level, character package or imported mesh.
+> **Related:** [Terrain textures](textures.md) · [Character mesh](character_mesh.md) · [Architecture](architecture.md) · [All docs](README.md)
+
 ## Overview
 
 This project includes a Python asset pipeline designed for **LLM-authored, bundle-graph-driven** CRYENGINE asset creation.

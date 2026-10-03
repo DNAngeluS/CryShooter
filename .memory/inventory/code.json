@@ -1,0 +1,17 @@
+{
+  "when": "you need to locate the file that does something specific inside Code/",
+  "component": "code",
+  "path": "Code",
+  "generated": "2026-10-03",
+  "files": [
+    {"path": "GamePlugin.cpp", "role": "config", "does": "plugin init, system events, startup level auto-load (kStartupLevel), goto command, level-load CVars", "loc": 247},
+    {"path": "GamePlugin.h", "role": "config", "does": "CGamePlugin declaration", "loc": 61},
+    {"path": "Components/Player.cpp", "role": "service", "does": "first-person player: camera, movement, input, shooting, debug screenshot, deferred ESC quit", "loc": 591},
+    {"path": "Components/Player.h", "role": "service", "does": "CPlayerComponent members and ids", "loc": 180},
+    {"path": "Components/SpawnPoint.cpp", "role": "service", "does": "spawn point component and GetFirstSpawnPointTransform fallback", "loc": 26},
+    {"path": "Components/Bullet.h", "role": "service", "does": "projectile physics component", "loc": 67},
+    {"path": "CMakeLists.txt", "role": "config", "does": "build definition; uber-file source lists; compiler warning gates"},
+    {"path": "StdAfx.h", "role": "config", "does": "precompiled header", "loc": 11}
+  ],
+  "roles": ["service", "config"]
+}

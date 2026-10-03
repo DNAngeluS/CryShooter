@@ -1,0 +1,61 @@
+{
+  "when": "you need to know what a change ripples into, or what a kind of change costs",
+  "nodes": [
+    {"id": "code", "kind": "app"},
+    {"id": "tools", "kind": "tooling"}
+  ],
+  "edges": [
+    {"from": "tools", "to": "code", "via": "files in Assets/", "note": "character package contract (.cdf/.adb/controller XML) and spawn point entity in main.lyr"}
+  ],
+  "externals": [
+    {"name": "CRYENGINE 5.6", "used_by": ["code", "tools"], "breaks": "nothing builds or runs; tools keep validating but cannot smoke-test"},
+    {"name": "Wine + DXC", "used_by": ["tools"], "breaks": "remote shader compilation only"},
+    {"name": "noise (PyPI)", "used_by": ["tools"], "breaks": "procgen terrain/tests"}
+  ],
+  "seams": [
+    {
+      "id": "terrain-pipeline",
+      "what": "changing how terrain is generated, textured or loaded (new biome, size, texture format)",
+      "why_expensive": "the same terrain facts are encoded in several binary and XML files that must agree, and failures render as black terrain rather than errors",
+      "touches": [
+        {"where": "tools/asset_pipeline/procgen/terrain_gen.py", "kind": "code", "why": "heightmap + paint hints"},
+        {"where": "tools/asset_pipeline/procgen/terrain_dat_writer.py", "kind": "format", "why": "terrain.dat quadtree"},
+        {"where": "tools/asset_pipeline/texture_builder.py", "kind": "format", "why": "cover.ctc layers; hmap pixel [128,128,0,0]"},
+        {"where": "tools/asset_pipeline/bundle_builder.py", "kind": "code", "why": "levelinfo/leveldata XML, level.pak assembly"},
+        {"where": "tools/asset_pipeline/validator.py", "kind": "code", "why": "heightmap/terrain.dat/pak checks"},
+        {"where": "tools/asset_pipeline/templates/", "kind": "config", "why": "golden binaries and catalogs"},
+        {"where": "Code/GamePlugin.cpp", "kind": "code", "why": "level-load LOD/water CVars"}
+      ],
+      "cost_drivers": ["binary formats with silent failure", "no in-engine automated check", "engine behaviour differs from docs without a launch"],
+      "resolve_first": ["is a Sandbox re-export acceptable for physics terrain.dat (CRYENGINE_TODO)?"]
+    },
+    {
+      "id": "graph-node-type",
+      "what": "adding or changing an asset_graph node type",
+      "why_expensive": "schema, compiler, validator, catalogs, interface JSON and tests all enumerate node types",
+      "touches": [
+        {"where": "tools/asset_pipeline/asset_graph.py", "kind": "code", "why": "type list and validators"},
+        {"where": "tools/asset_pipeline/bundle_builder.py", "kind": "code", "why": "dispatch in build_asset_bundle"},
+        {"where": "tools/asset_pipeline/catalogs.py", "kind": "code", "why": "capability catalog"},
+        {"where": "memory/asset_pipeline_interface.json", "kind": "config", "why": "LLM-facing verbs and graph contract"},
+        {"where": "docs/asset_pipeline.md", "kind": "doc", "why": "human documentation of supported nodes"},
+        {"where": "tests/", "kind": "test", "why": "pipeline and procgen suites"}
+      ],
+      "cost_drivers": ["node list is duplicated across code, catalog JSON and docs"],
+      "resolve_first": []
+    },
+    {
+      "id": "character-contract",
+      "what": "changing the first-person character, animation or attachment names",
+      "why_expensive": "C++ hard-codes asset paths, fragment/tag names and the barrel_out/head names that the pipeline must emit",
+      "touches": [
+        {"where": "Code/Components/Player.cpp", "kind": "code", "why": "ADB, CDF, controller paths; fragment ids; joint and attachment names"},
+        {"where": "tools/asset_pipeline/character_builder.py", "kind": "code", "why": "generated .cdf/.adb/controller XML"},
+        {"where": "tools/asset_pipeline/templates/characters/first_person_templates.json", "kind": "config", "why": "templates"},
+        {"where": "docs/character_mesh.md", "kind": "doc", "why": "documents the contract"}
+      ],
+      "cost_drivers": ["no C++ tests", "character load currently broken (E-01)"],
+      "resolve_first": ["why does firstperson.cdf fail to parse?"]
+    }
+  ]
+}

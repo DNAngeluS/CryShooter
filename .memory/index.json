@@ -1,0 +1,332 @@
+{
+  "schema": "domain-index/1",
+  "tool_version": "2.1.0",
+  "domain": {
+    "name": "CryShooter",
+    "indexed_at": "2026-10-03T21:50:17Z",
+    "scan_at": "2026-10-03T21:17:09Z",
+    "components": 2,
+    "loc": 6608,
+    "languages": {
+      "python": 5367,
+      "cpp": 869,
+      "c": 372
+    },
+    "monorepo_tool": "none",
+    "repo_count": 1
+  },
+  "entrypoint": {
+    "read_first": "AGENTS.md",
+    "tier0_approx_tokens": 1426,
+    "rule": "Answer from AGENTS.md + this index. Open at most one route, then at most one shard."
+  },
+  "components": [
+    {
+      "id": "tools",
+      "name": "tools",
+      "path": "tools",
+      "kind": "tooling",
+      "stack": "python",
+      "loc": 5367,
+      "card": ".memory/cards/tools.md",
+      "inventory": ".memory/inventory/tools.json",
+      "fingerprint": "ef83faff7fa62c95",
+      "git_head": "5bcf131",
+      "last_commit": "2026-04-04",
+      "indexed_at": "2026-10-03"
+    },
+    {
+      "id": "code",
+      "name": "Code",
+      "path": "Code",
+      "kind": "unknown",
+      "stack": "cpp",
+      "loc": 1241,
+      "card": ".memory/cards/code.md",
+      "inventory": ".memory/inventory/code.json",
+      "fingerprint": "20089f581a0c0b57",
+      "git_head": "3afb06b",
+      "last_commit": "2026-10-03",
+      "indexed_at": "2026-10-03"
+    }
+  ],
+  "routes": [
+    {
+      "when": "you need something from .agents and do not know which file",
+      "read": ".agents/README.md",
+      "tokens": 278
+    },
+    {
+      "when": "you need to know how the plugin, engine, asset pipeline and generated levels fit together",
+      "read": ".agents/architecture.md",
+      "tokens": 775
+    },
+    {
+      "when": "you are about to write, review or commit code in Code/ or tools/",
+      "read": ".agents/conventions.md",
+      "tokens": 587
+    },
+    {
+      "when": "something in this project looks ambiguous, contradictory or unverified",
+      "read": ".agents/open-questions.md",
+      "tokens": 360
+    },
+    {
+      "when": "you need to know what is happening in this project right now",
+      "read": ".agents/status.md",
+      "tokens": 417
+    },
+    {
+      "when": "generating, changing or publishing a level, character package or imported mesh with tools/cry_asset_pipeline.py",
+      "read": ".agents/workflows/asset-pipeline.md",
+      "tokens": 881
+    },
+    {
+      "when": "configuring, building, running or debugging the C++ plugin (libGamePlugin.so)",
+      "read": ".agents/workflows/build-run.md",
+      "tokens": 854
+    },
+    {
+      "when": "the game renders black, flickers, shows black terrain, or logs missing-texture / missing-config warnings",
+      "read": ".agents/workflows/debugging.md",
+      "tokens": 655
+    },
+    {
+      "when": "sizing, quoting or planning a change to this project",
+      "read": ".agents/workflows/estimating.md",
+      "tokens": 435
+    },
+    {
+      "when": "running, adding or judging tests for this project",
+      "read": ".agents/workflows/testing.md",
+      "tokens": 290
+    },
+    {
+      "when": "working on or estimating the \"Clean the engine log\" epic",
+      "read": ".agents/workstreams/epics/E-01.md",
+      "tokens": 410
+    },
+    {
+      "when": "working on or estimating the \"Asset pipeline smoke-tested, higher-fidelity levels\" epic",
+      "read": ".agents/workstreams/epics/E-02.md",
+      "tokens": 405
+    },
+    {
+      "when": "you need to pick up work, report progress, or estimate what is left",
+      "read": ".agents/workstreams/index.json",
+      "tokens": 206
+    },
+    {
+      "when": "working anywhere inside Code/ (the C++ game plugin)",
+      "read": ".memory/cards/code.md",
+      "tokens": 794
+    },
+    {
+      "when": "working anywhere inside tools/ or tests/ (Python asset pipeline, procgen, tracker, shader server)",
+      "read": ".memory/cards/tools.md",
+      "tokens": 908
+    },
+    {
+      "when": "you need to know what an environment variable configures or who needs it",
+      "read": ".memory/env.json",
+      "tokens": 185
+    },
+    {
+      "when": "you hit a term used in this project and want its meaning and where it lives",
+      "read": ".memory/glossary.json",
+      "tokens": 591
+    },
+    {
+      "when": "you need to know what a change ripples into, or what a kind of change costs",
+      "read": ".memory/graph.json",
+      "tokens": 1018
+    },
+    {
+      "when": "you need to locate the file that does something specific inside Code/",
+      "read": ".memory/inventory/code.json",
+      "tokens": 306
+    },
+    {
+      "when": "you need to locate the file that does something specific inside tools/ or tests/",
+      "read": ".memory/inventory/tools.json",
+      "tokens": 769
+    }
+  ],
+  "artifacts": [
+    {
+      "path": ".agents/README.md",
+      "when": "you need something from .agents and do not know which file",
+      "lines": 19,
+      "approx_tokens": 278,
+      "updated": "2026-10-03"
+    },
+    {
+      "path": ".agents/architecture.md",
+      "when": "you need to know how the plugin, engine, asset pipeline and generated levels fit together",
+      "lines": 54,
+      "approx_tokens": 775,
+      "updated": "2026-10-03"
+    },
+    {
+      "path": ".agents/conventions.md",
+      "when": "you are about to write, review or commit code in Code/ or tools/",
+      "lines": 31,
+      "approx_tokens": 587,
+      "updated": "2026-10-03"
+    },
+    {
+      "path": ".agents/open-questions.md",
+      "when": "something in this project looks ambiguous, contradictory or unverified",
+      "lines": 11,
+      "approx_tokens": 360,
+      "updated": "2026-10-03"
+    },
+    {
+      "path": ".agents/status.md",
+      "when": "you need to know what is happening in this project right now",
+      "lines": 30,
+      "approx_tokens": 417,
+      "updated": "2026-10-03"
+    },
+    {
+      "path": ".agents/workflows/asset-pipeline.md",
+      "when": "generating, changing or publishing a level, character package or imported mesh with tools/cry_asset_pipeline.py",
+      "lines": 52,
+      "approx_tokens": 881,
+      "updated": "2026-10-03"
+    },
+    {
+      "path": ".agents/workflows/build-run.md",
+      "when": "configuring, building, running or debugging the C++ plugin (libGamePlugin.so)",
+      "lines": 58,
+      "approx_tokens": 854,
+      "updated": "2026-10-03"
+    },
+    {
+      "path": ".agents/workflows/debugging.md",
+      "when": "the game renders black, flickers, shows black terrain, or logs missing-texture / missing-config warnings",
+      "lines": 26,
+      "approx_tokens": 655,
+      "updated": "2026-10-03"
+    },
+    {
+      "path": ".agents/workflows/estimating.md",
+      "when": "sizing, quoting or planning a change to this project",
+      "lines": 25,
+      "approx_tokens": 435,
+      "updated": "2026-10-03"
+    },
+    {
+      "path": ".agents/workflows/testing.md",
+      "when": "running, adding or judging tests for this project",
+      "lines": 23,
+      "approx_tokens": 290,
+      "updated": "2026-10-03"
+    },
+    {
+      "path": ".agents/workstreams/epics/E-01.md",
+      "when": "working on or estimating the \"Clean the engine log\" epic",
+      "lines": 26,
+      "approx_tokens": 410,
+      "updated": "2026-10-03"
+    },
+    {
+      "path": ".agents/workstreams/epics/E-02.md",
+      "when": "working on or estimating the \"Asset pipeline smoke-tested, higher-fidelity levels\" epic",
+      "lines": 24,
+      "approx_tokens": 405,
+      "updated": "2026-10-03"
+    },
+    {
+      "path": ".agents/workstreams/index.json",
+      "when": "you need to pick up work, report progress, or estimate what is left",
+      "lines": 25,
+      "approx_tokens": 206,
+      "updated": "2026-10-03"
+    },
+    {
+      "path": ".memory/cards/code.md",
+      "when": "working anywhere inside Code/ (the C++ game plugin)",
+      "lines": 46,
+      "approx_tokens": 794,
+      "updated": "2026-10-03"
+    },
+    {
+      "path": ".memory/cards/tools.md",
+      "when": "working anywhere inside tools/ or tests/ (Python asset pipeline, procgen, tracker, shader server)",
+      "lines": 52,
+      "approx_tokens": 908,
+      "updated": "2026-10-03"
+    },
+    {
+      "path": ".memory/env.json",
+      "when": "you need to know what an environment variable configures or who needs it",
+      "lines": 8,
+      "approx_tokens": 185,
+      "updated": "2026-10-03"
+    },
+    {
+      "path": ".memory/glossary.json",
+      "when": "you hit a term used in this project and want its meaning and where it lives",
+      "lines": 16,
+      "approx_tokens": 591,
+      "updated": "2026-10-03"
+    },
+    {
+      "path": ".memory/graph.json",
+      "when": "you need to know what a change ripples into, or what a kind of change costs",
+      "lines": 61,
+      "approx_tokens": 1018,
+      "updated": "2026-10-03"
+    },
+    {
+      "path": ".memory/index.json",
+      "when": "",
+      "lines": 332,
+      "approx_tokens": 2483,
+      "updated": "2026-10-03"
+    },
+    {
+      "path": ".memory/inventory/code.json",
+      "when": "you need to locate the file that does something specific inside Code/",
+      "lines": 17,
+      "approx_tokens": 306,
+      "updated": "2026-10-03"
+    },
+    {
+      "path": ".memory/inventory/tools.json",
+      "when": "you need to locate the file that does something specific inside tools/ or tests/",
+      "lines": 31,
+      "approx_tokens": 769,
+      "updated": "2026-10-03"
+    },
+    {
+      "path": "AGENTS.md",
+      "when": "",
+      "lines": 87,
+      "approx_tokens": 1208,
+      "updated": "2026-10-03"
+    },
+    {
+      "path": "CLAUDE.md",
+      "when": "",
+      "lines": 16,
+      "approx_tokens": 218,
+      "updated": "2026-10-03"
+    },
+    {
+      "path": "README.md",
+      "when": "",
+      "lines": 198,
+      "approx_tokens": 1882,
+      "updated": "2026-10-03"
+    }
+  ],
+  "health": {
+    "budget_violations": [],
+    "artifacts_without_when": [],
+    "components_without_card": [],
+    "total_context_tokens": 16915,
+    "boundary_violations": []
+  }
+}

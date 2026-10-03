@@ -1,5 +1,8 @@
 # CRYENGINE 5.6 — Level of Detail (LOD)
 
+> **Read this when:** Terrain or water flickers (z-fighting), or you want to tune terrain and object draw distance.
+> **Related:** [Terrain](terrain.md) · [Lighting](lighting.md) · [All docs](README.md)
+
 ## Overview
 
 LOD (Level of Detail) is the mechanism by which CRYENGINE renders less geometry and lower
