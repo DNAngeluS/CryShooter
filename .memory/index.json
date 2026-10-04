@@ -3,7 +3,7 @@
   "tool_version": "2.1.0",
   "domain": {
     "name": "CryShooter",
-    "indexed_at": "2026-10-03T21:50:17Z",
+    "indexed_at": "2026-10-04T00:49:17Z",
     "scan_at": "2026-10-03T21:17:09Z",
     "components": 2,
     "loc": 6608,
@@ -17,7 +17,7 @@
   },
   "entrypoint": {
     "read_first": "AGENTS.md",
-    "tier0_approx_tokens": 1426,
+    "tier0_approx_tokens": 1783,
     "rule": "Answer from AGENTS.md + this index. Open at most one route, then at most one shard."
   },
   "components": [
@@ -33,7 +33,7 @@
       "fingerprint": "ef83faff7fa62c95",
       "git_head": "5bcf131",
       "last_commit": "2026-04-04",
-      "indexed_at": "2026-10-03"
+      "indexed_at": "2026-10-04"
     },
     {
       "id": "code",
@@ -47,7 +47,7 @@
       "fingerprint": "20089f581a0c0b57",
       "git_head": "3afb06b",
       "last_commit": "2026-10-03",
-      "indexed_at": "2026-10-03"
+      "indexed_at": "2026-10-04"
     }
   ],
   "routes": [
@@ -64,7 +64,7 @@
     {
       "when": "you are about to write, review or commit code in Code/ or tools/",
       "read": ".agents/conventions.md",
-      "tokens": 587
+      "tokens": 666
     },
     {
       "when": "something in this project looks ambiguous, contradictory or unverified",
@@ -74,7 +74,7 @@
     {
       "when": "you need to know what is happening in this project right now",
       "read": ".agents/status.md",
-      "tokens": 417
+      "tokens": 451
     },
     {
       "when": "generating, changing or publishing a level, character package or imported mesh with tools/cry_asset_pipeline.py",
@@ -84,7 +84,7 @@
     {
       "when": "configuring, building, running or debugging the C++ plugin (libGamePlugin.so)",
       "read": ".agents/workflows/build-run.md",
-      "tokens": 854
+      "tokens": 962
     },
     {
       "when": "the game renders black, flickers, shows black terrain, or logs missing-texture / missing-config warnings",
@@ -149,7 +149,7 @@
     {
       "when": "you need to locate the file that does something specific inside tools/ or tests/",
       "read": ".memory/inventory/tools.json",
-      "tokens": 769
+      "tokens": 1021
     }
   ],
   "artifacts": [
@@ -170,9 +170,9 @@
     {
       "path": ".agents/conventions.md",
       "when": "you are about to write, review or commit code in Code/ or tools/",
-      "lines": 31,
-      "approx_tokens": 587,
-      "updated": "2026-10-03"
+      "lines": 36,
+      "approx_tokens": 666,
+      "updated": "2026-10-04"
     },
     {
       "path": ".agents/open-questions.md",
@@ -184,9 +184,9 @@
     {
       "path": ".agents/status.md",
       "when": "you need to know what is happening in this project right now",
-      "lines": 30,
-      "approx_tokens": 417,
-      "updated": "2026-10-03"
+      "lines": 31,
+      "approx_tokens": 451,
+      "updated": "2026-10-04"
     },
     {
       "path": ".agents/workflows/asset-pipeline.md",
@@ -198,9 +198,9 @@
     {
       "path": ".agents/workflows/build-run.md",
       "when": "configuring, building, running or debugging the C++ plugin (libGamePlugin.so)",
-      "lines": 58,
-      "approx_tokens": 854,
-      "updated": "2026-10-03"
+      "lines": 63,
+      "approx_tokens": 962,
+      "updated": "2026-10-04"
     },
     {
       "path": ".agents/workflows/debugging.md",
@@ -282,9 +282,9 @@
     {
       "path": ".memory/index.json",
       "when": "",
-      "lines": 332,
-      "approx_tokens": 2483,
-      "updated": "2026-10-03"
+      "lines": 346,
+      "approx_tokens": 2549,
+      "updated": "2026-10-04"
     },
     {
       "path": ".memory/inventory/code.json",
@@ -296,16 +296,23 @@
     {
       "path": ".memory/inventory/tools.json",
       "when": "you need to locate the file that does something specific inside tools/ or tests/",
-      "lines": 31,
-      "approx_tokens": 769,
-      "updated": "2026-10-03"
+      "lines": 156,
+      "approx_tokens": 1021,
+      "updated": "2026-10-04"
     },
     {
       "path": "AGENTS.md",
       "when": "",
-      "lines": 87,
-      "approx_tokens": 1208,
-      "updated": "2026-10-03"
+      "lines": 109,
+      "approx_tokens": 1565,
+      "updated": "2026-10-04"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "when": "",
+      "lines": 94,
+      "approx_tokens": 1364,
+      "updated": "2026-10-04"
     },
     {
       "path": "CLAUDE.md",
@@ -317,16 +324,16 @@
     {
       "path": "README.md",
       "when": "",
-      "lines": 198,
-      "approx_tokens": 1882,
-      "updated": "2026-10-03"
+      "lines": 213,
+      "approx_tokens": 2396,
+      "updated": "2026-10-04"
     }
   ],
   "health": {
     "budget_violations": [],
     "artifacts_without_when": [],
     "components_without_card": [],
-    "total_context_tokens": 16915,
+    "total_context_tokens": 19689,
     "boundary_violations": []
   }
 }

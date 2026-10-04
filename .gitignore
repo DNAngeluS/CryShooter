@@ -118,3 +118,6 @@ CMakeUserPresets.json
 
 # Debug screenshots
 Screenshots/
+
+# Dev runner state (pids, logs)
+.dev/

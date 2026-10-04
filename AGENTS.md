@@ -31,7 +31,7 @@ machine-readable state — see routes.
 | see how the plugin, engine and pipeline fit together | `.agents/architecture.md` |
 | know what is in flight or blocked | `.agents/status.md` |
 | write code the way this project writes it | `.agents/conventions.md` |
-| configure, build, run or debug the plugin | `.agents/workflows/build-run.md` |
+| gotchas behind configure/build/run/debug (what `make` wraps) | `.agents/workflows/build-run.md` |
 | generate or change a level / character / mesh | `.agents/workflows/asset-pipeline.md` |
 | run tests | `.agents/workflows/testing.md` |
 | diagnose black screen, z-fighting, black terrain, missing textures | `.agents/workflows/debugging.md` |
@@ -55,11 +55,33 @@ jq '.vars[] | select(.secret==true) | .name' .memory/env.json
 jq '.seams[] | select(.id=="terrain-pipeline")' .memory/graph.json
 ```
 
+## Dev commands (use these, not raw cmake)
+
+Run from the project root. `make help` lists everything; logic is in `tools/dev.py` (stdlib Python).
+
+| Do this | Command |
+|---|---|
+| first time / check environment | `make setup` · `make doctor` |
+| compile (deploys plugin into the engine) | `make build` (`COMPILER=gcc9\|gcc14\|clang`, `TYPE=Debug\|Profile\|Release`) |
+| production build | `make release` |
+| play (starts shader server, launches game **in background**) | `make run` (returns at once) |
+| inspect state | `make status` (`python3 tools/dev.py status --json`) |
+| read results | `make logs` (warnings/errors from `game.log`), or files in `.dev/logs/` |
+| crash investigation without a terminal UI | `make debug-batch TIMEOUT=120` → `.dev/logs/gdb.log` |
+| stop everything | `make stop` (idempotent) |
+| tests · asset pipeline | `make test` · `make pipeline ARGS="…"` |
+
+Rules for agents: never run `GameLauncher`, `gdb` or `cry_shader_server.py` directly in the foreground — use
+`make run` / `make debug-batch` / `make up`. `run` and `debug` need a desktop session; if `make doctor` warns
+there is none, do not launch the game — build and test only. Always `make stop` when done. Commands print
+the exact underlying command line (`$ …`) and exit non-zero on failure.
+Do not edit `.dev/` (gitignored runtime state). After a milestone or a change that could break someone's
+setup, add an entry to `CHANGELOG.md`.
+
 ## Working rules
 
 - Engine path: `CRYENGINE_DIR` (env or `.env`, gitignored). Never hardcode it.
-- Build: `cmake --build build/gcc --parallel $(nproc)` (configure steps: build-run workflow).
-- Test: `tools/.venv/bin/python3 -m pytest tests/ -v` (the `noise` package lives only in that venv).
+- Test: `make test` (uses `tools/.venv`; the `noise` package lives only in that venv).
 - **Do not set `e_TerrainAutoGenerateBaseTexture 1`** for pipeline-generated levels — it overwrites
   `cover.ctc` with black tiles. The `cover.ctc` hmap layer must be `[128,128,0,0]`.
 - Python never interprets prose: the LLM authors `asset_graph.json`; Python validates and compiles it.
@@ -82,6 +104,6 @@ fits, add it to `.agents/open-questions.md` and ask.
 ## Before you finish
 
 - Run the tests if you touched `tools/`; build if you touched `Code/`.
-- Changed what is in flight? Update `.agents/status.md`. Shipped something? Add a `CHANGELOG.md` entry.
+- Changed what is in flight? Update `.agents/status.md`. Finished a milestone or changed something that could break a setup? Add a `CHANGELOG.md` entry (`Breaking / may break` heading).
 - Learned something durable? Put it in the relevant card or workflow — not in this file.
 - Run `python3 <project-agentize>/scripts/project_context.py check .` to confirm the boundary still holds.

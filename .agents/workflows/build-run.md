@@ -1,6 +1,11 @@
 <!-- when: configuring, building, running or debugging the C++ plugin (libGamePlugin.so) -->
 # Build, run, debug the plugin
 
+**Use `make` first** (`make help`; implemented in `tools/dev.py`): `make setup`, `make build`, `make run`,
+`make debug-batch`, `make status`, `make logs`, `make stop`. It wraps the presets in `Code/CMakePresets.json`
+(build dirs `build/gcc`, `build/gcc14`, `build/clang`), reads `.env` itself, starts the shader server, and logs
+to `.dev/logs/`. The manual commands below are the reference for what it runs and for the gotchas.
+
 Run everything from the project root. Needs `CRYENGINE_DIR` (`source .env`).
 
 ## Configure (once per compiler)

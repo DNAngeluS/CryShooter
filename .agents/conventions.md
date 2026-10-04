@@ -20,6 +20,11 @@ Enforcer in brackets: **[CI]** automated, **[test]** a pytest asserts it, **[soc
 - Generated assets, jobs and logs stay out of git: `user/`, `build/`, `bin/`, `*.log` are ignored. [social]
 - Terrain texture hmap layer pixel is always `bytes([128,128,0,0])`; default ocean level is `-100`; default env preset is `%ENGINE%/EngineAssets/Shading/default.env`. [test, partly]
 
+## Dev workflow
+- Build/run/debug through `make` targets (`tools/dev.py`), never ad-hoc cmake or a foreground `GameLauncher`. [social]
+- New dev verbs go into `tools/dev.py` first, then get a one-line `Makefile` target. [social]
+- Milestones and anything that may break a setup get a `CHANGELOG.md` entry. [social]
+
 ## Git
 - Conventional-commit style (`feat:`, `fix:`, `docs:`, `chore:`, scoped like `fix(textures):`). [social]
 - Do not commit or push unless asked. Machine-specific config (`.env`, `.vscode/settings.json`, `CMakeUserPresets.json`) is gitignored.

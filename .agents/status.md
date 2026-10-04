@@ -20,6 +20,7 @@ Nothing known.
 3. Decide on stub DDS vs Wine+RC for missing engine weather textures (E-01/T-03).
 
 ## Recently shipped
+- 2026-10-03 — dev command runner: `Makefile` + `tools/dev.py` (build, services, run/debug, logs, status); `CHANGELOG.md` introduced
 - 2026-10-03 — default startup level changed to `fps_forest_basin` (3afb06b)
 - DXT1→BC5 conversion of five engine `_ddn` normal maps (5bcf131)
 - New test level creation (417f985); licence + notice added (9f1fcc7)

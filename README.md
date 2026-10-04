@@ -31,43 +31,57 @@ cp .env.example .env
 source .env
 ```
 
-## Configure
+## Dev commands
 
-Run from the project root:
-
-```bash
-cmake -B build -G Ninja \
-  -S Code \
-  -DCMAKE_BUILD_TYPE=Debug \
-  -DCRYENGINE_DIR=$CRYENGINE_DIR \
-  -DCMAKE_TOOLCHAIN_FILE=$CRYENGINE_DIR/Tools/CMake/toolchain/linux/Linux_GCC.cmake \
-  -DCMAKE_C_COMPILER=gcc-9 \
-  -DCMAKE_CXX_COMPILER=g++-9
-```
-
-Available build types: `Debug`, `Profile`, `Release`.
-
-> After deleting the build directory, always do a full reconfigure (`rm -rf build && cmake -B build ...`).
-> A bare `cmake -B build` with a stale cache will not regenerate the unity build files and the build will fail.
-
-## Build
+Day-to-day development goes through `make` (a thin menu over `tools/dev.py`, which needs only Python 3 and
+`make`). It works from a plain terminal — no IDE required — and every command is safe for scripts and AI agents:
+nothing blocks unless you ask it to, commands are idempotent, and background output goes to `.dev/logs/`.
 
 ```bash
-cmake --build build --parallel $(nproc)
+make help        # list every target
+make setup       # first time: Python venv + deps, prerequisite check, CMake configure
+make doctor      # check engine path, compilers, gdb, wine, display session
 ```
 
-Output: `bin/linux_x64_gcc/libGamePlugin.so`
+| Goal | Command |
+|------|---------|
+| Compile the plugin (deploys to the engine bin dir) | `make build` |
+| Production build (Release) | `make release` |
+| Play: start services + launch the game in the background | `make run` |
+| Build Release, then play | `make run-release` |
+| Debug in gdb (interactive) | `make debug` |
+| Debug in gdb, non-interactive; backtrace saved to `.dev/logs/gdb.log` | `make debug-batch TIMEOUT=120` |
+| Start / stop only the shader compiler server | `make up` / `make down` |
+| Stop the game and all services | `make stop` |
+| What is running, what is built | `make status` (`python3 tools/dev.py status --json` for scripts) |
+| Warnings and errors from the engine log | `make logs` (`make logs-all` for the raw tail) |
+| Python tests | `make test` |
+| Asset pipeline CLI | `make pipeline ARGS="plan-spec --job level-fps-forest-basin"` |
 
-The post-build step automatically copies the plugin to `$CRYENGINE_DIR/bin/linux_x64_gcc/`, where the engine looks for it at runtime.
+Choose the compiler and build type with variables: `make build COMPILER=gcc14 TYPE=Profile`
+(`COMPILER` = `gcc9` (default) \| `gcc14` \| `clang`; `TYPE` = `Debug` (default) \| `Profile` \| `Release`).
+Pass arguments to the game with `make run ARGS="..."`.
 
-## Run
+Typical loop: `make build && make run`, play, `make logs`, `make stop`.
+
+Notes:
+- The engine path comes from `CRYENGINE_DIR` in your environment or `.env` (see [Prerequisites](#prerequisites)); `make` reads `.env` itself, so you do not need to `source` it.
+- `make run` / `make debug` need a desktop session (`DISPLAY` or `WAYLAND_DISPLAY`) and start the shader compiler server first, because `system.cfg` enables remote shader compilation.
+- Services and the game are tracked in `.dev/pids/`; `make stop` is always safe to run.
+- The manual cmake commands below still work; `make` just wraps the presets in `Code/CMakePresets.json`.
+
+## Manual build and run (what `make` wraps)
 
 ```bash
-$CRYENGINE_DIR/bin/linux_x64_gcc/GameLauncher \
-  -project /path/to/FirstPersonShooter/Game.cryproject
+cd Code
+cmake --preset gcc9            # or gcc14 / clang; add -DCMAKE_BUILD_TYPE=Profile|Release
+cmake --build --preset gcc9    # output bin/linux_x64_gcc/libGamePlugin.so, auto-copied to $CRYENGINE_DIR/bin/linux_x64_gcc/
+cd $CRYENGINE_DIR/bin/linux_x64_gcc && ./GameLauncher -project /path/to/FirstPersonShooter/Game.cryproject
 ```
 
-The working directory must be `$CRYENGINE_DIR/bin/linux_x64_gcc/` (the launcher sets `MODULE_PATH` from its CWD, which is how the engine locates plugins).
+The launcher must run from `$CRYENGINE_DIR/bin/linux_x64_gcc/`: it sets `MODULE_PATH` from its working directory, which is how the engine locates plugins.
+After deleting a build directory, always do a full reconfigure — a stale cache will not regenerate the unity build files.
+The presets read `CRYENGINE_DIR` from the environment (`source .env`).
 
 ## VS Code
 
@@ -191,6 +205,7 @@ FirstPersonShooter/
 
 ## Documentation
 
+- [CHANGELOG.md](CHANGELOG.md) — milestones and anything that could break a working setup.
 - [docs/](docs/README.md) — architecture overview, asset pipeline guide, known issues, and the CRYENGINE 5.6 knowledge base (terrain, textures, LOD, lighting, characters, DDS formats), with a "something looks wrong" symptom table.
 
 ## Working with AI agents
