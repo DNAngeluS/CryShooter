@@ -3,7 +3,7 @@
   "tool_version": "2.1.0",
   "domain": {
     "name": "CryShooter",
-    "indexed_at": "2026-10-04T00:49:17Z",
+    "indexed_at": "2026-10-04T01:43:04Z",
     "scan_at": "2026-10-03T21:17:09Z",
     "components": 2,
     "loc": 6608,
@@ -69,12 +69,12 @@
     {
       "when": "something in this project looks ambiguous, contradictory or unverified",
       "read": ".agents/open-questions.md",
-      "tokens": 360
+      "tokens": 590
     },
     {
       "when": "you need to know what is happening in this project right now",
       "read": ".agents/status.md",
-      "tokens": 451
+      "tokens": 579
     },
     {
       "when": "generating, changing or publishing a level, character package or imported mesh with tools/cry_asset_pipeline.py",
@@ -89,7 +89,7 @@
     {
       "when": "the game renders black, flickers, shows black terrain, or logs missing-texture / missing-config warnings",
       "read": ".agents/workflows/debugging.md",
-      "tokens": 655
+      "tokens": 703
     },
     {
       "when": "sizing, quoting or planning a change to this project",
@@ -112,9 +112,14 @@
       "tokens": 405
     },
     {
+      "when": "investigating failing debug screenshots, or migrating VS Code-era run/debug behaviour to the make/dev.py workflow",
+      "read": ".agents/workstreams/epics/E-03.md",
+      "tokens": 1350
+    },
+    {
       "when": "you need to pick up work, report progress, or estimate what is left",
       "read": ".agents/workstreams/index.json",
-      "tokens": 206
+      "tokens": 312
     },
     {
       "when": "working anywhere inside Code/ (the C++ game plugin)",
@@ -177,15 +182,15 @@
     {
       "path": ".agents/open-questions.md",
       "when": "something in this project looks ambiguous, contradictory or unverified",
-      "lines": 11,
-      "approx_tokens": 360,
-      "updated": "2026-10-03"
+      "lines": 14,
+      "approx_tokens": 590,
+      "updated": "2026-10-04"
     },
     {
       "path": ".agents/status.md",
       "when": "you need to know what is happening in this project right now",
-      "lines": 31,
-      "approx_tokens": 451,
+      "lines": 38,
+      "approx_tokens": 579,
       "updated": "2026-10-04"
     },
     {
@@ -205,9 +210,9 @@
     {
       "path": ".agents/workflows/debugging.md",
       "when": "the game renders black, flickers, shows black terrain, or logs missing-texture / missing-config warnings",
-      "lines": 26,
-      "approx_tokens": 655,
-      "updated": "2026-10-03"
+      "lines": 27,
+      "approx_tokens": 703,
+      "updated": "2026-10-04"
     },
     {
       "path": ".agents/workflows/estimating.md",
@@ -238,11 +243,18 @@
       "updated": "2026-10-03"
     },
     {
+      "path": ".agents/workstreams/epics/E-03.md",
+      "when": "investigating failing debug screenshots, or migrating VS Code-era run/debug behaviour to the make/dev.py workflow",
+      "lines": 49,
+      "approx_tokens": 1350,
+      "updated": "2026-10-04"
+    },
+    {
       "path": ".agents/workstreams/index.json",
       "when": "you need to pick up work, report progress, or estimate what is left",
-      "lines": 25,
-      "approx_tokens": 206,
-      "updated": "2026-10-03"
+      "lines": 43,
+      "approx_tokens": 312,
+      "updated": "2026-10-04"
     },
     {
       "path": ".memory/cards/code.md",
@@ -282,8 +294,8 @@
     {
       "path": ".memory/index.json",
       "when": "",
-      "lines": 346,
-      "approx_tokens": 2549,
+      "lines": 351,
+      "approx_tokens": 2641,
       "updated": "2026-10-04"
     },
     {
@@ -310,8 +322,8 @@
     {
       "path": "CHANGELOG.md",
       "when": "",
-      "lines": 94,
-      "approx_tokens": 1364,
+      "lines": 95,
+      "approx_tokens": 1421,
       "updated": "2026-10-04"
     },
     {
@@ -333,7 +345,7 @@
     "budget_violations": [],
     "artifacts_without_when": [],
     "components_without_card": [],
-    "total_context_tokens": 19689,
+    "total_context_tokens": 21700,
     "boundary_violations": []
   }
 }

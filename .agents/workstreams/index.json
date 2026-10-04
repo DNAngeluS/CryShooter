@@ -8,7 +8,10 @@
       "title": "Clean the engine log: first-person character and missing engine assets",
       "goal": "game.log has no errors and only deliberately-deferred warnings",
       "status": "ready",
-      "components": ["code", "tools"],
+      "components": [
+        "code",
+        "tools"
+      ],
       "file": "epics/E-01.md",
       "updated": "2026-10-03"
     },
@@ -17,8 +20,23 @@
       "title": "Asset pipeline: smoke-tested, higher-fidelity levels",
       "goal": "A generated level is validated through a real GameLauncher load and looks like a designed environment",
       "status": "ready",
-      "components": ["tools", "code"],
+      "components": [
+        "tools",
+        "code"
+      ],
       "file": "epics/E-02.md",
+      "updated": "2026-10-03"
+    },
+    {
+      "id": "E-03",
+      "title": "VS Code \u2192 make migration gaps (starting with debug screenshots)",
+      "goal": "The make/dev.py run path matches what VS Code gave for free, and K+P screenshots are saved",
+      "status": "ready",
+      "components": [
+        "code",
+        "tools"
+      ],
+      "file": "epics/E-03.md",
       "updated": "2026-10-03"
     }
   ]

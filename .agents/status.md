@@ -14,10 +14,17 @@
 ## Blocked
 Nothing known.
 
+## Open investigation (start here in a fresh session)
+**E-03** — debug screenshots (`K` then `P`) fail when the game is started with `make run`: `mkdir('/user') failed`,
+`Frame capture failed!`. Worked in the VS Code era (April). Cause not yet known; do not edit `Player.cpp` before
+comparing launch environments. Full plan: `.agents/workstreams/epics/E-03.md`. The broader task is auditing what VS Code
+gave for free versus `tools/dev.py` (E-03/T-03).
+
 ## Next up
-1. Fix the first-person CDF load error (E-01) — no arms/weapon mesh renders today.
-2. Richer environment fidelity: more paint zones, foliage, textures (E-02).
-3. Decide on stub DDS vs Wine+RC for missing engine weather textures (E-01/T-03).
+1. Investigate E-03 (screenshots + VS Code→make gaps).
+2. Fix the first-person CDF load error (E-01) — no arms/weapon mesh renders today.
+3. Richer environment fidelity: more paint zones, foliage, textures (E-02).
+4. Decide on stub DDS vs Wine+RC for missing engine weather textures (E-01/T-03).
 
 ## Recently shipped
 - 2026-10-03 — dev command runner: `Makefile` + `tools/dev.py` (build, services, run/debug, logs, status); `CHANGELOG.md` introduced

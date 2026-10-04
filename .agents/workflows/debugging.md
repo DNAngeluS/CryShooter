@@ -17,6 +17,7 @@ Deep explanations live in `docs/` (see `docs/README.md` symptom table). This is 
 | `Wrong format … for normal map` | `_ddn` textures must be BC5/BC7/EAC_RG11 (`Texture.cpp:1186`); five engine files were converted with `tools/asset_pipeline/dds_normalmap_fix.py` |
 | 30+ `Texture does not exist … rain/ripple…` | engine ships `.tif`+`.cryasset` only; RC.exe is Windows-only. No gameplay impact; fix = Wine+RC, stub 1×1 DDS script, or engine patch |
 | `Unknown command: goto` | registered in `GamePlugin::Initialize()` (engine calls it after each screenshot) |
+| `K`+`P` screenshot not saved, log has `mkdir('/user') failed` | relative `%USER%` path under `make run`; open investigation → `.agents/workstreams/epics/E-03.md` (do not patch blindly) |
 | Screenshot fails/black | engine `WriteJPG` and `RT_ReadTexture` needed Linux guards removed (engine rebuild); `Player.cpp` uses `CaptureFrameBuffer()` via `capture_file_name`/`capture_frame_once`/`capture_frames` CVars, because `ScreenShot()` reads a presented swapchain image |
 
 Still-open engine/config warnings (no action yet): snow/frost and night-sky textures, `cloak_palette.dds`, shader-message textures,

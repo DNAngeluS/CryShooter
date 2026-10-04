@@ -23,6 +23,7 @@ entries are grouped by **milestone** (dated) instead of version numbers.
 ### Breaking / may break
 - `make build` uses the presets in `Code/CMakePresets.json`, which build into `build/gcc`, `build/gcc14`, `build/clang`.
   The old README commands that configured `build/` are obsolete; delete a stale `build/` directory if you still have one.
+- **Known regression:** debug screenshots (`K` then `P`) are not saved when the game is launched with `make run` (`mkdir('/user') failed`); they worked from VS Code. Under investigation — workstream E-03, `docs/known-issues.md`.
 - `make build` redeploys `libGamePlugin.so` into `$CRYENGINE_DIR/bin/linux_x64_gcc/` (same as before), replacing whatever plugin was there.
 
 ## Milestone: agent context layer — 2026-10-03
