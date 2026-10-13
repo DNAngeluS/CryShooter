@@ -62,7 +62,8 @@ Run from the project root. `make help` lists everything; logic is in `tools/dev.
 | Do this | Command |
 |---|---|
 | first time / check environment | `make setup` · `make doctor` |
-| compile (deploys plugin into the engine) | `make build` (`COMPILER=gcc9\|gcc14\|clang`, `TYPE=Debug\|Profile\|Release`) |
+| compile (deploys plugin into the engine) | `make build` (`ENGINE=56\|57`, `COMPILER=gcc9\|gcc13\|gcc14\|clang`, `TYPE=Debug\|Profile\|Release`) |
+| pick the engine | `ENGINE=56` (default, CRYENGINE 5.6.7, gcc9) or `ENGINE=57` (5.7.1, gcc13): `make run ENGINE=57`. Paths: `CRYENGINE_DIR` (=56) / `CRYENGINE_DIR_57` in `.env` |
 | production build | `make release` |
 | play (starts shader server, launches game **in background**) | `make run` (returns at once) |
 | inspect state | `make status` (`python3 tools/dev.py status --json`) |

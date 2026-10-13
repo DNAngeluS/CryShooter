@@ -58,8 +58,8 @@ make doctor      # check engine path, compilers, gdb, wine, display session
 | Python tests | `make test` |
 | Asset pipeline CLI | `make pipeline ARGS="plan-spec --job level-fps-forest-basin"` |
 
-Choose the compiler and build type with variables: `make build COMPILER=gcc14 TYPE=Profile`
-(`COMPILER` = `gcc9` (default) \| `gcc14` \| `clang`; `TYPE` = `Debug` (default) \| `Profile` \| `Release`).
+Choose the engine (`ENGINE=56` default = CRYENGINE 5.6.7, `ENGINE=57` = 5.7.1 via `CRYENGINE_DIR_57` in `.env`), compiler and build type with variables: `make build COMPILER=gcc14 TYPE=Profile`
+(`COMPILER` = `gcc9` (default) \| `gcc13` (5.7.1 engine) \| `gcc14` \| `clang`; `TYPE` = `Debug` (default) \| `Profile` \| `Release`).
 Pass arguments to the game with `make run ARGS="..."`.
 
 Typical loop: `make build && make run`, play, `make logs`, `make stop`.
@@ -74,7 +74,7 @@ Notes:
 
 ```bash
 cd Code
-cmake --preset gcc9            # or gcc14 / clang; add -DCMAKE_BUILD_TYPE=Profile|Release
+cmake --preset gcc9            # or gcc13 / gcc14 / clang; add -DCMAKE_BUILD_TYPE=Profile|Release
 cmake --build --preset gcc9    # output bin/linux_x64_gcc/libGamePlugin.so, auto-copied to $CRYENGINE_DIR/bin/linux_x64_gcc/
 cd $CRYENGINE_DIR/bin/linux_x64_gcc && ./GameLauncher -project /path/to/FirstPersonShooter/Game.cryproject
 ```

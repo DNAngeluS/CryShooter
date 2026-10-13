@@ -21,7 +21,8 @@ entries are grouped by **milestone** (dated) instead of version numbers.
 - `AGENTS.md`, `CLAUDE.md` and the build/run workflow now point at `make` targets instead of long cmake commands.
 
 ### Breaking / may break
-- `make build` uses the presets in `Code/CMakePresets.json`, which build into `build/gcc`, `build/gcc14`, `build/clang`.
+- `ENGINE=56|57` selects the engine checkout for every `make` target (5.7.1 defaults to gcc13, preset `e57-gcc13`, build dir `build/e57-gcc13`; plugin deploys only into that engine). Add `CRYENGINE_DIR_57` to `.env`. `COMPILER` now defaults per engine, and `gcc13` was added.
+- `make build` uses the presets in `Code/CMakePresets.json`, which build into `build/gcc`, `build/gcc13`, `build/gcc14`, `build/clang`.
   The old README commands that configured `build/` are obsolete; delete a stale `build/` directory if you still have one.
 - **Known regression:** debug screenshots (`K` then `P`) are not saved when the game is launched with `make run` (`mkdir('/user') failed`); they worked from VS Code. Under investigation — workstream E-03, `docs/known-issues.md`.
 - `make build` redeploys `libGamePlugin.so` into `$CRYENGINE_DIR/bin/linux_x64_gcc/` (same as before), replacing whatever plugin was there.

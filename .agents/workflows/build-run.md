@@ -3,10 +3,18 @@
 
 **Use `make` first** (`make help`; implemented in `tools/dev.py`): `make setup`, `make build`, `make run`,
 `make debug-batch`, `make status`, `make logs`, `make stop`. It wraps the presets in `Code/CMakePresets.json`
-(build dirs `build/gcc`, `build/gcc14`, `build/clang`), reads `.env` itself, starts the shader server, and logs
+(build dirs `build/gcc`, `build/gcc13`, `build/gcc14`, `build/clang`), reads `.env` itself, starts the shader server, and logs
 to `.dev/logs/`. The manual commands below are the reference for what it runs and for the gotchas.
 
 Run everything from the project root. Needs `CRYENGINE_DIR` (`source .env`).
+
+## Two engines: `ENGINE=56|57`
+
+`make <target> ENGINE=57` builds/runs against CRYENGINE 5.7.1 (`CRYENGINE_DIR_57` in `.env`; default compiler gcc13,
+preset `e57-gcc13`, build dir `build/e57-gcc13`). `ENGINE=56` (default) is 5.6.7 + gcc9 = `build/gcc`, the directory
+VS Code uses — **never repoint it**. Each engine gets only its own plugin copy (`CRYENGINE*/bin/linux_x64_gcc/libGamePlugin.so`).
+`make status [ENGINE=…]` shows the deployed plugin time for both. `Game.cryproject` (`engine-5.6`) is accepted unchanged
+by 5.7.1. Both engines write the project-level `game.log` (appended) and their own `<engine>/game.log`.
 
 ## Configure (once per compiler)
 
@@ -15,7 +23,7 @@ Run everything from the project root. Needs `CRYENGINE_DIR` (`source .env`).
 cmake -B build/gcc -G Ninja -S Code -DCMAKE_BUILD_TYPE=Debug -DCRYENGINE_DIR=$CRYENGINE_DIR \
   -DCMAKE_TOOLCHAIN_FILE=$CRYENGINE_DIR/Tools/CMake/toolchain/linux/Linux_GCC.cmake \
   -DCMAKE_C_COMPILER=gcc-9 -DCMAKE_CXX_COMPILER=g++-9
-# GCC 14: same with build/gcc14, gcc-14, g++-14
+# GCC 13 (what the 5.7.1 engine is built with) / GCC 14: same with build/gcc13|gcc14, gcc-13|14, g++-13|14
 # Clang: project-local toolchain
 cmake -B build/clang -G Ninja -S Code -DCMAKE_BUILD_TYPE=Debug -DCRYENGINE_DIR=$CRYENGINE_DIR \
   -DCMAKE_TOOLCHAIN_FILE=$(pwd)/cmake/toolchain/Linux_Clang_System.cmake
@@ -26,7 +34,7 @@ Build types: `Debug` (`-O0 -g`), `Profile` (`-O2`), `Release` (`-O3`).
 
 ## Build
 
-`cmake --build build/<gcc|gcc14|clang> --parallel $(nproc)`.
+`cmake --build build/<gcc|gcc13|gcc14|clang> --parallel $(nproc)`.
 Output `bin/linux_x64_gcc/libGamePlugin.so`; POST_BUILD copies it to `$CRYENGINE_DIR/bin/linux_x64_gcc/`.
 
 **After deleting a build dir, do a full reconfigure** (`rm -rf build/gcc && cmake -B build/gcc …`).

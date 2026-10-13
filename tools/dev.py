@@ -32,8 +32,21 @@ PIDS = DEV / "pids"
 LOGS = DEV / "logs"
 VENV_PY = ROOT / "tools" / ".venv" / "bin" / "python3"
 
-COMPILERS = {"gcc9": "gcc", "gcc14": "gcc14", "clang": "clang"}  # preset name -> build/<dir>
+COMPILERS = ("gcc9", "gcc13", "gcc14", "clang")
 TYPES = ("Debug", "Profile", "Release")
+
+# Engine checkouts the plugin can be built against / run on. `--engine 56|57` (Makefile: ENGINE=).
+#   env      -> variable in .env naming the checkout (56 also falls back to the legacy CRYENGINE_DIR)
+#   compiler -> default compiler when --compiler is not given
+#   presets  -> compiler -> CMake preset (Code/CMakePresets.json). Build dir = build/<preset>, except the gcc9 preset,
+#               which is `build/gcc` because that is the directory VS Code uses; keep it that way.
+ENGINES = {
+    "56": {"label": "CRYENGINE 5.6.7", "env": "CRYENGINE_DIR_56", "fallback": "CRYENGINE_DIR", "compiler": "gcc9",
+           "presets": {"gcc9": "gcc9", "gcc13": "gcc13", "gcc14": "gcc14", "clang": "clang"}},
+    "57": {"label": "CRYENGINE 5.7.1", "env": "CRYENGINE_DIR_57", "fallback": None, "compiler": "gcc13",
+           "presets": {"gcc13": "e57-gcc13"}},
+}
+ENGINE = "56"  # set from --engine in main()
 SHADER_PORT = 61453  # keep in sync with tools/cry_shader_server.py
 
 DRY = False
@@ -62,6 +75,11 @@ def load_env() -> dict[str, str]:
     return env
 
 
+def resolve_engine_dir(env: dict[str, str], key: str) -> str | None:
+    spec = ENGINES[key]
+    return env.get(spec["env"]) or (env.get(spec["fallback"]) if spec["fallback"] else None)
+
+
 def engine_dir(env: dict[str, str]) -> Path:
     path = env.get("CRYENGINE_DIR")
     if not path:
@@ -87,8 +105,26 @@ def python_exe() -> str:
     return str(VENV_PY) if VENV_PY.exists() else sys.executable
 
 
+def pick_compiler(compiler: str | None) -> str:
+    """Compiler for the selected engine: the explicit one, else the engine's default; reject unsupported combos."""
+    spec = ENGINES[ENGINE]
+    compiler = compiler or spec["compiler"]
+    if compiler not in spec["presets"]:
+        die(f"{spec['label']} has no preset for COMPILER={compiler} (available: {', '.join(spec['presets'])}). "
+            "Add one to Code/CMakePresets.json and ENGINES in tools/dev.py.", 2)
+    return compiler
+
+
+def preset_name(compiler: str) -> str:
+    return ENGINES[ENGINE]["presets"][pick_compiler(compiler)]
+
+
+def preset_dir(preset: str) -> Path:
+    return ROOT / "build" / ("gcc" if preset == "gcc9" else preset)
+
+
 def build_dir(compiler: str) -> Path:
-    return ROOT / "build" / COMPILERS[compiler]
+    return preset_dir(preset_name(compiler))
 
 
 def strip_sep(extra: list[str]) -> list[str]:
@@ -222,7 +258,7 @@ def do_configure(compiler: str, btype: str, env: dict[str, str], force: bool = F
     bdir = build_dir(compiler)
     if not force and (bdir / "build.ninja").exists() and cmake_cache_type(bdir) == btype:
         return 0
-    return run(["cmake", "--preset", compiler, f"-DCMAKE_BUILD_TYPE={btype}"], cwd=ROOT / "Code", env=env)
+    return run(["cmake", "--preset", preset_name(compiler), f"-DCMAKE_BUILD_TYPE={btype}"], cwd=ROOT / "Code", env=env)
 
 
 def do_build(compiler: str, btype: str, env: dict[str, str]) -> int:
@@ -230,10 +266,11 @@ def do_build(compiler: str, btype: str, env: dict[str, str]) -> int:
     rc = do_configure(compiler, btype, env)
     if rc:
         return rc
-    rc = run(["cmake", "--build", "--preset", compiler], cwd=ROOT / "Code", env=env)
+    rc = run(["cmake", "--build", "--preset", preset_name(compiler)], cwd=ROOT / "Code", env=env)
     if rc == 0 and not DRY:
         so = ROOT / "bin" / "linux_x64_gcc" / "libGamePlugin.so"
-        print(f"built {btype} ({compiler}): {so.relative_to(ROOT)}" if so.exists() else "build ok (plugin not found?)")
+        print(f"built {btype} ({pick_compiler(compiler)}) for {ENGINES[ENGINE]['label']}: {so.relative_to(ROOT)} -> {engine_bin(env)}"
+              if so.exists() else "build ok (plugin not found?)")
     return rc
 
 
@@ -364,7 +401,7 @@ def cmd_logs(args, env) -> int:
 
 
 def build_info(compiler: str, env: dict[str, str]) -> dict:
-    bdir = build_dir(compiler)
+    bdir = preset_dir(ENGINES[ENGINE]["presets"][compiler])
     return {"configured": (bdir / "build.ninja").exists(), "type": cmake_cache_type(bdir)}
 
 
@@ -373,13 +410,20 @@ def gather_status(env: dict[str, str]) -> dict:
     so = ROOT / "bin" / "linux_x64_gcc" / "libGamePlugin.so"
     deployed = Path(ed) / "bin" / "linux_x64_gcc" / "libGamePlugin.so" if ed else None
     fmt = lambda p: time.strftime("%F %T", time.localtime(p.stat().st_mtime)) if p and p.exists() else None
+    deployed_all = {}
+    for k, spec in ENGINES.items():
+        d = resolve_engine_dir(env, k)
+        deployed_all[k] = fmt(Path(d) / "bin" / "linux_x64_gcc" / "libGamePlugin.so") if d else None
     return {
+        "engine": ENGINE,
+        "engine_label": ENGINES[ENGINE]["label"],
         "cryengine_dir": ed,
+        "deployed_per_engine": deployed_all,
         "services": {n: {"running": bool(running_pid(n, s["match"])), "pid": running_pid(n, s["match"]),
                          "port_open": port_open(s["port"])} for n, s in SERVICES.items()},
         "game": {"running": bool(running_pid("game", GAME_MATCH)), "pid": running_pid("game", GAME_MATCH)},
         "plugin": {"built": fmt(so), "deployed": fmt(deployed)},
-        "builds": {c: build_info(c, env) for c in COMPILERS},
+        "builds": {c: build_info(c, env) for c in ENGINES[ENGINE]["presets"]},
         "venv": VENV_PY.exists(),
     }
 
@@ -389,13 +433,14 @@ def cmd_status(args, env) -> int:
     if args.json:
         print(json.dumps(st, indent=2))
         return 0
-    print(f"engine   {st['cryengine_dir'] or 'NOT SET'}")
+    print(f"engine   {st['engine_label']} (ENGINE={st['engine']})  {st['cryengine_dir'] or 'NOT SET'}")
     for n, s in st["services"].items():
         print(f"service  {n:<8} {'running pid ' + str(s['pid']) if s['running'] else 'stopped'}"
               f"{'  (port busy, not ours)' if s['port_open'] and not s['running'] else ''}")
     g = st["game"]
     print(f"game     {'running pid ' + str(g['pid']) if g['running'] else 'stopped'}")
     print(f"plugin   built {st['plugin']['built']}  deployed {st['plugin']['deployed']}")
+    print("deployed " + "  ".join(f"{k}: {v or '-'}" for k, v in st["deployed_per_engine"].items()))
     for c, b in st["builds"].items():
         print(f"build    {c:<6} {'configured ' + str(b['type']) if b['configured'] else 'not configured'}")
     print(f"venv     {'ok' if st['venv'] else 'missing (make setup)'}")
@@ -408,9 +453,12 @@ def cmd_doctor(args, env) -> int:
         ("CRYENGINE_DIR set", bool(ed), True),
         ("engine dir exists", bool(ed) and Path(ed).is_dir(), True),
         ("GameLauncher present", bool(ed) and (Path(ed) / "bin/linux_x64_gcc/GameLauncher").exists(), True),
+        *[(f"{s['label']} engine dir ({k})", bool(resolve_engine_dir(env, k)) and Path(resolve_engine_dir(env, k)).is_dir(), False)
+          for k, s in ENGINES.items()],
         ("cmake", bool(shutil.which("cmake")), True),
         ("ninja", bool(shutil.which("ninja")), True),
         ("g++-9", bool(shutil.which("g++-9")), False),
+        ("g++-13 (ENGINE=57)", bool(shutil.which("g++-13")), False),
         ("g++-14", bool(shutil.which("g++-14")), False),
         ("clang++", bool(shutil.which("clang++")), False),
         ("gdb (debug)", bool(shutil.which("gdb")), False),
@@ -456,16 +504,18 @@ def cmd_pipeline(args, env) -> int:
 # --------------------------------------------------------------------------- cli
 
 def main() -> int:
-    global DRY
+    global DRY, ENGINE
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0], formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument("--dry-run", action="store_true", help="print what would run; change nothing")
+    p.add_argument("--engine", choices=ENGINES, default=os.environ.get("ENGINE") if os.environ.get("ENGINE") in ENGINES else "56",
+                   help="engine checkout: 56 = CRYENGINE 5.6.7 (default), 57 = CRYENGINE 5.7.1 (also env ENGINE)")
     sub = p.add_subparsers(dest="cmd", required=True, metavar="command")
 
     def add(name, fn, help_, compiler=False, extra=False):
         sp = sub.add_parser(name, help=help_, description=help_)
         sp.set_defaults(fn=fn)
         if compiler:
-            sp.add_argument("--compiler", choices=COMPILERS, default="gcc9")
+            sp.add_argument("--compiler", choices=COMPILERS, default=None, help="default: the engine's (56: gcc9, 57: gcc13)")
             sp.add_argument("--type", choices=TYPES, default="Debug")
         if extra:
             sp.add_argument("extra", nargs=argparse.REMAINDER, help="passed through after `--`")
@@ -498,7 +548,17 @@ def main() -> int:
 
     args = p.parse_args()
     DRY = args.dry_run
-    return args.fn(args, load_env()) or 0
+    ENGINE = args.engine
+    env = load_env()
+    if env.get("CRYENGINE_DIR") and not env.get("CRYENGINE_DIR_56"):
+        env["CRYENGINE_DIR_56"] = env["CRYENGINE_DIR"]  # legacy name = 5.6.7; capture before it is overwritten below
+    path = resolve_engine_dir(env, ENGINE)
+    if path:
+        env["CRYENGINE_DIR"] = path  # everything downstream (cmake, launcher, status) reads this
+    elif ENGINE != "56" or args.cmd in ("build", "run", "debug", "configure", "setup", "clean"):
+        spec = ENGINES[ENGINE]
+        die(f"{spec['label']}: set {spec['env']} in .env (path of the checkout), or export it.", 2)
+    return args.fn(args, env) or 0
 
 
 if __name__ == "__main__":

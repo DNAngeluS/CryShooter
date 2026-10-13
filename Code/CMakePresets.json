@@ -15,6 +15,32 @@
             }
         },
         {
+            "name": "gcc13",
+            "displayName": "GCC 13 Debug",
+            "description": "GCC 13, Debug build, deploys to linux_x64_gcc (compiler the 5.7.1 engine port was built with)",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/../build/gcc13",
+            "toolchainFile": "${sourceDir}/../cmake/toolchain/Linux_GCC_System.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_C_COMPILER": "gcc-13",
+                "CMAKE_CXX_COMPILER": "g++-13"
+            }
+        },
+        {
+            "name": "e57-gcc13",
+            "displayName": "CRYENGINE 5.7.1 + GCC 13 Debug",
+            "description": "Plugin against the 5.7.1 engine (CRYENGINE_DIR_57); deploys to that engine's bin/linux_x64_gcc. Use via `make build ENGINE=57`.",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/../build/e57-gcc13",
+            "toolchainFile": "${sourceDir}/../cmake/toolchain/Linux_GCC_System.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_C_COMPILER": "gcc-13",
+                "CMAKE_CXX_COMPILER": "g++-13"
+            }
+        },
+        {
             "name": "gcc14",
             "displayName": "GCC 14 Debug",
             "description": "GCC 14, Debug build, deploys to linux_x64_gcc",
@@ -45,6 +71,18 @@
             "name": "gcc9",
             "displayName": "Build GCC 9",
             "configurePreset": "gcc9",
+            "jobs": 0
+        },
+        {
+            "name": "gcc13",
+            "displayName": "Build GCC 13",
+            "configurePreset": "gcc13",
+            "jobs": 0
+        },
+        {
+            "name": "e57-gcc13",
+            "displayName": "Build CRYENGINE 5.7.1 + GCC 13",
+            "configurePreset": "e57-gcc13",
             "jobs": 0
         },
         {
