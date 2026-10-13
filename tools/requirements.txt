@@ -8,3 +8,6 @@ networkx>=3.6
 # C-accelerated Perlin/simplex noise for heightmaps and density fields
 # Falls back to numpy-native approximation if unavailable
 noise==1.2.2
+
+# Test runner used by `make test` (was installed by hand into the venv before 2026-10-13)
+pytest>=8

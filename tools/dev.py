@@ -36,14 +36,16 @@ COMPILERS = ("gcc9", "gcc13", "gcc14", "clang")
 TYPES = ("Debug", "Profile", "Release")
 
 # Engine checkouts the plugin can be built against / run on. `--engine 56|57` (Makefile: ENGINE=).
-#   env      -> variable in .env naming the checkout (56 also falls back to the legacy CRYENGINE_DIR)
+#   env      -> variable in .env naming the checkout (56 also falls back to the legacy CRYENGINE_DIR);
+#               if unset, the checkout is looked up at <Crytek>/Engines/<dir> (this project lives at <Crytek>/Projects/)
+#   dir      -> directory name under <Crytek>/Engines/
 #   compiler -> default compiler when --compiler is not given
 #   presets  -> compiler -> CMake preset (Code/CMakePresets.json). Build dir = build/<preset>, except the gcc9 preset,
 #               which is `build/gcc` because that is the directory VS Code uses; keep it that way.
 ENGINES = {
-    "56": {"label": "CRYENGINE 5.6.7", "env": "CRYENGINE_DIR_56", "fallback": "CRYENGINE_DIR", "compiler": "gcc9",
+    "56": {"label": "CRYENGINE 5.6.7", "dir": "ce-5.6.7", "env": "CRYENGINE_DIR_56", "fallback": "CRYENGINE_DIR", "compiler": "gcc9",
            "presets": {"gcc9": "gcc9", "gcc13": "gcc13", "gcc14": "gcc14", "clang": "clang"}},
-    "57": {"label": "CRYENGINE 5.7.1", "env": "CRYENGINE_DIR_57", "fallback": None, "compiler": "gcc13",
+    "57": {"label": "CRYENGINE 5.7.1", "dir": "ce-5.7.1", "env": "CRYENGINE_DIR_57", "fallback": None, "compiler": "gcc13",
            "presets": {"gcc13": "e57-gcc13"}},
 }
 ENGINE = "56"  # set from --engine in main()
@@ -77,7 +79,11 @@ def load_env() -> dict[str, str]:
 
 def resolve_engine_dir(env: dict[str, str], key: str) -> str | None:
     spec = ENGINES[key]
-    return env.get(spec["env"]) or (env.get(spec["fallback"]) if spec["fallback"] else None)
+    explicit = env.get(spec["env"]) or (env.get(spec["fallback"]) if spec["fallback"] else None)
+    if explicit:
+        return explicit
+    default = ROOT.parent.parent / "Engines" / spec["dir"]  # <Crytek>/Projects/<this project> -> <Crytek>/Engines/<dir>
+    return str(default) if default.is_dir() else None
 
 
 def engine_dir(env: dict[str, str]) -> Path:
