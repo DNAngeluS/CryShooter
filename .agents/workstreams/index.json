@@ -1,7 +1,7 @@
 {
   "when": "you need to pick up work, report progress, or estimate what is left",
   "backend": "local",
-  "updated": "2026-10-03",
+  "updated": "2026-10-14",
   "epics": [
     {
       "id": "E-01",

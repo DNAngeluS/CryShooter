@@ -1,7 +1,7 @@
 # Known issues
 
 Warnings and errors seen in `game.log` when launching on Linux, and what we know about each.
-Last reviewed against a log captured on 2026-04-03. To check your own log:
+Last reviewed against a log captured on 2026-10-14 (errors table only; warnings last fully reviewed 2026-04-03). To check your own log:
 
 ```bash
 grep -iE "\[Warning\]|\[Error\]" game.log | grep -v "Vulkan"
@@ -19,6 +19,8 @@ grep -iE "\[Warning\]|\[Error\]" game.log | grep -v "Vulkan"
 | Status | Message | Notes |
 |---|---|---|
 | Open | `Failed to load character Objects/Characters/SampleCharacter/firstperson.cdf` and `CryAnimation: failed to parse XML file …firstperson.cdf` | The character definition is missing or malformed, so no first-person arms or weapon render and the camera uses a fixed eye height. See [Character mesh](character_mesh.md). |
+| Open | `Color Grading: Default color chart is missing` and missing `shadererror.dds` | Seen in a clean run 2026-10-14; cause not investigated (tracked under E-01). |
+| Open | `Vulkan: Cannot create staging buffer` assert on CRYENGINE 5.7.1 (`make run ENGINE=57`) | Engine 5.7.1 rendering is unhealthy; 5.6.7 unaffected. See E-03 notes. |
 
 ## Missing engine textures
 
