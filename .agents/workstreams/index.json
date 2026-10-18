@@ -30,7 +30,7 @@
     {
       "id": "E-03",
       "title": "VS Code \u2192 make migration gaps (starting with debug screenshots)",
-      "goal": "The make/dev.py run path matches what VS Code gave for free, and K+P screenshots are saved",
+      "goal": "The make/tools/cryengine-dev/dev.py run path matches what VS Code gave for free, and K+P screenshots are saved",
       "status": "ready",
       "components": [
         "code",

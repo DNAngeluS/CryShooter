@@ -33,8 +33,8 @@ source .env
 
 ## Dev commands
 
-Day-to-day development goes through `make` (a thin menu over `tools/dev.py`, which needs only Python 3 and
-`make`). It works from a plain terminal — no IDE required — and every command is safe for scripts and AI agents:
+Day-to-day development goes through `make` (a thin menu over the generic runner `tools/cryengine-dev/dev.py`, which needs only Python 3 and
+`make`; FPS settings are in `cryengine-dev.config.json`, schema in `tools/cryengine-dev/config-schema.md`; `tools/dev.py` is a forwarding shim). It works from a plain terminal — no IDE required — and every command is safe for scripts and AI agents:
 nothing blocks unless you ask it to, commands are idempotent, and background output goes to `.dev/logs/`.
 
 ```bash
@@ -55,6 +55,7 @@ make doctor      # check engine path, compilers, gdb, wine, display session
 | Stop the game and all services | `make stop` |
 | What is running, what is built | `make status` (`python3 tools/dev.py status --json` for scripts) |
 | Warnings and errors from the engine log | `make logs` (`make logs-all` for the raw tail) |
+| Shader cache per engine and compile progress | `make shaders-status` |
 | Python tests | `make test` |
 | Asset pipeline CLI | `make pipeline ARGS="plan-spec --job level-fps-forest-basin"` |
 
@@ -138,7 +139,7 @@ python3 tools/cry_asset_tracker.py resume
 
 ### Shader Server (`tools/cry_shader_server.py`)
 
-CRYENGINE's Vulkan renderer requires a running shader compiler server to compile HLSL shaders to SPIR-V at runtime. On Linux this is provided by `cry_shader_server.py`, which implements the CrySCompileServer wire protocol using Wine + DXC.
+CRYENGINE's Vulkan renderer requires a running shader compiler server to compile HLSL shaders to SPIR-V at runtime. On Linux this is provided by `cry_shader_server.py`, which implements the CrySCompileServer wire protocol using Wine + DXC. The real file is `tools/cryengine-dev/cry_shader_server.py`; `tools/cry_shader_server.py` is a forwarding shim.
 
 **Prerequisites:** `wine`, `python3`
 
@@ -167,7 +168,7 @@ FirstPersonShooter/
 ├── Assets/
 │   └── levels/              # Game levels (created via Sandbox editor)
 ├── tools/
-│   ├── cry_shader_server.py # Remote shader compiler server (Wine + DXC)
+│   ├── cry_shader_server.py # Shim → tools/cryengine-dev/cry_shader_server.py (Wine + DXC)
 │   ├── cry_asset_pipeline.py # Natural-language asset pipeline CLI
 │   ├── cry_asset_tracker.py  # Asset tracker / resume CLI
 │   └── asset_pipeline/       # Internal helpers for level generation and mesh import

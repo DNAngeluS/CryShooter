@@ -1,8 +1,9 @@
 <!-- when: configuring, building, running or debugging the C++ plugin (libGamePlugin.so) -->
 # Build, run, debug the plugin
 
-**Use `make` first** (`make help`; implemented in `tools/dev.py`): `make setup`, `make build`, `make run`,
-`make debug-batch`, `make status`, `make logs`, `make stop`. It wraps the presets in `Code/CMakePresets.json`
+**Use `make` first** (`make help`; implemented in the generic `tools/cryengine-dev/dev.py`, with FPS settings in
+`cryengine-dev.config.json`; `tools/dev.py` is a forwarding shim): `make setup`, `make build`, `make run`,
+`make debug-batch`, `make status`, `make shaders-status`, `make logs`, `make stop`. It wraps the presets in `Code/CMakePresets.json`
 (build dirs `build/gcc`, `build/gcc13`, `build/gcc14`, `build/clang`), reads `.env` itself, starts the shader server, and logs
 to `.dev/logs/`. The manual commands below are the reference for what it runs and for the gotchas.
 
@@ -15,6 +16,13 @@ preset `e57-gcc13`, build dir `build/e57-gcc13`). `ENGINE=56` (default) is 5.6.7
 VS Code uses — **never repoint it**. Each engine gets only its own plugin copy (`CRYENGINE*/bin/linux_x64_gcc/libGamePlugin.so`).
 `make status [ENGINE=…]` shows the deployed plugin time for both. `Game.cryproject` (`engine-5.6`) is accepted unchanged
 by 5.7.1. Both engines write the project-level `game.log` (appended) and their own `<engine>/game.log`.
+
+## Shader cache per engine
+
+`user/shaders/cache` is a relative symlink to `user/shaders/cache-by-engine/<56|57>`, switched automatically by
+`make run` / `make debug`. The first run per engine is a cold cache: the window stays black for minutes while shaders
+compile through the Wine+DXC server. Watch progress with `make shaders-status`. The old shared cache directory is kept
+as `legacy-unlabelled`. (Implemented and accepted 2026-10-18 (56→57→56: third run 0 crc mismatch, 0 cache miss).)
 
 ## Configure (once per compiler)
 
@@ -67,5 +75,7 @@ Console `goto x y z [yaw [pitch]]` teleports the player; bare `goto` logs the po
 
 ## Optional: remote shader compiler
 
-`python3 tools/cry_shader_server.py` (Wine + DXC), then in `system.cfg`:
+`python3 tools/cry_shader_server.py` (Wine + DXC; shim, real file `tools/cryengine-dev/cry_shader_server.py`), then in `system.cfg`:
 `r_ShadersRemoteCompiler=1`, `r_ShaderCompilerServer=127.0.0.1`, `r_VkShaderCompiler=DXC`.
+
+> **Caveat (2026-10-18):** launching from VS Code (F5 / `launch.json` with preLaunchTask "CMake Build", or running GameLauncher directly) bypasses `make run`, so the per-engine shader-cache link is NOT switched. After using VS Code, or on first use of an engine, run `make shaders-status`; a cold cache can reappear and look like T2 failed. Use `make run ENGINE=56|57` / `make debug` to get the right slot.

@@ -57,7 +57,9 @@ jq '.seams[] | select(.id=="terrain-pipeline")' .memory/graph.json
 
 ## Dev commands (use these, not raw cmake)
 
-Run from the project root. `make help` lists everything; logic is in `tools/dev.py` (stdlib Python).
+Run from the project root. `make help` lists everything; logic is in the generic runner `tools/cryengine-dev/dev.py`
+(stdlib Python). The runner is a VENDORED, numbered copy of the shared cryengine-dev tooling in `tools/cryengine-dev/` (committed here so a standalone clone works; pin: `tools_version` in the config, marker `tools/cryengine-dev/.vendored-from`). Never edit it here: change the tooling repo (`<Crytek>/Tools/dev`, tagged `vX.Y.Z`), then `python3 <Crytek>/Tools/dev/vendor.py --project-dir .`; `python3 tools/dev.py doctor` flags a mismatch or local edits. FPS settings live in `cryengine-dev.config.json` (schema: `tools/cryengine-dev/config-schema.md`).
+`tools/dev.py` and `tools/cry_shader_server.py` are 20-line forwarding shims, so `python3 tools/dev.py …` still works.
 
 | Do this | Command |
 |---|---|
@@ -67,6 +69,7 @@ Run from the project root. `make help` lists everything; logic is in `tools/dev.
 | production build | `make release` |
 | play (starts shader server, launches game **in background**) | `make run` (returns at once) |
 | inspect state | `make status` (`python3 tools/dev.py status --json`) |
+| shader cache per engine, compile progress | `make shaders-status` |
 | read results | `make logs` (warnings/errors from `game.log`), or files in `.dev/logs/` |
 | crash investigation without a terminal UI | `make debug-batch TIMEOUT=120` → `.dev/logs/gdb.log` |
 | stop everything | `make stop` (idempotent) |

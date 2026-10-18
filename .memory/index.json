@@ -112,7 +112,7 @@
       "tokens": 405
     },
     {
-      "when": "investigating failing debug screenshots, or migrating VS Code-era run/debug behaviour to the make/dev.py workflow",
+      "when": "investigating failing debug screenshots, or migrating VS Code-era run/debug behaviour to the make/dev.py workflow (runner now tools/cryengine-dev/dev.py)",
       "read": ".agents/workstreams/epics/E-03.md",
       "tokens": 1350
     },
@@ -127,7 +127,7 @@
       "tokens": 794
     },
     {
-      "when": "working anywhere inside tools/ or tests/ (Python asset pipeline, procgen, tracker, shader server)",
+      "when": "working anywhere inside tools/ or tests/ (Python asset pipeline, procgen, tracker; shader server now tools/cryengine-dev)",
       "read": ".memory/cards/tools.md",
       "tokens": 908
     },
@@ -244,7 +244,7 @@
     },
     {
       "path": ".agents/workstreams/epics/E-03.md",
-      "when": "investigating failing debug screenshots, or migrating VS Code-era run/debug behaviour to the make/dev.py workflow",
+      "when": "investigating failing debug screenshots, or migrating VS Code-era run/debug behaviour to the make/dev.py workflow (runner now tools/cryengine-dev/dev.py)",
       "lines": 49,
       "approx_tokens": 1350,
       "updated": "2026-10-04"
@@ -265,7 +265,7 @@
     },
     {
       "path": ".memory/cards/tools.md",
-      "when": "working anywhere inside tools/ or tests/ (Python asset pipeline, procgen, tracker, shader server)",
+      "when": "working anywhere inside tools/ or tests/ (Python asset pipeline, procgen, tracker; shader server now tools/cryengine-dev)",
       "lines": 52,
       "approx_tokens": 908,
       "updated": "2026-10-03"

@@ -1,5 +1,5 @@
 <!-- when: you need to know what is happening in this project right now -->
-# Status — updated 2026-10-14
+# Status — updated 2026-10-18
 
 **Phase:** active development, pre-release `[assumed]`
 **Live:** nothing deployed; local `GameLauncher` smoke runs only `[assumed]`
@@ -39,6 +39,7 @@ gave for free versus `tools/dev.py` (E-03/T-03).
 4. Decide on stub DDS vs Wine+RC for missing engine weather textures (E-01/T-03).
 
 ## Recently shipped
+- 2026-10-18 — dev tooling moved to `tools/cryengine-dev` (vendored v1.0.0; upstream repo `<Crytek>/Tools/dev`) (`tools/dev.py` and `cry_shader_server.py` are shims); per-engine shader cache and `make shaders-status` implemented (accepted: 56→57→56, third run 0 crc mismatch, 0 cache miss)
 - 2026-10-12 — `ENGINE=56|57` selector and gcc13 preset for CRYENGINE 5.7.1 (ee863f3); Crytek domain path update (a90e6ae)
 - 2026-10-03 — dev command runner: `Makefile` + `tools/dev.py` (build, services, run/debug, logs, status); `CHANGELOG.md` introduced
 - 2026-10-03 — default startup level changed to `fps_forest_basin` (3afb06b)

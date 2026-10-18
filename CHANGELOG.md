@@ -16,9 +16,14 @@ entries are grouped by **milestone** (dated) instead of version numbers.
 ### Added
 - **Dev command runner.** `Makefile` + `tools/dev.py` (stdlib only): `make setup | build | release | up | down | run | debug | stop | status | logs | test | pipeline`.
   Background services and the game log to `.dev/logs/`, pids in `.dev/pids/` (both gitignored). See README → *Dev commands*.
+- **Per-engine shader cache** (2026-10-18, implemented and accepted: 56→57→56, third run 0 crc mismatch / 0 cache miss). `user/shaders/cache` links to `user/shaders/cache-by-engine/<56|57>`, switched by `make run` / `make debug`. `make shaders-status` shows the state.
+- **`make shaders-status`** (2026-10-18) reports the shader cache and compile progress for the selected engine.
 
 ### Changed
 - `AGENTS.md`, `CLAUDE.md` and the build/run workflow now point at `make` targets instead of long cmake commands.
+- **Tooling is versioned and vendored** (2026-10-18): `tools/cryengine-dev/` is a numbered copy (v1.0.0, commit 599bb8c of the cryengine-dev repo) pinned by `tools_version` in `cryengine-dev.config.json`; `.vendored-from` records version, commit and file hashes. Roll forward with `python3 <Crytek>/Tools/dev/vendor.py --project-dir .`.
+- **Dev runner moved** (2026-10-18) to the generic `tools/cryengine-dev/dev.py`. `tools/dev.py` and `tools/cry_shader_server.py` are now 20-line forwarding shims, so existing commands still work.
+- **FPS settings** (2026-10-18) live in `cryengine-dev.config.json` at the project root (schema: `tools/cryengine-dev/config-schema.md`). The `Makefile` is now a thin include of `tools/cryengine-dev/Makefile.common` plus the FPS-only `test` and `pipeline` targets.
 
 ### Breaking / may break
 - `ENGINE=56|57` selects the engine checkout for every `make` target (5.7.1 defaults to gcc13, preset `e57-gcc13`, build dir `build/e57-gcc13`; plugin deploys only into that engine). Add `CRYENGINE_DIR_57` to `.env`. `COMPILER` now defaults per engine, and `gcc13` was added.
@@ -26,6 +31,7 @@ entries are grouped by **milestone** (dated) instead of version numbers.
   The old README commands that configured `build/` are obsolete; delete a stale `build/` directory if you still have one.
 - **Known regression:** debug screenshots (`K` then `P`) are not saved when the game is launched with `make run` (`mkdir('/user') failed`); they worked from VS Code. Under investigation — workstream E-03, `docs/known-issues.md`.
 - `make build` redeploys `libGamePlugin.so` into `$CRYENGINE_DIR/bin/linux_x64_gcc/` (same as before), replacing whatever plugin was there.
+- **Cold shader cache per engine** (2026-10-18): the first `make run` / `make debug` on each engine starts with an empty cache. The window stays black for minutes while shaders compile through the Wine+DXC server; watch `make shaders-status`. The old shared cache is kept as `legacy-unlabelled`.
 
 ## Milestone: agent context layer — 2026-10-03
 

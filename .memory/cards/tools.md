@@ -2,7 +2,7 @@
 # tools — asset pipeline and helpers
 
 **Path:** `tools` (+ `tests/`, `memory/*.json`) · **Stack:** Python 3, `noise==1.2.2`, pytest · **Size:** 33 files / ~5.4k LOC
-**Entrypoints:** `cry_asset_pipeline.py`, `cry_asset_tracker.py`, `cry_shader_server.py`
+**Entrypoints:** `cry_asset_pipeline.py`, `cry_asset_tracker.py`, `cry_shader_server.py` (shim; real file `tools/cryengine-dev/`)
 **Runs with:** `python3 tools/cry_asset_pipeline.py <cmd>` · **Tests:** `tools/.venv/bin/python3 -m pytest tests/ -v`
 
 ## Purpose
@@ -25,7 +25,7 @@ Linux remote shader compiler server. It is not an interpreter of prose and not a
 | `asset_pipeline/character_builder.py`, `mesh_converter.py` | first-person package (`.cdf`, `.adb`, controller XML); mesh staging |
 | `asset_pipeline/dds_normalmap_fix.py` | DXT1→BC5 normal-map recompression |
 | `asset_pipeline/tracker_store.py`, `cry_asset_tracker.py` | state in `memory/asset_pipeline_tracker.json` |
-| `cry_shader_server.py` | CrySCompileServer protocol over Wine + DXC |
+| `cry_shader_server.py` | Forwarding shim (20 lines) to `tools/cryengine-dev/cry_shader_server.py`: CrySCompileServer protocol over Wine + DXC |
 
 ## Depends on
 - internal: `Code` consumes its outputs (character contract used by `Player.cpp`; spawn point entity in `main.lyr`)

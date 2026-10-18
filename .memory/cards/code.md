@@ -3,7 +3,7 @@
 
 **Path:** `Code` · **Stack:** C++17, CRYENGINE 5.6 (Schematyc entity components), CMake+Ninja · **Size:** 11 files / ~1.2k LOC
 **Entrypoints:** `GamePlugin.cpp` (`CGamePlugin`, an `ICryPlugin`), `Components/Player.cpp`
-**Builds with:** `cmake --build build/gcc` → `libGamePlugin.so` · **Tests:** none
+**Builds with:** `make build` (presets in `Code/CMakePresets.json`; VS Code still uses `build/gcc`) → `libGamePlugin.so` · **Tests:** none
 
 ## Purpose
 The runtime game logic loaded by CRYENGINE's `GameLauncher`. Provides a first-person player (camera, movement,
