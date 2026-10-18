@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "name": "FirstPersonShooter",
+  "cryproject": "Game.cryproject",
+  "source_dir": "Code",
+  "plugin_lib": "libGamePlugin.so",
+  "plugin_out_dir": "bin/linux_x64_gcc",
+  "engine_bin_dir": "bin/linux_x64_gcc",
+  "launcher": "GameLauncher",
+  "dev_dir": ".dev",
+  "env_file": ".env",
+  "default_engine": "56",
+  "engines": {
+    "56": {
+      "label": "CRYENGINE 5.6.7",
+      "dir": "ce-5.6.7",
+      "env": "CRYENGINE_DIR_56",
+      "fallback_env": "CRYENGINE_DIR",
+      "compiler": "gcc9",
+      "presets": {
+        "gcc9": "gcc9",
+        "gcc13": "gcc13",
+        "gcc14": "gcc14",
+        "clang": "clang"
+      }
+    },
+    "57": {
+      "label": "CRYENGINE 5.7.1",
+      "dir": "ce-5.7.1",
+      "env": "CRYENGINE_DIR_57",
+      "fallback_env": null,
+      "compiler": "gcc13",
+      "presets": {
+        "gcc13": "e57-gcc13"
+      }
+    }
+  },
+  "build_dirs": {
+    "gcc9": "build/gcc"
+  },
+  "services": {
+    "shader": {
+      "script": "tool:cry_shader_server.py",
+      "port": 61453
+    }
+  },
+  "shader_cache": {
+    "link": "user/shaders/cache",
+    "slots_dir": "user/shaders/cache-by-engine"
+  },
+  "python": {
+    "venv": "tools/.venv",
+    "requirements": "tools/requirements.txt"
+  },
+  "extra_verbs": {
+    "test": {
+      "help": "run pytest with the venv interpreter",
+      "python_module": "pytest",
+      "fixed_args": [
+        "tests/"
+      ],
+      "default_args": [
+        "-q"
+      ]
+    },
+    "pipeline": {
+      "help": "run tools/cry_asset_pipeline.py (args after `--`)",
+      "python_script": "tools/cry_asset_pipeline.py",
+      "default_args": [
+        "--help"
+      ],
+      "fixed_args": []
+    }
+  },
+  "doctor_extra_compilers": [
+    "g++-9",
+    {
+      "bin": "g++-13",
+      "label": "g++-13 (ENGINE=57)"
+    },
+    "g++-14",
+    "clang++"
+  ],
+  "tools_version": "1.0.0"
+}

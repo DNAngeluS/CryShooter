@@ -1,0 +1,60 @@
+# Generic dev menu shared by every CRYENGINE project in this workspace.
+# Included by <project>/Makefile, which adds its project-specific targets. Run `make help` for the list.
+# Per-project settings: <project>/cryengine-dev.config.json (see Tools/dev/config-schema.md).
+
+# Must stay the first statement: until another include runs, the last MAKEFILE_LIST entry is this file.
+DEV_TOOLS    := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+
+PY           ?= python3
+PROJECT_DIR  ?= $(CURDIR)
+# An exported-but-empty ENGINE passes no --engine flag (dev.py uses the config's default_engine).
+# Bad values are rejected by dev.py's argparse (exit 2).
+DEV          = $(PY) $(DEV_TOOLS)/dev.py --project-dir $(PROJECT_DIR) $(if $(ENGINE),--engine $(ENGINE))
+COMPILER     ?=
+TYPE         ?= Debug
+ARGS         ?=
+# COMPILER defaults per engine in dev.py (config engines.<key>.compiler)
+OPTS         := $(if $(COMPILER),--compiler $(COMPILER)) --type $(TYPE)
+
+.DEFAULT_GOAL := help
+.PHONY: help setup doctor configure build clean release up down run run-release debug debug-batch stop status logs logs-all shaders-status
+
+help: ## list targets
+	@echo "Targets (variables: ENGINE=56|57  COMPILER=gcc9|gcc13|gcc14|clang  TYPE=Debug|Profile|Release  ARGS=...):"
+	@grep -hE '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
+
+setup: ## first-time: venv + deps + prerequisite check + configure
+	@$(DEV) setup $(OPTS)
+doctor: ## check prerequisites (engine path, compilers, gdb, wine, display)
+	@$(DEV) doctor
+configure: ## (re)configure CMake with the chosen preset
+	@$(DEV) configure $(OPTS)
+build: ## dev compile: build the plugin and deploy it to the engine bin dir
+	@$(DEV) build $(OPTS)
+clean: ## clean build outputs
+	@$(DEV) clean $(OPTS)
+release: ## production build (Release)
+	@$(DEV) build $(if $(COMPILER),--compiler $(COMPILER)) --type Release
+
+up: ## start background services (shader compiler server)
+	@$(DEV) up
+down: ## stop background services
+	@$(DEV) down
+run: ## start services + launch the game in the background (returns immediately)
+	@$(DEV) run $(OPTS) -- $(ARGS)
+run-release: ## build Release, then launch the game
+	@$(DEV) run $(if $(COMPILER),--compiler $(COMPILER)) --type Release --build -- $(ARGS)
+debug: ## launch under gdb, interactive
+	@$(DEV) debug -- $(ARGS)
+debug-batch: ## launch under gdb non-interactively; backtrace in .dev/logs/gdb.log (ARGS unused; set TIMEOUT=secs)
+	@$(DEV) debug --batch --timeout $(or $(TIMEOUT),0)
+stop: ## stop the game and all services
+	@$(DEV) stop
+status: ## show services, game, builds, plugin timestamps
+	@$(DEV) status
+logs: ## recent warnings/errors from game.log
+	@$(DEV) logs
+logs-all: ## last 80 lines of game.log, unfiltered
+	@$(DEV) logs --all -n 80
+shaders-status: ## shader cache slots and compile progress
+	@$(DEV) shaders-status
