@@ -11,3 +11,6 @@ noise==1.2.2
 
 # Test runner used by `make test` (was installed by hand into the venv before 2026-10-13)
 pytest>=8
+
+# Screenshot analysis for `make health` (Tools/dev healthcheck.py: image metrics)
+Pillow>=10
