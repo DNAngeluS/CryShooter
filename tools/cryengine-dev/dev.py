@@ -15,6 +15,7 @@ Usually invoked through the Makefile (`make help`), or directly: `python3 tools/
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
 import json
 import os
@@ -71,11 +72,12 @@ CONFIG_NAME = "cryengine-dev.config.json"
 CONFIG_SCHEMA = 1
 CONFIG_KEYS = frozenset({"schema", "name", "cryproject", "source_dir", "plugin_lib", "plugin_out_dir", "engine_bin_dir",
                          "launcher", "dev_dir", "env_file", "default_engine", "engines", "build_dirs", "services",
-                         "python", "extra_verbs", "doctor_extra_compilers", "shader_cache", "tools_version"})
+                         "python", "extra_verbs", "doctor_extra_compilers", "shader_cache", "tools_version", "health"})
 CONFIG_REQUIRED = ("name", "cryproject", "engines", "default_engine")
 ENGINE_CONFIG_KEYS = frozenset({"label", "dir", "env", "fallback_env", "compiler", "presets"})
 ENGINE_REQUIRED = ("label", "dir", "env", "compiler", "presets")
-BUILTIN_VERBS = frozenset({"setup", "doctor", "configure", "build", "clean", "up", "down", "run", "debug", "stop", "status", "logs"})
+BUILTIN_VERBS = frozenset({"setup", "doctor", "configure", "build", "clean", "up", "down", "run", "debug", "stop", "status", "logs",
+                           "health"})
 
 CONFIG: dict = {}  # the parsed cryengine-dev.config.json; set in main()
 
@@ -173,8 +175,10 @@ def die(msg: str, code: int = 1) -> None:
 
 
 def load_config(project_dir: Path) -> dict:
-    """Read and validate <project_dir>/cryengine-dev.config.json. Every problem is a usage error (exit 2)."""
-    path = project_dir / CONFIG_NAME
+    """Read and validate <project_dir>/cryengine-dev.config.json (or the file named by env CRY_DEV_CONFIG, for trying a config
+    without editing the project). Every problem is a usage error (exit 2)."""
+    override = os.environ.get("CRY_DEV_CONFIG")
+    path = Path(override) if override else project_dir / CONFIG_NAME
     if not path.is_file():
         die(f"no {CONFIG_NAME} in {project_dir}; see Tools/dev/config-schema.md", 2)
     try:
@@ -218,7 +222,42 @@ def load_config(project_dir: Path) -> dict:
             die(f"{path}: doctor_extra_compilers entries are strings or {{\"bin\": ..., \"label\": ...}} objects", 2)
     if "tools_version" in cfg and not (isinstance(cfg["tools_version"], str) and cfg["tools_version"].strip()):
         die(f"{path}: tools_version must be a non-empty string", 2)
+    if "health" in cfg:
+        check_health_config(path, cfg["health"])
     return cfg
+
+
+def check_health_config(path: Path, h) -> None:
+    """Validate the optional `health` section (see config-schema.md). Usage errors (exit 2)."""
+    if not isinstance(h, dict):
+        die(f"{path}: health must be an object", 2)
+    for key in sorted(set(h) - {"default_delay_s", "capture"}):
+        die(f"{path}: unknown key {key!r} in health; allowed keys: capture, default_delay_s", 2)
+    delay = h.get("default_delay_s")
+    if delay is not None and not (isinstance(delay, int) and not isinstance(delay, bool) and delay > 0):
+        die(f"{path}: health.default_delay_s must be an integer > 0", 2)
+    cap = h.get("capture")
+    if cap is None:
+        return
+    if not isinstance(cap, dict):
+        die(f"{path}: health.capture must be an object", 2)
+    for key in sorted(set(cap) - {"launch_args", "saved", "failed"}):
+        die(f"{path}: unknown key {key!r} in health.capture; allowed keys: failed, launch_args, saved", 2)
+    args = cap.get("launch_args", [])
+    if not (isinstance(args, list) and all(isinstance(a, str) for a in args)):
+        die(f"{path}: health.capture.launch_args must be a list of strings", 2)
+    # the marker regexes must compile and name the groups the health verb reads
+    for key, groups in (("saved", ("path", "bytes")), ("failed", ("reason",))):
+        pattern = cap.get(key)
+        if not isinstance(pattern, str):
+            die(f"{path}: health.capture.{key} must be a regex string (named groups: {', '.join(groups)})", 2)
+        try:
+            rx = re.compile(pattern)
+        except re.error as exc:
+            die(f"{path}: health.capture.{key} is not a valid regex ({exc})", 2)
+        missing = [g for g in groups if g not in rx.groupindex]
+        if missing:
+            die(f"{path}: health.capture.{key} must name group(s) {', '.join(missing)} (?P<name>...)", 2)
 
 
 def cfg_req(key: str) -> str:
@@ -890,6 +929,435 @@ def cmd_extra(verb_spec: dict, args, env) -> int:
     return run([python_exe(), *head, *verb_spec.get("fixed_args", []), *user], env=env)
 
 
+# --------------------------------------------------------------------------- health: launch (or reuse) the game, capture it, judge
+# The verdict rules live in healthcheck.py (pure, unit-tested). This section only drives the game and the capture tools.
+
+HEALTH_DEFAULT_DELAY_S = 40
+HEALTH_TIMEOUT_EXTRA_S = 60  # --timeout default is --delay plus this
+HEALTH_WINDOW_ATTEMPTS = 3  # window grabs tried before giving up
+HEALTH_WINDOW_RETRY_S = 1.0  # pause between window grab attempts
+HEALTH_POLL_S = 2  # how often the game log and the process are checked while waiting
+HEALTH_SETTLE_S = 3  # gap between the two shader-cache file counts
+HEALTH_SIGNAL_LINES = 10  # [Assert]/[Error] lines quoted when the game exits before the capture
+
+
+def load_healthcheck():
+    """healthcheck.py, imported lazily so `--help` and the other verbs need no numpy/Pillow."""
+    if str(TOOL_DIR) not in sys.path:
+        sys.path.insert(0, str(TOOL_DIR))  # dev.py may run from a vendored copy: use that copy's healthcheck.py
+    try:
+        import healthcheck
+    except ImportError as exc:
+        die(f"cannot import healthcheck.py from {TOOL_DIR}: {exc}", 2)
+    if not healthcheck.HAVE_IMAGING:
+        die("health needs numpy and Pillow in the python that runs dev.py (pip install numpy pillow); "
+            "nothing was checked", 2)
+    return healthcheck
+
+
+def proc_pids(match: str, proc: Path = Path("/proc")) -> list[int]:
+    """PIDs whose command line contains `match`, excluding this process. Matches cmdline: the game's comm is renamed."""
+    if not match:
+        return []
+    found = []
+    for entry in proc.iterdir():
+        if not entry.name.isdigit() or int(entry.name) == os.getpid():
+            continue
+        try:
+            cmdline = (entry / "cmdline").read_bytes().replace(b"\0", b" ").decode(errors="replace")
+        except OSError:  # the process exited while we looked
+            continue
+        if match in cmdline:
+            found.append(int(entry.name))
+    return sorted(found)
+
+
+def project_game_match() -> str:
+    """Command-line fragment unique to THIS project's game process (its .cryproject path).
+
+    GAME_MATCH ("GameLauncher") alone would also match another project's game running on the same engine."""
+    return str(ROOT / cfg_req("cryproject"))
+
+
+def window_capture_possible(no_window: bool) -> tuple[bool, str]:
+    """(possible, why-not). X11 only: wmctrl or xdotool finds the game window, ImageMagick's `import` takes it."""
+    if no_window:
+        return False, "disabled by --no-window"
+    if not os.environ.get("DISPLAY"):
+        return False, "no DISPLAY"
+    if os.environ.get("XDG_SESSION_TYPE") == "wayland":
+        return False, "Wayland session (window capture is X11 only)"
+    if not (shutil.which("wmctrl") or shutil.which("xdotool")):
+        return False, "neither wmctrl nor xdotool is installed"
+    if not shutil.which("import"):
+        return False, "ImageMagick 'import' is not installed"
+    return True, ""
+
+
+def _capture_text(cmd: list[str]) -> str:
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+    return r.stdout if r.returncode == 0 else ""
+
+
+def _xdotool_window(pid: int) -> str | None:
+    """Largest visible X11 window of `pid` as a hex id (the fallback when wmctrl lists none for it)."""
+    best, best_area = None, 0
+    for wid in _capture_text(["xdotool", "search", "--onlyvisible", "--pid", str(pid)]).split():
+        if not wid.isdigit():
+            continue
+        geom = dict(ln.split("=", 1) for ln in _capture_text(["xdotool", "getwindowgeometry", "--shell", wid]).splitlines()
+                    if "=" in ln)
+        try:
+            area = int(geom["WIDTH"]) * int(geom["HEIGHT"])
+        except (KeyError, ValueError):
+            continue
+        if area > best_area:
+            best, best_area = wid, area
+    return hex(int(best)) if best else None
+
+
+def health_window_shot(hc, pids: list[int], out: Path) -> tuple[str | None, str | None]:
+    """Screenshot the game window: (png path, None) or (None, error). Window ids: wmctrl -lp rows, else xdotool."""
+    listing = _capture_text(["wmctrl", "-lp"]) if shutil.which("wmctrl") else ""
+    wid = None
+    for pid in pids:
+        ids = hc.parse_wmctrl_windows(listing, pid)
+        if ids:
+            wid = ids[-1]  # the newest window of the process; a splash screen is normally listed first
+            break
+    if wid is None and shutil.which("xdotool"):
+        wid = next((w for w in (_xdotool_window(p) for p in pids) if w), None)
+    if wid is None:
+        return None, f"no-window: no X11 window for game pid(s) {pids or '-'} (wmctrl -lp / xdotool)"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    # ImageMagick's `import -window` fails now and then on a healthy window ("missing an image filename", ~1 run in 15): retry.
+    err = ""
+    for attempt in range(1, HEALTH_WINDOW_ATTEMPTS + 1):
+        out.unlink(missing_ok=True)
+        try:
+            r = subprocess.run(["import", "-window", wid, f"png:{out}"], capture_output=True, text=True, timeout=60)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            return None, f"capture-failed: import: {exc}"
+        if not r.returncode and out.is_file() and out.stat().st_size > 0:
+            return str(out), None
+        err = f"capture-failed: import -window {wid} exited {r.returncode} (attempt {attempt}/{HEALTH_WINDOW_ATTEMPTS}): {r.stderr.strip()[:200]}"
+        if attempt < HEALTH_WINDOW_ATTEMPTS:
+            time.sleep(HEALTH_WINDOW_RETRY_S)
+    # still failing: crop the window's rectangle out of the root window (not subject to the per-window grab failure;
+    # shows whatever overlaps the game window, which is fine for an is-it-rendering check)
+    geo = _window_geometry(wid)
+    if geo:
+        x, y, w, h = geo
+        out.unlink(missing_ok=True)
+        try:
+            r = subprocess.run(["import", "-window", "root", "-crop", f"{w}x{h}+{x}+{y}", "+repage", f"png:{out}"],
+                               capture_output=True, text=True, timeout=60)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            return None, f"{err}; root crop: {exc}"
+        if not r.returncode and out.is_file() and out.stat().st_size > 0:
+            print(f"health: `import -window {wid}` failed {HEALTH_WINDOW_ATTEMPTS}x; used a root-window crop instead", file=sys.stderr)
+            return str(out), None
+        err += f"; root crop exited {r.returncode}: {r.stderr.strip()[:120]}"
+    return None, err
+
+
+def _window_geometry(wid: str) -> tuple[int, int, int, int] | None:
+    """(x, y, width, height) of a window on the root window, from `xwininfo -id`; None when unavailable."""
+    if not shutil.which("xwininfo"):
+        return None
+    text = _capture_text(["xwininfo", "-id", wid])
+    vals = {}
+    for key, label in (("x", "Absolute upper-left X:"), ("y", "Absolute upper-left Y:"), ("w", "Width:"), ("h", "Height:")):
+        m = re.search(re.escape(label) + r"\s*(-?\d+)", text)
+        if not m:
+            return None
+        vals[key] = int(m.group(1))
+    if vals["w"] <= 0 or vals["h"] <= 0 or vals["x"] < 0 or vals["y"] < 0:
+        return None  # not fully on the root window: a crop would fail or be partial
+    return vals["x"], vals["y"], vals["w"], vals["h"]
+
+
+def health_log_slice(offset: int) -> str:
+    """Engine log text written since `offset` (the log size when this run started). A shorter file was truncated: read it all."""
+    try:
+        with open(LOG_FILES["game"], "rb") as fh:
+            size = fh.seek(0, 2)
+            fh.seek(offset if size >= offset else 0)
+            return fh.read().decode(errors="replace")
+    except OSError:
+        return ""
+
+
+def _log_size(path: Path) -> int:
+    try:
+        return path.stat().st_size
+    except OSError:
+        return 0
+
+
+def _resolve_marker_path(text: str, env: dict[str, str]) -> Path | None:
+    """Screenshot path named by the engine's marker: absolute, or relative to the project or the engine bin dir."""
+    p = Path(text)
+    bases = [ROOT]
+    if env.get("CRYENGINE_DIR"):
+        bases.append(Path(env["CRYENGINE_DIR"]) / engine_bin_rel())
+    options = [p] if p.is_absolute() else [b / p for b in bases]
+    return next((o for o in options if o.is_file() and o.stat().st_size > 0), None)
+
+
+def health_launch(env: dict[str, str], extra: list[str]) -> int:
+    """Start the game through cmd_run (services included), as `dev.py run` does. Returns 0 on success."""
+    ns = argparse.Namespace(extra=extra, build=False, no_services=False, foreground=False, compiler=None, type="Debug")
+    try:
+        return cmd_run(ns, env) or 0
+    except SystemExit as exc:  # cmd_run reports its failures with die()
+        return exc.code if isinstance(exc.code, int) and exc.code else 1
+
+
+def health_wait(hc, *, in_engine: bool, launched: bool, offset: int, delay: int, timeout: int,
+                markers: tuple[str, str] | None, t0: float) -> tuple[dict | None, bool, bool]:
+    """Poll until the capture can be taken. Returns (marker or None, game_gone, timed_out).
+
+    In-engine: until a saved/failed marker appears in the log. Window-only: after `delay` seconds from launch,
+    or at once when this run did not launch the game.
+    """
+    while True:
+        marker = hc.parse_capture_marker(health_log_slice(offset), *markers) if in_engine else None
+        if marker and marker["state"] != "pending":
+            return marker, False, False
+        if running_pid("game", GAME_MATCH) is None:
+            return marker, True, False
+        elapsed = time.time() - t0
+        if not in_engine and (not launched or elapsed >= delay):
+            return None, False, False
+        if elapsed >= timeout:
+            return marker, False, True
+        time.sleep(HEALTH_POLL_S)
+
+
+def health_shader_settle(hc, offset: int) -> dict:
+    """Shader cache settled? File counts of the active slot a few seconds apart, counters since this run started."""
+    files_a = len(_files_under(shader_link()))
+    time.sleep(HEALTH_SETTLE_S)
+    files_b = len(_files_under(shader_link()))
+    signals = hc.count_log_signals(health_log_slice(offset))
+    return hc.check_shader_settle(files_a, files_b, COLD_FILES, signals["cache_miss"], signals["crc_mismatch"])
+
+
+def _metric_line(m: dict) -> str:
+    return (f"{m['width']}x{m['height']}, p99 luma {m['p99_luma']:.1f}, luma std {m['std_luma']:.1f}, "
+            f"near-black {m['near_black_frac']:.1%}, {m['distinct_colors']} colours")
+
+
+def _judge_image(hc, path: Path, reference, entry: dict) -> dict | None:
+    """Analyse one screenshot into `entry` (metrics, verdict). An unreadable image becomes entry["error"]."""
+    try:
+        entry["metrics"] = hc.analyze_image(path)
+    except (OSError, ValueError, RuntimeError) as exc:
+        entry["error"] = f"capture-failed: cannot analyse {path.name}: {exc}"
+        return None
+    entry["verdict"] = hc.evaluate_image(entry["metrics"], reference_rgb=reference)
+    return entry["verdict"]
+
+
+def _finish(report: dict, hc, process, shaders, engine, window, capture_error: str | None) -> dict:
+    """Judge the parts of a run and put the verdict and the parts into the report."""
+    report.update(hc.combine_verdicts(process, shaders, engine, window, capture_error))  # status, reason, message, method
+    report.update(process=process, shaders=shaders, capture_error=capture_error)
+    return report
+
+
+def health_run(hc, env: dict[str, str], plan: dict) -> dict:
+    """One health run after the up-front checks: launch if needed, wait, shader settle, capture, judge. Returns the report."""
+    launched, in_engine, delay, timeout = plan["launched"], plan["in_engine"], plan["delay"], plan["timeout"]
+    report = {"engine": ENGINE, "stamp": plan["stamp"], "mode": plan["mode"], "delay_s": delay, "timeout_s": timeout,
+              "game": {"launched": launched, "pid": None, "leftover_game": None},
+              "in_engine": None, "window": None, "log_signals": None}
+    t0 = time.time()
+    if launched:
+        rc = health_launch(env, plan["launch_args"])
+        if rc:
+            return _finish(report, hc, None, None, None, None, f"launch-failed: cmd_run exited {rc}; see the output above")
+
+    marker, gone, timed_out = health_wait(hc, in_engine=in_engine, launched=launched, offset=plan["offset"],
+                                          delay=delay, timeout=timeout, markers=plan["markers"], t0=t0)
+    text = health_log_slice(plan["offset"])
+    report["log_signals"] = hc.count_log_signals(text)
+    pid = running_pid("game", GAME_MATCH)
+    report["game"]["pid"] = pid
+    if gone:
+        lines = [ln for ln in text.splitlines() if "[Assert]" in ln or "[Error]" in ln][-HEALTH_SIGNAL_LINES:]
+        return _finish(report, hc, {"running": False, "detail": "the game exited before the capture", "signals": lines},
+                       None, None, None, None)
+    process = {"running": True, "pid": pid, "detail": "running"}
+    shaders = health_shader_settle(hc, plan["offset"]) if SHADER_CACHE else None
+
+    engine = None
+    capture_error = None
+    if in_engine:
+        path = None
+        if timed_out:
+            capture_error = f"capture-timeout: no screenshot marker in game.log within {timeout} s"
+        elif marker["state"] == "saved":
+            path = _resolve_marker_path(marker["path"], env)
+            if path is None:
+                capture_error = f"capture-failed: the screenshot named in game.log does not exist: {marker['path']}"
+        else:
+            capture_error = f"capture-failed: {marker['reason']}"
+        entry = {"marker": marker, "path": str(path) if path else None, "metrics": None, "verdict": None,
+                 "error": capture_error}
+        if path is not None:
+            engine = _judge_image(hc, path, plan["reference"], entry)
+        capture_error = entry["error"]
+        report["in_engine"] = entry
+
+    window = None
+    if plan["window"]:
+        pids = list(dict.fromkeys(p for p in [pid, *proc_pids(project_game_match())] if p))
+        shot, err = health_window_shot(hc, pids, plan["out"] / f"{ENGINE}-{plan['stamp']}.window.png")
+        entry = {"path": shot, "metrics": None, "verdict": None, "error": err}
+        if shot:
+            window = _judge_image(hc, Path(shot), plan["reference"], entry)
+        report["window"] = entry
+        capture_error = capture_error or entry["error"]
+    return _finish(report, hc, process, shaders, engine, window, capture_error)
+
+
+def _shown(path: Path) -> str:
+    """A path for messages: project-relative when it is inside the project."""
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
+def health_dry_run(plan: dict, win_ok: bool, win_why: str) -> int:
+    """Print what a real run would do (nothing is launched, captured or analysed). Always 0."""
+    out, stamp = plan["out"], plan["stamp"]
+    print(f"health (dry-run): delay {plan['delay']} s, timeout {plan['timeout']} s, mode {plan['mode']}")
+    window_state = "possible" if win_ok else f"NOT possible ({win_why}); a real run exits 2 unless in-engine capture is configured"
+    print(f"window capture: {window_state}")
+    pid = running_pid("game", GAME_MATCH)
+    if pid:
+        print(f"game: already running (pid {pid}): nothing launched; window capture only, the game is not stopped")
+    else:
+        how = "with the capture args" if plan["launch_args"] else "with no capture args (window capture only)"
+        print(f"game: not running: launched by this run {how} (stopped afterwards unless --keep-running)")
+        cmd_run(plan["run_args"], plan["env"])  # prints the `$ <launcher command>` line; dry-run changes nothing
+    if plan["in_engine"]:
+        print(f"in-engine: wait for a marker in game.log: saved {plan['markers'][0]!r}, failed {plan['markers'][1]!r}")
+    print(f"window: capture {plan['delay']} s after launch" if plan["window"] else "window: not captured")
+    if SHADER_CACHE:
+        print(f"shader settle: count files under {SHADER_CACHE['link']}, wait {HEALTH_SETTLE_S} s, count again; "
+              "counters from game.log since this run started")
+    if plan["window"]:
+        print("$ wmctrl -lp   (window id: the row whose PID column is the game pid)")
+        print("$ xdotool search --onlyvisible --pid <game pid>   (fallback: the largest window)")
+        print(f"$ import -window <window id> png:{_shown(out)}/{ENGINE}-{stamp}.window.png")
+    print(f"report: {_shown(out)}/{ENGINE}-{stamp}.json (printed too; --json prints only the JSON)")
+    return 0
+
+
+def cmd_health(args, env) -> int:
+    """Launch (or reuse) the game, capture it in-engine and/or from its window, and say whether it is rendering."""
+    cfg = CONFIG.get("health", {})
+    delay = args.delay if args.delay is not None else cfg.get("default_delay_s", HEALTH_DEFAULT_DELAY_S)
+    timeout = args.timeout if args.timeout is not None else delay + HEALTH_TIMEOUT_EXTRA_S
+    if delay <= 0 or timeout <= 0:
+        die("--delay and --timeout must be positive", 2)
+    reference = None
+    if args.reference:
+        try:
+            reference = tuple(float(x) for x in args.reference.split(","))
+        except ValueError:
+            reference = ()
+        if len(reference) != 3:
+            die("--reference takes three numbers R,G,B (0-255), e.g. 120,110,100", 2)
+    out = DEV / "health"
+    if args.out:
+        out = Path(args.out) if Path(args.out).is_absolute() else ROOT / args.out
+    capture = cfg.get("capture")
+    win_ok, win_why = window_capture_possible(args.no_window)
+    if capture is None and not win_ok and not DRY:
+        die(f"cannot-capture: no in-engine capture is configured (config health.capture) and window capture is not "
+            f"possible ({win_why}); nothing was run", 2)
+    game_pid = running_pid("game", GAME_MATCH)
+    if game_pid and not win_ok and not DRY:
+        die(f"cannot-capture: the game is already running (pid {game_pid}) and can only be captured from its window, "
+            f"which is not possible here ({win_why}); nothing was run", 2)
+
+    launched = game_pid is None
+    in_engine = launched and capture is not None  # the capture args only take effect on a launch by this run
+    launch_args = [a.replace("{delay}", str(delay)) for a in capture.get("launch_args", [])] if in_engine else []
+    mode = " + ".join(m for m, on in (("in-engine", in_engine), ("window", win_ok)) if on) or "none"
+    plan = {"launched": launched, "in_engine": in_engine, "window": win_ok, "delay": delay, "timeout": timeout,
+            "launch_args": launch_args, "mode": mode, "reference": reference, "out": out,
+            "stamp": time.strftime("%Y%m%d-%H%M%S"), "offset": _log_size(LOG_FILES["game"]),
+            "markers": (capture["saved"], capture["failed"]) if in_engine else None,
+            "run_args": argparse.Namespace(extra=launch_args, build=False, no_services=False, foreground=False,
+                                           compiler=None, type="Debug"),
+            "env": env}
+    if DRY:
+        return health_dry_run(plan, win_ok, win_why)
+
+    hc = load_healthcheck()
+    report = None
+    # with --json stdout is only the report: the launch/stop messages of the run helpers go to stderr
+    chatter = contextlib.redirect_stdout(sys.stderr) if args.json else contextlib.nullcontext()
+    try:
+        with chatter:
+            report = health_run(hc, env, plan)
+    finally:
+        if launched and not args.keep_running:
+            with chatter:
+                cmd_stop(args, env)  # the game this run started is stopped even when the run failed
+    if launched:
+        report["game"]["leftover_game"] = running_pid("game", GAME_MATCH) is not None
+        if report["game"]["leftover_game"] and not args.keep_running:
+            print("warning: the game is still running after the stop (`make stop`)", file=sys.stderr)
+    out.mkdir(parents=True, exist_ok=True)
+    report_path = out / f"{ENGINE}-{plan['stamp']}.json"
+    text = json.dumps(report, indent=2)
+    report_path.write_text(text + "\n")
+    if args.json:
+        print(text)
+    else:
+        print_health_summary(report, report_path)
+    return hc.exit_code_for(report["status"])
+
+
+def print_health_summary(report: dict, report_path: Path) -> None:
+    status = report["status"].upper() if report["status"] != "error" else "ERROR"
+    reason = f" {report['reason']}" if report["reason"] else ""
+    print(f"HEALTH {status}{reason}: {report['message']}")
+    print(f"  method: {report['method'] or '-'} (planned: {report['mode']})")
+    images = [e for e in (report["in_engine"], report["window"]) if e and e.get("path")]
+    for label, e in (("in-engine", report["in_engine"]), ("window", report["window"])):
+        if e and e.get("metrics"):
+            print(f"  {label}: {e['path']} ({_metric_line(e['metrics'])})")
+        elif e and e.get("error"):
+            print(f"  {label}: {e['error']}")
+    if not images:
+        print("  images: none")
+    if report["shaders"]:
+        print(f"  shaders: {report['shaders']['message']}")
+    sig = report["log_signals"]
+    if sig:
+        print(f"  log since start: asserts {sig['asserts']}, errors {sig['errors']}, "
+              f"staging-buffer assert {'yes' if sig['staging_buffer_assert'] else 'no'}, "
+              f"cache misses {sig['cache_miss']}, crc mismatches {sig['crc_mismatch']}")
+    game = report["game"]
+    if game["launched"]:
+        left = "left running (--keep-running)" if game["leftover_game"] else "stopped"
+        print(f"  game: launched by this run, {left}")
+    else:
+        print(f"  game: reused running game (pid {game['pid']}), not stopped")
+    print(f"  report: {report_path}")
+
+
 # --------------------------------------------------------------------------- cli
 
 def main() -> int:
@@ -953,6 +1421,15 @@ def main() -> int:
     if SHADER_CACHE:
         sp = add("shaders-status", cmd_shaders_status, "shader cache slots and compile progress")
         sp.add_argument("--json", action="store_true")
+    sp = add("health", cmd_health, "launch (or reuse) the game, capture it, fail if it is not rendering")
+    sp.add_argument("--delay", type=int, default=None,
+                    help="seconds after launch to capture (default: config health.default_delay_s, else 40)")
+    sp.add_argument("--timeout", type=int, default=None, help="give up waiting for the capture after N seconds (default: delay + 60)")
+    sp.add_argument("--keep-running", action="store_true", help="do not stop a game this run launched")
+    sp.add_argument("--no-window", action="store_true", help="skip the window capture (in-engine capture only)")
+    sp.add_argument("--reference", metavar="R,G,B", help="expected mean colour; a deviation is a warning, not a failure")
+    sp.add_argument("--out", metavar="DIR", help="output directory, project-relative (default: <dev_dir>/health)")
+    sp.add_argument("--json", action="store_true", help="print the report as JSON (it is written to a file either way)")
     for name, spec in CONFIG.get("extra_verbs", {}).items():
         add(name, partial(cmd_extra, spec), spec["help"], extra=True)
 

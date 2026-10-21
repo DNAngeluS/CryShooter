@@ -81,5 +81,16 @@
     "g++-14",
     "clang++"
   ],
-  "tools_version": "1.0.0"
+  "health": {
+    "default_delay_s": 40,
+    "capture": {
+      "launch_args": [
+        "+fps_autoshot_after_s",
+        "{delay}"
+      ],
+      "saved": "\\[Screenshot\\] saved (?P<path>\\S+) (?P<bytes>\\d+)",
+      "failed": "\\[Screenshot\\] FAILED (?P<reason>.*)"
+    }
+  },
+  "tools_version": "1.1.1"
 }

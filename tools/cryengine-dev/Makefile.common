@@ -17,7 +17,7 @@ ARGS         ?=
 OPTS         := $(if $(COMPILER),--compiler $(COMPILER)) --type $(TYPE)
 
 .DEFAULT_GOAL := help
-.PHONY: help setup doctor configure build clean release up down run run-release debug debug-batch stop status logs logs-all shaders-status
+.PHONY: help setup doctor configure build clean release up down run run-release debug debug-batch stop status logs logs-all shaders-status health
 
 help: ## list targets
 	@echo "Targets (variables: ENGINE=56|57  COMPILER=gcc9|gcc13|gcc14|clang  TYPE=Debug|Profile|Release  ARGS=...):"
@@ -58,3 +58,5 @@ logs-all: ## last 80 lines of game.log, unfiltered
 	@$(DEV) logs --all -n 80
 shaders-status: ## shader cache slots and compile progress
 	@$(DEV) shaders-status
+health: ## launch (or reuse) the game, screenshot it, fail if it is not rendering (ARGS="--delay 40 --json")
+	@$(DEV) health $(ARGS)

@@ -23,12 +23,25 @@ shader server (one server serves both engines; `dxc.exe` is byte-identical). Per
 | `run`, `run-release`, `debug`, `debug-batch` | launch in background; launch under gdb (interactive or batch) |
 | `stop`, `status`, `logs`, `logs-all` | stop everything; service/build state; recent log lines |
 | `shaders-status` | shader cache slot in use and compile progress |
+| `health` | launch (or reuse) the game, screenshot it, fail if it is not rendering (see below) |
 
 `make help` lists all targets, including the project's `extra_verbs`.
+## `make health` (since 1.1.0)
+
+Answers "is the game actually rendering?" (a black window must not pass). `make health [ARGS="--delay 40 --json"]`:
+launches the game (or reuses a running one), captures it, checks the shader cache, and prints a verdict; exit `0` pass, `1` fail, `2` could not check (never a pass).
+- **Capture:** in-engine (config `health.capture`: launch args that make the game write a screenshot and log a `saved`/`failed` line) and/or the game window (`wmctrl`/`xdotool` + ImageMagick `import`, X11 only; `import -window` flakes now and then, so it is retried and then replaced by a root-window crop of the window's rectangle). The window is the independent oracle: an in-engine capture error with a passing window is a PASS with a note, so assert `method == "both"` in the JSON when that matters.
+- **Shader settle:** active cache slot file count unchanged between two samples and zero `Global Cache Miss` / `crc mismatch` in THIS run's log slice (the `shaders-status` idle verdict reads "still compiling" until ~60 s after launch even when warm, so it is not used). Cold cache => `cache-cold` / `shaders-still-compiling`.
+- **Image checks** (`healthcheck.py`, thresholds from real baselines): `black` p99 luma < 12, `mostly-black`, `uniform` (std < 6 or < 48 colours), `transparent`, `too-small`; `colour-drift` is warn-only against `--reference R,G,B` (a per-GPU, per-view reference: Intel and NVIDIA render the spawn view with different colours).
+- **Output:** `--json` prints only the report (also saved to `<dev_dir>/health/<engine>-<stamp>.json` with the images). Keys: `status`, `reason`, `method`, `message`, `game` (`launched`, `pid`, `leftover_game`), `process`, `shaders`, `in_engine`, `window`, `log_signals`.
+- A game launched by `health` is always stopped (even on failure) unless `--keep-running`. Needs numpy and Pillow (`make setup` installs them in the project venv; without them it exits 2 before launching). Do not touch the game window during the run.
+- Config: optional `health` block (`default_delay_s`, `capture.{launch_args,saved,failed}`), see `config-schema.md`.
+
 ## Environment
 
 - `CRYTEK_ROOT`: the `Crytek/` root (default: derived from the project location).
 - `CRY_DEV_PROJECT_DIR`: project root for `dev.py` when run outside it.
+- `CRY_DEV_CONFIG`: read this file instead of `<project>/cryengine-dev.config.json` (try or gate a config change without editing the project).
 - `ENGINE`: `56` or `57`. Empty root `ENGINE=` is handled.
 - `.env`: `CRYENGINE_DIR_56`, `CRYENGINE_DIR_57` (`CRYENGINE_DIR` is a 5.6.7 fallback).
 
@@ -38,7 +51,7 @@ shader server (one server serves both engines; `dxc.exe` is byte-identical). Per
 cd Projects/FirstPersonShooter && tools/.venv/bin/python3 -m pytest ../../Tools/dev/tests -q -p no:cacheprovider
 ```
 
-92 tests. Dry-run tests cannot see process matching, so every gate also needs a real run.
+192 tests (the `health` tests need numpy + Pillow: read the skip count). Dry-run tests cannot see process matching, so every gate also needs a real run.
 
 ## Shims
 

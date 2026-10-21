@@ -1,16 +1,17 @@
 {
   "tool": "cryengine-dev",
-  "version": "1.0.0",
-  "tag": "v1.0.0",
-  "commit": "599bb8c21e7cfff668bb901ec721f25eb555f269",
-  "vendored_at": "2026-10-18T22:47:49Z",
+  "version": "1.1.1",
+  "tag": "v1.1.1",
+  "commit": "0114c0b080afbabe4c2fc323a8a9b6d288a2c004",
+  "vendored_at": "2026-10-21T13:12:23Z",
   "files": {
-    "CHANGELOG.md": "cb095a003a95f251bd366319b6b522efce3dba72936f378258d0825e077840cf",
-    "Makefile.common": "1696c1f82fa89713aeda66efe5319d8fa3cb61795a8f1a6796bfadbdf2597368",
-    "README.md": "a8ffdc1b8f2944ff7b9d5940fa49dea8db8fc8079382276499b7025378e52cd6",
-    "VERSION": "59854984853104df5c353e2f681a15fc7924742f9a2e468c29af248dce45ce03",
-    "config-schema.md": "a1e764225aed1118097dd44a51b17f5021439db18ab01eabec5de32bdede3873",
+    "CHANGELOG.md": "644a7bbc403c042181150b01e4de7dac177664b21f198ca218a9a3bc2f6523ab",
+    "Makefile.common": "9682a4a91c98a5194fc29c7e0c7d68b213b97bd1f1213b079be2e435f16cf57e",
+    "README.md": "9a98676866d6086ab9fd73f5bb46172669610055ea2175b1664cbccaca295b1a",
+    "VERSION": "cc52f678848b814373757b460383bf61960e4943c203735adde0a350b3e50989",
+    "config-schema.md": "75979090baa57612a27f922ce1b295cc462d412871a66b8e0e80d271d1473d39",
     "cry_shader_server.py": "e4fc6a1abededef2cd21bdefeab162291452d7c263dcea56b334af2c1fbe0992",
-    "dev.py": "c8269bbe63dfb790251e3dd03c984ddb809cb70fab71009167b0f8a9ded31056"
+    "dev.py": "63707a3138c032a96aa19e228bc8dedbb38299e8d8f7dca4614b171c6f968d1a",
+    "healthcheck.py": "907110dbf4ceb9869ca5d7ab2dc8d60b751de9b035f211419d5f987c32d8e9ba"
   }
 }
