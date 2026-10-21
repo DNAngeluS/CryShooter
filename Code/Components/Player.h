@@ -5,6 +5,7 @@
 
 #include <CryEntitySystem/IEntityComponent.h>
 #include <CryMath/Cry_Camera.h>
+#include <CryString/CryPath.h>
 
 #include <ICryMannequin.h>
 #include <CrySchematyc/Utils/EnumFlags.h>
@@ -110,6 +111,7 @@ public:
 
 	void OnReadyForGameplayOnServer();
 	bool IsLocalClient() const { return (m_pEntity->GetFlags() & ENTITY_FLAG_LOCAL_PLAYER) != 0; }
+	void RequestDebugScreenshot(const char* path = nullptr);
 
 protected:
 	void Revive(const Matrix34& transform);
@@ -122,6 +124,7 @@ protected:
 	void HandleInputFlagChange(CEnumFlags<EInputFlag> flags, CEnumFlags<EActionActivationMode> activationMode, EInputFlagType type = EInputFlagType::Hold);
 
 	void TakeDebugScreenshot();
+	void UpdateDebugScreenshot(float frameTime);
 
 	// Called when this entity becomes the local player, to create client specific setup such as the Camera
 	void InitializeLocalPlayer();
@@ -152,7 +155,13 @@ protected:
 	bool m_wantsToJump = false;
 	bool m_quitRequested = false;
 	bool m_debugMode = false;
+	bool m_autoScreenshotInitialized = false;
+	bool m_autoScreenshotRequested = false;
 	float m_screenshotMessageTimer = 0.f;
+	float m_autoScreenshotTimer = 0.f;
+	float m_screenshotPollTimer = 0.f;
+	uint32 m_screenshotRequestId = 0;
+	CryPathString m_pendingScreenshotPath;
 
 	Cry::DefaultComponents::CCameraComponent* m_pCameraComponent = nullptr;
 	Cry::DefaultComponents::CCharacterControllerComponent* m_pCharacterController = nullptr;

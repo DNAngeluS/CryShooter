@@ -9,6 +9,7 @@
 
 #include <IGameObjectSystem.h>
 #include <IGameObject.h>
+#include <CrySystem/ICmdLine.h>
 #include <CrySystem/ConsoleRegistration.h>
 
 // Included only once per DLL module.
@@ -59,6 +60,34 @@ static void GotoCommand(IConsoleCmdArgs *pArgs)
 	}
 }
 
+static void ScreenshotCommand(IConsoleCmdArgs* pArgs)
+{
+	if (pArgs->GetArgCount() > 2)
+	{
+		CryLog("Usage: fps_screenshot [absolute_path]");
+		return;
+	}
+
+	const char* path = pArgs->GetArgCount() == 2 ? pArgs->GetArg(1) : nullptr;
+	if (CGamePlugin* pPlugin = CGamePlugin::GetInstance())
+	{
+		pPlugin->IterateOverPlayers([path](CPlayerComponent& player)
+		{
+			if (player.IsLocalClient())
+				player.RequestDebugScreenshot(path);
+		});
+	}
+}
+
+static void ApplyLaunchCVar(const char* name)
+{
+	if (const ICmdLineArg* pArg = gEnv->pSystem->GetICmdLine()->FindArg(eCLAT_Post, name))
+	{
+		if (ICVar* pCVar = gEnv->pConsole->GetCVar(name))
+			pCVar->Set(pArg->GetValue());
+	}
+}
+
 CGamePlugin::~CGamePlugin()
 {
 	// Remove any registered listeners before 'this' becomes invalid
@@ -86,6 +115,14 @@ bool CGamePlugin::Initialize(SSystemGlobalEnvironment &env, const SSystemInitPar
 	REGISTER_COMMAND("goto", GotoCommand, 0,
 									 "With no args: log current player position/angle. "
 									 "With args (x y z [yaw [pitch]]): teleport local player.");
+	REGISTER_COMMAND("fps_screenshot", ScreenshotCommand, 0,
+									 "Capture a JPEG to the default path or an absolute .jpg path.");
+	REGISTER_FLOAT("fps_autoshot_after_s", 0.f, VF_NULL,
+							 "Capture once this many seconds after the local player is ready; 0 disables it.");
+	REGISTER_STRING("fps_autoshot_path", "", VF_NULL,
+							 "Absolute .jpg path for fps_autoshot_after_s; empty uses the default path.");
+	ApplyLaunchCVar("fps_autoshot_after_s");
+	ApplyLaunchCVar("fps_autoshot_path");
 
 	return true;
 }

@@ -8,12 +8,25 @@
 #include <CrySchematyc/Env/Elements/EnvComponent.h>
 #include <CryCore/StaticInstanceList.h>
 #include <CryNetwork/Rmi.h>
+#include <CryString/CryPath.h>
+#include <CrySystem/IProjectManager.h>
 #include <ctime>
 
 #define MOUSE_DELTA_TRESHOLD 0.0001f
 
 namespace
 {
+	constexpr float kScreenshotTimeoutS = 5.f;
+
+	bool GetLocalTime(time_t now, tm& result)
+	{
+#if CRY_PLATFORM_WINDOWS
+		return localtime_s(&result, &now) == 0;
+#else
+		return localtime_r(&now, &result) != nullptr;
+#endif
+	}
+
 	static void RegisterPlayerComponent(Schematyc::IEnvRegistrar &registrar)
 	{
 		Schematyc::CEnvRegistrationScope scope = registrar.Scope(IEntity::GetEntityScopeGUID());
@@ -219,6 +232,7 @@ void CPlayerComponent::ProcessEvent(const SEntityEvent &event)
 		{
 			// Update the camera component offset
 			UpdateCamera(frameTime);
+			UpdateDebugScreenshot(frameTime);
 
 			if (m_debugMode)
 			{
@@ -543,27 +557,74 @@ void CPlayerComponent::HandleInputFlagChange(const CEnumFlags<EInputFlag> flags,
 
 void CPlayerComponent::TakeDebugScreenshot()
 {
-	// AdjustFileName expands %USER% and returns an absolute OS path regardless of
-	// the caller's working directory, so the render thread can use it safely.
-	CryPathString dir;
-	gEnv->pCryPak->AdjustFileName("%USER%/Screenshots", dir,
-		ICryPak::FLAGS_PATH_REAL | ICryPak::FLAGS_FOR_WRITING);
-	gEnv->pCryPak->MakeDir(dir.c_str());
+	RequestDebugScreenshot();
+}
 
-	time_t now = time(nullptr);
-	struct tm t_buf;
-	struct tm* t = localtime_r(&now, &t_buf);
-	if (!t)
+void CPlayerComponent::RequestDebugScreenshot(const char* requestedPath)
+{
+	CryPathString path;
+	if (requestedPath && requestedPath[0])
 	{
-		CryWarning(VALIDATOR_MODULE_GAME, VALIDATOR_WARNING, "[Screenshot] Failed to get local time");
+		if (!gEnv->pCryPak->IsAbsPath(requestedPath))
+		{
+			CryLog("[Screenshot] FAILED path must be absolute");
+			return;
+		}
+		path = requestedPath;
+	}
+	else
+	{
+		const Cry::IProjectManager* pProjectManager = gEnv->pSystem->GetIProjectManager();
+		const char* projectDir = pProjectManager ? pProjectManager->GetCurrentProjectDirectoryAbsolute() : nullptr;
+		if (!projectDir || !projectDir[0])
+		{
+			CryLog("[Screenshot] FAILED project directory unavailable");
+			return;
+		}
+
+		time_t now = time(nullptr);
+		tm localTime;
+		if (!GetLocalTime(now, localTime))
+		{
+			CryLog("[Screenshot] FAILED local time unavailable");
+			return;
+		}
+
+		CryPathString dir(projectDir);
+		dir += "/user/screenshots";
+		path.Format("%s/screenshot_%04d%02d%02d_%02d%02d%02d_%03u.jpg",
+			dir.c_str(),
+			localTime.tm_year + 1900, localTime.tm_mon + 1, localTime.tm_mday,
+			localTime.tm_hour, localTime.tm_min, localTime.tm_sec,
+			++m_screenshotRequestId);
+	}
+
+	CryLog("[Screenshot] requested %s", path.c_str());
+
+	if (!m_pendingScreenshotPath.empty())
+	{
+		CryLog("[Screenshot] FAILED capture already pending");
 		return;
 	}
 
-	char path[512];
-	cry_sprintf(path, "%s/screenshot_%04d%02d%02d_%02d%02d%02d.jpg",
-		dir.c_str(),
-		t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
-		t->tm_hour, t->tm_min, t->tm_sec);
+	if (stricmp(PathUtil::GetExt(path.c_str()), "jpg") != 0 && stricmp(PathUtil::GetExt(path.c_str()), "jpeg") != 0)
+	{
+		CryLog("[Screenshot] FAILED path must use .jpg or .jpeg");
+		return;
+	}
+
+	if (gEnv->pCryPak->GetFileSizeOnDisk(path.c_str()) != ICryPak::FILE_NOT_PRESENT)
+	{
+		CryLog("[Screenshot] FAILED path already exists");
+		return;
+	}
+
+	const CryPathString dir = PathUtil::GetParentDirectory(path);
+	if (!gEnv->pCryPak->MakeDir(dir.c_str()))
+	{
+		CryLog("[Screenshot] FAILED could not create directory");
+		return;
+	}
 
 	// Use the engine's CaptureFrameBuffer() mechanism rather than ScreenShot().
 	// ScreenShot() dispatches an async render-thread command that reads from
@@ -578,14 +639,53 @@ void CPlayerComponent::TakeDebugScreenshot()
 
 	if (pCaptureName && pCaptureOnce && pCaptureFrames)
 	{
-		pCaptureName->Set(path);
+		pCaptureName->Set(path.c_str());
 		pCaptureOnce->Set(1);
 		pCaptureFrames->Set(1);
-		CryLog("[Screenshot] Capturing to %s", path);
-		m_screenshotMessageTimer = 2.f;
+		m_pendingScreenshotPath = path;
+		m_screenshotPollTimer = 0.f;
 	}
 	else
 	{
-		CryWarning(VALIDATOR_MODULE_GAME, VALIDATOR_WARNING, "[Screenshot] capture CVars not found");
+		CryLog("[Screenshot] FAILED capture CVars not found");
+	}
+}
+
+void CPlayerComponent::UpdateDebugScreenshot(float frameTime)
+{
+	if (!m_autoScreenshotInitialized)
+	{
+		m_autoScreenshotInitialized = true;
+		if (ICVar* pDelay = gEnv->pConsole->GetCVar("fps_autoshot_after_s"))
+		{
+			m_autoScreenshotTimer = pDelay->GetFVal();
+		}
+	}
+
+	if (!m_autoScreenshotRequested && m_autoScreenshotTimer > 0.f)
+	{
+		m_autoScreenshotTimer -= frameTime;
+		if (m_autoScreenshotTimer <= 0.f)
+		{
+			m_autoScreenshotRequested = true;
+			const ICVar* pPath = gEnv->pConsole->GetCVar("fps_autoshot_path");
+			RequestDebugScreenshot(pPath ? pPath->GetString() : nullptr);
+		}
+	}
+
+	if (!m_pendingScreenshotPath.empty())
+	{
+		const ICryPak::SignedFileSize size = gEnv->pCryPak->GetFileSizeOnDisk(m_pendingScreenshotPath.c_str());
+		if (size > 0)
+		{
+			CryLog("[Screenshot] saved %s %lld", m_pendingScreenshotPath.c_str(), static_cast<long long>(size));
+			m_pendingScreenshotPath.clear();
+			m_screenshotMessageTimer = 2.f;
+		}
+		else if ((m_screenshotPollTimer += frameTime) >= kScreenshotTimeoutS)
+		{
+			CryLog("[Screenshot] FAILED timed out waiting for file");
+			m_pendingScreenshotPath.clear();
+		}
 	}
 }
