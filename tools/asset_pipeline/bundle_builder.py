@@ -50,14 +50,17 @@ def _resolve_level_template(profile: str, heightmap_size: int, root: Path) -> di
     raise ValueError(f"No checked-in template for terrain profile={profile} size={heightmap_size}")
 
 
+DEFAULT_PUBLIC_PARAMS = 'SSSIndex="0" IndirectColor="0.25,0.25,0.25"'
+
+
 def _material_xml(spec: dict[str, Any], diffuse_file: str, template: dict[str, Any]) -> str:
     return "\n".join(
         [
-            f'<Material MtlFlags="524288" Shader="{template["shader"]}" GenMask="80000000" StringGenMask="%SUBSURFACE_SCATTERING" SurfaceType="{spec["surface_type"]}" MatTemplate="" Diffuse="{template["diffuse"]}" Specular="{template["specular"]}" Emissive="0,0,0" Shininess="{template["shininess"]}" Opacity="{template["opacity"]}" LayerAct="1">',
+            f'<Material MtlFlags="{template.get("mtl_flags", "524288")}" Shader="{template["shader"]}" GenMask="{template.get("gen_mask", "80000000")}" StringGenMask="{template.get("string_gen_mask", "%SUBSURFACE_SCATTERING")}" SurfaceType="{spec["surface_type"]}" MatTemplate="" Diffuse="{template["diffuse"]}" Specular="{template["specular"]}" Emissive="0,0,0" Shininess="{template["shininess"]}" Opacity="{template["opacity"]}" LayerAct="1">',
             " <Textures>",
             f'  <Texture Map="Diffuse" File="{diffuse_file}"/>',
             " </Textures>",
-            ' <PublicParams SSSIndex="0" IndirectColor="0.25,0.25,0.25"/>',
+            f' <PublicParams {template.get("public_params", DEFAULT_PUBLIC_PARAMS)}/>',
             "</Material>",
             "",
         ]
@@ -385,8 +388,21 @@ def _compile_texture_node(stage_root: Path, stage_assets_root: Path, bundle_slug
     return report
 
 
-def _compile_material_node(stage_assets_root: Path, bundle_slug: str, node: dict[str, Any], build_state: dict[str, Any], root: Path) -> dict[str, Any]:
+def _paint_material_ids(asset_graph: dict[str, Any]) -> set[str]:
+    """Ids of the material nodes a terrain node paints with: they are terrain LAYER materials."""
+    ids: set[str] = set()
+    for node in asset_graph["dependency_order"]:
+        if node["type"] == "terrain_archetype":
+            ids.update(node["inputs"].get("paint_materials", []))
+    return ids
+
+
+def _compile_material_node(stage_assets_root: Path, bundle_slug: str, node: dict[str, Any], build_state: dict[str, Any], root: Path,
+                           terrain_layer: bool = False) -> dict[str, Any]:
     template_name = node["spec"]["template"]
+    if terrain_layer and template_name == "default_illum":
+        # Stock terrain layer materials use Shader "Terrain.Layer" (%TEMP_TERRAIN); Illum on a terrain mesh is the wrong shader.
+        template_name = "terrain_layer"
     template_catalog = load_material_template_catalog(root)
     template = next(item for item in template_catalog["templates"] if item["name"] == template_name)
     diffuse_node = build_state[node["inputs"]["diffuse_texture"]]
@@ -817,11 +833,13 @@ def build_asset_bundle(stage_root: Path, asset_graph: dict[str, Any], root: Path
     stage_assets_root = stage_root / "staged_assets"
     build_state: dict[str, Any] = {}
     node_reports: list[dict[str, Any]] = []
+    paint_ids = _paint_material_ids(asset_graph)
     for node in asset_graph["dependency_order"]:
         if node["type"] == "texture_source":
             report = _compile_texture_node(stage_root, stage_assets_root, asset_graph["bundle_slug"], node, build_state)
         elif node["type"] == "material_surface":
-            report = _compile_material_node(stage_assets_root, asset_graph["bundle_slug"], node, build_state, repo_root)
+            report = _compile_material_node(stage_assets_root, asset_graph["bundle_slug"], node, build_state, repo_root,
+                                            terrain_layer=node["id"] in paint_ids)
         elif node["type"] == "mesh_procedural":
             report = _compile_procedural_mesh_node(stage_assets_root, asset_graph["bundle_slug"], node, build_state, repo_root)
         elif node["type"] == "mesh_import":

@@ -12,6 +12,20 @@
       "specular": "0.0030352699,0.0030352699,0.0030352699",
       "shininess": "10",
       "opacity": "1"
+    },
+    {
+      "name": "terrain_layer",
+      "shader": "Terrain.Layer",
+      "surface_type": "mat_default",
+      "diffuse": "1,1,1",
+      "specular": "0.0030352699,0.0030352699,0.0030352699",
+      "shininess": "10",
+      "opacity": "1",
+      "mtl_flags": "524320",
+      "gen_mask": "200000000",
+      "string_gen_mask": "%TEMP_TERRAIN",
+      "public_params": "BlendFalloff=\"1\" DetailTextureStrength=\"1\" BlendFactor=\"0\" IndirectColor=\"0.25,0.25,0.25\"",
+      "note": "stock terrain layer form (EngineAssets/Materials/material_terrain_default.mtl); used automatically for materials listed in a terrain node's paint_materials"
     }
   ]
 }

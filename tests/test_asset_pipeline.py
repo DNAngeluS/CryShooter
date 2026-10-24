@@ -249,6 +249,10 @@ class AssetPipelineTests(unittest.TestCase):
             mtl_text = (root / "Assets" / "Materials" / "Generated" / "fps_forest_basin" / "forest_ground.mtl").read_text(encoding="utf-8")
             self.assertIn("forest_ground_albedo.dds", mtl_text)
             self.assertNotIn(".png", mtl_text)
+            # terrain paint materials are terrain LAYER materials (stock form), not Illum
+            self.assertIn('Shader="Terrain.Layer"', mtl_text)
+            self.assertIn('StringGenMask="%TEMP_TERRAIN"', mtl_text)
+            self.assertIn("BlendFalloff", mtl_text)
 
     def test_mixed_graph_supports_procedural_and_imported_meshes(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
