@@ -28,6 +28,13 @@ Each node record:
   uint8[1]   surface type palette entry (0 = first registered surface type)
   [align to 4 bytes]
   4 children recursively (children present only for non-leaf nodes)
+  [after the last node]
+  SOcTreeNodeChunk (32 bytes): int16 version = 5, int16 childMask = 0, AABB (6 × float32), int32 objectsBlockSize = 0
+    An empty object tree. CTerrain::Load_T reads it right after the nodes (COctreeNode::Load); without it files under
+    4 MiB (in-memory load path) are rejected with `nDataSize == 0`, larger ones only load because the short read of the
+    FILE path is not an error (OF-09, SandboxLLM 2026-10-21).
+  STerrainChunkHeader.nChunkSize counts the whole file (header, tables, nodes, octree chunk).
+  Alignment gaps are filled with 0xDE (222): CTerrain::LoadDataFromFile_FixAllignemt asserts on it (terrain.h:414).
 
 Child ordering for node covering (x0,y0)-(x1,y1):
   child[0] = (x0,     y0)     – SW
@@ -49,10 +56,16 @@ TERRAIN_CHUNK_VERSION = 29       # STerrainChunkHeader.nVersion
 TERRAIN_NODE_CHUNK_VERSION = 8   # STerrainNodeChunk.nChunkVersion
 _SERIAL_FLAGS = 6                # SECTOR_PALETTES(2) | INSTANCES_PRESORTED(4)
 _MAX_HEIGHT_BITS = 4095          # 12-bit height (2^12 - 1)
+ALIGN_FILL = 0xDE                # byte the engine expects in alignment gaps (assert(*f == 222))
+OCTREE_CHUNK_VERSION = 5         # SOcTreeNodeChunk.nChunkVersion
 
 # STerrainChunkHeader: 4×int8 + int32 + 6×(int or float) = 32 bytes
 _HEADER_FMT = "<bbbbiifiiff"
 assert struct.calcsize(_HEADER_FMT) == 32
+
+# SOcTreeNodeChunk: int16 version, int16 childMask, AABB (6 × float), int32 objectsBlockSize = 32 bytes
+OCTREE_CHUNK_FMT = "<hh6fi"
+assert struct.calcsize(OCTREE_CHUNK_FMT) == 32
 
 # STerrainNodeChunk: int16+int16 + 6×float + float+float + int32+int32 = 44 bytes
 _NODE_CHUNK_FMT = "<hh" + "f" * 8 + "ii"
@@ -65,7 +78,7 @@ def _align4(buf: io.BytesIO) -> None:
     pos = buf.tell()
     pad = (-pos) & 3  # equivalent to (4 - pos % 4) % 4
     if pad:
-        buf.write(b"\x00" * pad)
+        buf.write(bytes([ALIGN_FILL]) * pad)
 
 
 def _write_node(
@@ -162,6 +175,11 @@ def _write_node(
             _write_node(buf, heights_m, cx, cy, half, leaf_size_units, unit_m, n_shift)
 
 
+def octree_chunk_bytes(size_m: float, z_min: float, z_max: float) -> bytes:
+    """The empty object-tree chunk that must follow the node tree: version 5, no children, no objects, whole-terrain AABB."""
+    return struct.pack(OCTREE_CHUNK_FMT, OCTREE_CHUNK_VERSION, 0, 0.0, 0.0, z_min, size_m, size_m, z_max, 0)
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def write_terrain_dat(
@@ -219,6 +237,9 @@ def write_terrain_dat(
 
     # Quadtree starting from the root (covers the whole terrain)
     _write_node(node_buf, heights_m, 0, 0, n, leaf_size_units, unit_size_m, n_shift)
+
+    # Empty object tree after the nodes (see the module docstring)
+    node_buf.write(octree_chunk_bytes(n * unit_size_m, float(heights_m.min()), float(heights_m.max())))
 
     node_data = node_buf.getvalue()
 

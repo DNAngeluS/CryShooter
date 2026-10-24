@@ -671,6 +671,7 @@ def _compile_terrain_procgen_node(
         "foliage_hints": result.procgen_json.get("foliage_hints", []),
         "paint_material_assets": [build_state[item]["asset_path"] for item in node["inputs"]["paint_materials"]],
         "foliage_mesh_assets": [],
+        "terrain_dat_source": "pipeline-writer",
     }
     write_json(terrain_stage_root / "terrain_manifest.json", terrain_manifest)
     write_json(terrain_stage_root / "procgen_mesh.json", result.procgen_json)

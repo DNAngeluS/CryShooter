@@ -10,6 +10,7 @@ from pathlib import Path
 
 from .asset_graph import bundle_slug, validate_asset_graph
 from .common import md5_file, project_root, read_json, resolve_cryengine_dir
+from .procgen.terrain_dat_parser import TerrainDatError, parse_terrain_dat
 
 
 HEIGHTMAP_HEADER_RE = re.compile(r'<Heightmap[^>]*Width="(?P<width>\d+)"[^>]*Height="(?P<height>\d+)"')
@@ -145,6 +146,7 @@ def _validate_scene_bundle(stage_root: Path, asset_graph: dict, node_reports: di
         elif header["width"] != world["heightmap_size"] or header["height"] != world["heightmap_size"]:
             errors.append("leveldata/heightmap.dat dimensions do not match terrain node world size")
 
+    terrain_manifest: dict = {}
     terrain_manifest_path = assets_root / "leveldata" / "terrain_manifest.json"
     if terrain_manifest_path.exists():
         terrain_manifest = read_json(terrain_manifest_path)
@@ -167,6 +169,13 @@ def _validate_scene_bundle(stage_root: Path, asset_graph: dict, node_reports: di
             terrain_data = archive.read("terrain/terrain.dat") if "terrain/terrain.dat" in names else b""
             if not terrain_data or _is_zero_filled(terrain_data[:4096]):
                 errors.append("terrain/terrain.dat is empty or zero-filled")
+            elif terrain_data:
+                # Walk the file like CTerrain::Load_T does; a pipeline-written file must also end in the empty object-tree chunk
+                # (OF-09: without it the engine rejects levels under 4 MiB).
+                try:
+                    parse_terrain_dat(terrain_data, strict=terrain_manifest.get("terrain_dat_source") == "pipeline-writer")
+                except TerrainDatError as exc:
+                    errors.append(str(exc))
 
             levelinfo_text = archive.read("levelinfo.xml").decode("utf-8", "replace") if "levelinfo.xml" in names else ""
             levelinfo_root = _parse_xml(levelinfo_text, "levelinfo.xml", errors) if levelinfo_text else None

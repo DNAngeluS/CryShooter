@@ -77,6 +77,10 @@ def build_parser() -> argparse.ArgumentParser:
     convert.add_argument("--cryengine-dir")
     convert.add_argument("--publish", action="store_true")
 
+    fix = sub.add_parser("fix-terrain", help="Repair terrain/terrain.dat inside a level.pak written by the old writer (OF-09)")
+    fix.add_argument("level", help="level folder (Assets/levels/<name>) or the level.pak path")
+    fix.add_argument("--check", action="store_true", help="report what would change, write nothing")
+
     return parser
 
 
@@ -141,6 +145,10 @@ def main() -> int:
                 cryengine_dir=args.cryengine_dir,
             )
         )
+    elif args.command == "fix-terrain":
+        from asset_pipeline.procgen.terrain_dat_fix import fix_level_pak
+
+        _print(fix_level_pak(Path(args.level), check_only=args.check))
     elif args.command == "convert-mesh":
         input_path = Path(args.input).resolve()
         _print(
