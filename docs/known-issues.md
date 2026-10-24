@@ -60,6 +60,6 @@ recompressed to BC5 (R and G channels preserved): `perlinnoisenormal_ddn`, `ocea
 
 ## Fixed 2026-10-24: 512 m levels rejected, PNG layer textures, wrong layer shader
 - `terrain.dat` lacked the trailing object-tree chunk and 0xDE padding: 512 m levels hung after load (see `terrain.md`). `fix-terrain` patched `fps_forest_basin`.
-- Terrain layer materials referenced PNGs (not loadable) and used `Illum`: now DDS and `Terrain.Layer` (see `textures.md`). Visible side effect on steep slopes of `fps_forest_basin`: a zig-zag moire in the detail pattern (Z projection stretches the texture); to review, the commit "terrain paint materials use the stock Terrain.Layer form" can be reverted alone.
+- Terrain layer materials referenced PNGs (not loadable) and used `Illum`: now DDS and `Terrain.Layer` (see `textures.md`). The detail pattern on `fps_forest_basin` (zig-zag on steep slopes) is the PLACEHOLDER layer textures (checker, stripes, radial gradient from `texture_builder`) tiled at 1 m and minified; it follows `DetailScaleX/Y` (A/B 2026-10-24: 0.25 gives large diamonds, 4 gives fine grain). Not a shader or projection bug; real layer textures (imagegen / import) or a larger `DetailScale` removes it. Kept by Lucio.
 - Open: imported-mesh materials still reference PNG; no normal maps for generated materials; `make health` cannot run while another session holds shader-server port 61453 (it always starts its own services).
 
