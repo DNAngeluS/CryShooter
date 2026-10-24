@@ -13,6 +13,11 @@ entries are grouped by **milestone** (dated) instead of version numbers.
 
 ## [Unreleased]
 
+### Fixed (2026-10-24)
+- `terrain.dat` writer: appends the empty object-tree chunk and pads with 0xDE like Sandbox, so 512 m levels load (OF-09). New `procgen/terrain_dat_parser.py`, validator check and `fix-terrain` verb; `fps_forest_basin/level.pak` patched. **May break:** none for 1024 m levels (same frame); levels built before this change must be passed through `fix-terrain` if they are 512 m.
+- Generated textures also get a runtime `.dds` (vendored `tools/cry-assets` 0.2.0); layer materials reference it (the engine cannot load PNG material textures). `fps_forest_basin` and `fps_tech_ruins_interior` regenerated.
+- Terrain paint materials use `Terrain.Layer` (stock form) instead of `Illum`; `fps_forest_basin` regenerated (detail layers now visible).
+
 ### Added (2026-10-24)
 - Launch CVar `fps_startup_level <name>` (`GameLauncher ... +fps_startup_level plain`): level under `Assets/levels` to load at startup. Empty or a missing level falls back to `fps_forest_basin` (logged). Replaces the compile-time `kStartupLevel` (the 2026-10 entries below refer to it).
 - Vendored `Tools/dev` 1.1.2: `make health` also fails when the shader-cache `globals.txt` is an empty stub (it made half of the far terrain render black). The project's shader cache slots were repaired.

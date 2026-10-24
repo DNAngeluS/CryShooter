@@ -20,7 +20,7 @@ Assets/levels/<name>/
 │   ├── leveldata.xml          ← surface types, water level (duplicate)
 │   ├── mission_mission0.xml   ← entities, environment, time-of-day
 │   ├── terrain/
-│   │   └── terrain.dat        ← raw heightmap data
+│   │   └── terrain.dat        ← compiled terrain (header, tables, sector tree, object tree); see below
 │   └── ...
 ├── terraintexture.pak         ← separate archive for base colour tiles
 │   └── terrain/cover.ctc      ← compiled terrain texture (binary)
@@ -28,6 +28,25 @@ Assets/levels/<name>/
     ├── environment.xml        ← fog, sky, ocean settings
     └── timeofday.xml          ← sun/TOD preset reference
 ```
+
+---
+
+## `terrain.dat` layout (what the engine reads, verified against Sandbox's own files)
+
+`CTerrain::Load_T` (Cry3DEngine `terrain_compile.cpp`, `terrain_node_compile.cpp`) reads, in order:
+
+| Part | Size | Notes |
+|---|---|---|
+| `STerrainChunkHeader` | 32 B | version 29, flags 6, `nChunkSize` = size of the WHOLE file, heightmap/unit/sector sizes |
+| vegetation table | int32 n + n × 368 B | pipeline writes 0 |
+| brush table | int32 n + n × 256 B | pipeline writes 0 |
+| brush-material table | int32 n + n × 256 B | pipeline writes 0 |
+| sector tree | per node: 44 B chunk, heightmap data (leaves), geometry error floats, surface-type palette | alignment gaps are filled with **0xDE** (the engine asserts `*f == 222`) |
+| object tree | `SOcTreeNodeChunk`, 32 B for an empty one: int16 version 5, int16 childMask 0, AABB, int32 objectsBlockSize 0 | **required**: the engine reads it right after the nodes |
+
+Files under 4 MiB (every 512 m level) load through the in-memory path, which fails (`nDataSize == 0`) without the object-tree chunk: before 2026-10-24 the pipeline writer left it out, so 512 m levels were rejected (the engine spins at about 200% CPU after reaching RUNNING and never renders) and 1024 m levels only loaded because the larger FILE path tolerates the short read (OF-09, found by SandboxLLM). Sandbox's own `plain` (512 m, non-empty object tree) and `example` (1024 m, ends in exactly the empty 32-byte chunk) are the reference files.
+
+Tools: `procgen/terrain_dat_writer.py` writes it; `procgen/terrain_dat_parser.py` reads any such file (`parse_terrain_dat`, strict mode for pipeline output) and the validator uses it; `python3 tools/cry_asset_pipeline.py fix-terrain Assets/levels/<name> [--check]` patches an existing level's `level.pak` in place (idempotent; leaves Sandbox files alone).
 
 ---
 

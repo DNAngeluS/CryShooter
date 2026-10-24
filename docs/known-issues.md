@@ -57,3 +57,9 @@ recompressed to BC5 (R and G channels preserved): `perlinnoisenormal_ddn`, `ocea
 | Engine-side | `Vk AsyncCommandQueue — no thread config found` | The Vulkan async queue runs at default priority; fixing it needs an engine thread-config XML. |
 | Open | Debug screenshots (`K` then `P`) are not saved when the game is started with `make run` | `game.log` shows `mkdir('/user') failed` and `Frame capture failed!`: the plugin asked for `%USER%/Screenshots` and got a relative path (`user/screenshots/…`), which the engine's capture code cannot create. The same feature saved files to `user/screenshots/` when launched from VS Code in April. Cause not yet identified; being investigated as workstream E-03. Workaround: none known — launch from VS Code. |
 | Open | `[CScriptSystem] OnShutdown not found` | A Lua script lacks an `OnShutdown` handler; called on level/game exit. |
+
+## Fixed 2026-10-24: 512 m levels rejected, PNG layer textures, wrong layer shader
+- `terrain.dat` lacked the trailing object-tree chunk and 0xDE padding: 512 m levels hung after load (see `terrain.md`). `fix-terrain` patched `fps_forest_basin`.
+- Terrain layer materials referenced PNGs (not loadable) and used `Illum`: now DDS and `Terrain.Layer` (see `textures.md`). Visible side effect on steep slopes of `fps_forest_basin`: a zig-zag moire in the detail pattern (Z projection stretches the texture); to review, the commit "terrain paint materials use the stock Terrain.Layer form" can be reverted alone.
+- Open: imported-mesh materials still reference PNG; no normal maps for generated materials; `make health` cannot run while another session holds shader-server port 61453 (it always starts its own services).
+
