@@ -115,6 +115,7 @@ class TestTerrainDatFix(unittest.TestCase):
                 zf.writestr("levelinfo.xml", "<LevelInfo/>", compress_type=zipfile.ZIP_DEFLATED)
                 zf.writestr("terrain/terrain.dat", _old_layout(256), compress_type=zipfile.ZIP_STORED)
                 zf.writestr("terrain/cover.ctc", b"\x01\x02\x03", compress_type=zipfile.ZIP_STORED)
+            (Path(tmp) / "filelist.xml").write_text('<download name="t" type="Map">\n <files>\n  <file src="level.pak" dest="level.pak" size="1" md5="00"/>\n </files>\n</download>\n', encoding="utf-8")
             self.assertTrue(fix_level_pak(pak, check_only=True)["changed"])
             with zipfile.ZipFile(pak) as zf:  # check_only wrote nothing
                 self.assertEqual(len(zf.read("terrain/terrain.dat")), len(_old_layout(256)))
@@ -125,7 +126,14 @@ class TestTerrainDatFix(unittest.TestCase):
                 self.assertEqual(zf.read("terrain/terrain.dat"), _write(256))
                 self.assertEqual(zf.read("terrain/cover.ctc"), b"\x01\x02\x03")
                 self.assertEqual(zf.getinfo("levelinfo.xml").compress_type, zipfile.ZIP_DEFLATED)
-            self.assertFalse(fix_level_pak(pak)["changed"])  # second run does nothing
+            import hashlib
+            raw = pak.read_bytes()
+            filelist = (Path(tmp) / "filelist.xml").read_text(encoding="utf-8")
+            self.assertTrue(report["filelist_updated"])
+            self.assertIn(f'size="{len(raw)}" md5="{hashlib.md5(raw).hexdigest()}"', filelist)
+            second = fix_level_pak(pak)
+            self.assertFalse(second["changed"])  # second run does nothing
+            self.assertFalse(second["filelist_updated"])
 
 
 class TestParserOnSandboxFiles(unittest.TestCase):

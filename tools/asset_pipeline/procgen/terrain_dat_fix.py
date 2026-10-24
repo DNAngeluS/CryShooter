@@ -8,6 +8,8 @@ repadded if needed, never extended.
 """
 from __future__ import annotations
 
+import hashlib
+import re
 import struct
 import zipfile
 from pathlib import Path
@@ -43,16 +45,37 @@ def _pak_path(target: Path) -> Path:
     return target / "level.pak" if target.is_dir() else target
 
 
+_FILELIST_PAK_RE = re.compile(r'(<file src="level\.pak" dest="level\.pak" size=")\d+(" md5=")[0-9a-fA-F]+(")')
+
+
+def sync_filelist(pak: Path) -> bool:
+    """Make the level folder's filelist.xml (size and md5 of level.pak, written by the pipeline) match the pak. Returns
+    True when the file was rewritten; a level folder without a filelist.xml is left alone."""
+    filelist = Path(pak).with_name("filelist.xml")
+    if not filelist.is_file():
+        return False
+    data = Path(pak).read_bytes()
+    text = filelist.read_text(encoding="utf-8")
+    new = _FILELIST_PAK_RE.sub(lambda m: f"{m.group(1)}{len(data)}{m.group(2)}{hashlib.md5(data).hexdigest()}{m.group(3)}", text)
+    if new == text:
+        return False
+    filelist.write_text(new, encoding="utf-8")
+    return True
+
+
 def fix_level_pak(target: Path, *, check_only: bool = False) -> dict:
     """Patch `terrain/terrain.dat` inside a level.pak (path to the pak or to the level folder). Other entries keep their
-    order, names, compression type and bytes. With check_only nothing is written."""
+    order, names, compression type and bytes; filelist.xml (size, md5 of the pak) is kept in sync. With check_only nothing is written."""
     pak = _pak_path(target)
     with zipfile.ZipFile(pak) as src:
         if TERRAIN_ENTRY not in src.namelist():
             raise TerrainDatError(f"{pak}: no {TERRAIN_ENTRY} entry")
         patched, report = patch_terrain_dat(src.read(TERRAIN_ENTRY))
         report["pak"] = str(pak)
-        if check_only or not report["changed"]:
+        if check_only:
+            return report
+        if not report["changed"]:
+            report["filelist_updated"] = sync_filelist(pak)  # a pak fixed by an older run may leave filelist.xml stale
             return report
         tmp = pak.with_suffix(".pak.tmp")
         with zipfile.ZipFile(tmp, "w") as dst:
@@ -60,4 +83,5 @@ def fix_level_pak(target: Path, *, check_only: bool = False) -> dict:
                 content = patched if item.filename == TERRAIN_ENTRY else src.read(item.filename)
                 dst.writestr(item, content, compress_type=item.compress_type)
     tmp.replace(pak)
+    report["filelist_updated"] = sync_filelist(pak)
     return report

@@ -1302,5 +1302,6 @@
     "Materials/Generated/fps_forest_basin/clover_ground.mtl",
     "Materials/Generated/fps_forest_basin/dirt_path.mtl"
   ],
-  "foliage_mesh_assets": []
+  "foliage_mesh_assets": [],
+  "terrain_dat_source": "pipeline-writer"
 }
