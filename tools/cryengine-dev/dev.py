@@ -519,16 +519,40 @@ def do_configure(compiler: str, btype: str, env: dict[str, str], force: bool = F
     return run(["cmake", "--preset", preset_name(compiler), f"-DCMAKE_BUILD_TYPE={btype}"], cwd=source_dir(), env=env)
 
 
+def deployed_current(built: Path, target: Path, started: float) -> bool:
+    """True when `target` is the library this build produced: written since `started`, or (a no-op build) byte-identical."""
+    try:
+        if not target.is_file():
+            return False
+        if target.stat().st_mtime >= started - 2:
+            return True
+        # plain byte comparison: filecmp caches by stat signature, which is wrong for a file rewritten with the same mtime
+        return built.stat().st_size == target.stat().st_size and built.read_bytes() == target.read_bytes()
+    except OSError:
+        return False
+
+
 def do_build(compiler: str, btype: str, env: dict[str, str]) -> int:
     engine_dir(env)
     rc = do_configure(compiler, btype, env)
     if rc:
         return rc
+    started = time.time()
     rc = run(["cmake", "--build", "--preset", preset_name(compiler)], cwd=source_dir(), env=env)
     if rc == 0 and not DRY:
         so = ROOT / cfg_req("plugin_out_dir") / cfg_req("plugin_lib")
-        print(f"built {btype} ({pick_compiler(compiler)}) for {ENGINES[ENGINE]['label']}: {so.relative_to(ROOT)} -> {engine_bin(env)}"
-              if so.exists() else "build ok (plugin not found?)")
+        if not so.exists():
+            print("build ok (plugin not found?)")
+            return rc
+        target = engine_bin(env) / cfg_req("plugin_lib")
+        head = f"built {btype} ({pick_compiler(compiler)}) for {ENGINES[ENGINE]['label']}: {so.relative_to(ROOT)}"
+        # The deploy step belongs to the project's CMake (it can target another bin than the engine dir this tool resolves),
+        # so say what is true: the library is (not) up to date where this tool looks for it (OF-11, SandboxLLM 2026-10-24).
+        if deployed_current(so, target, started):
+            print(f"{head} -> {target}")
+        else:
+            print(f"{head}\nwarning: {target} was NOT updated by this build; the project's CMake deployed elsewhere "
+                  "(see its 'Deploying ...' line above) - run the game from that engine bin or fix the deploy path")
     return rc
 
 
@@ -661,6 +685,10 @@ def _log_counts(path: Path) -> dict | None:
             text = fh.read().decode(errors="replace")
     except OSError:
         return None
+    # the game log is appended across launches: count only the latest one ("Log Started at ..." opens each launch)
+    start = text.rfind("Log Started at")
+    if start > 0:
+        text = text[start:]
     return {"global_cache_miss": len(re.findall(r"Global Cache Miss", text, re.I)),
             "crc_mismatch": len(re.findall(r"crc mismatch", text, re.I))}
 
@@ -682,7 +710,12 @@ def cmd_shaders_status(args, env) -> int:
     svc_age = _age_s(svc_log.stat().st_mtime) if svc_log and svc_log.exists() else None
     game_counts = _log_counts(LOG_FILES["game"])
     ages = [a for a in (_age_s(active_newest), svc_age) if a is not None]
-    if not ages:
+    if game_counts and game_counts["global_cache_miss"]:
+        # misses in the game log mean shaders are still missing, whatever the file ages say (an idle server can also mean it
+        # died or is not reachable); health uses the same counters in healthcheck.check_shader_settle
+        verdict = (f"{game_counts['global_cache_miss']} Global Cache Miss in the game log: shaders still missing "
+                   f"(activity {min(ages) if ages else '?'} s ago)")
+    elif not ages:
         verdict = "no cache activity recorded yet"
     elif min(ages) >= IDLE_DONE_S:
         verdict = f"idle >= {IDLE_DONE_S} s: shader compilation looks finished"
@@ -1077,7 +1110,19 @@ def _window_geometry(wid: str) -> tuple[int, int, int, int] | None:
         vals[key] = int(m.group(1))
     if vals["w"] <= 0 or vals["h"] <= 0 or vals["x"] < 0 or vals["y"] < 0:
         return None  # not fully on the root window: a crop would fail or be partial
+    root = _root_size()
+    if root and (vals["x"] + vals["w"] > root[0] or vals["y"] + vals["h"] > root[1]):
+        return None  # right/bottom edge beyond the root window (e.g. a window on a second monitor): a crop would be partial
     return vals["x"], vals["y"], vals["w"], vals["h"]
+
+
+def _root_size() -> tuple[int, int] | None:
+    """(width, height) of the root window from `xwininfo -root`; None when unavailable."""
+    if not shutil.which("xwininfo"):
+        return None
+    text = _capture_text(["xwininfo", "-root"])
+    w, h = re.search(r"Width:\s*(\d+)", text), re.search(r"Height:\s*(\d+)", text)
+    return (int(w.group(1)), int(h.group(1))) if w and h else None
 
 
 def health_log_slice(offset: int) -> str:
@@ -1108,9 +1153,21 @@ def _resolve_marker_path(text: str, env: dict[str, str]) -> Path | None:
     return next((o for o in options if o.is_file() and o.stat().st_size > 0), None)
 
 
+def foreign_services() -> list[str]:
+    """Services whose port is already served by a process this project did not start (another session's shader server)."""
+    return [name for name, svc in SERVICES.items() if not running_pid(name, svc["match"]) and port_open(svc["port"])]
+
+
 def health_launch(env: dict[str, str], extra: list[str]) -> int:
-    """Start the game through cmd_run (services included), as `dev.py run` does. Returns 0 on success."""
-    ns = argparse.Namespace(extra=extra, build=False, no_services=False, foreground=False, compiler=None, type="Debug")
+    """Start the game through cmd_run (services included), as `dev.py run` does. Returns 0 on success.
+
+    A service port held by a process we did not start (another session's shader server on 61453) is reused, with a notice,
+    instead of failing the whole run with exit 3 (OF-26); that server is never stopped by this run."""
+    foreign = foreign_services()
+    if foreign:
+        print("health: " + ", ".join(f"{name} (:{SERVICES[name]['port']})" for name in foreign) +
+              " is served by a process this project did not start; reusing it (it is not stopped by this run)", file=sys.stderr)
+    ns = argparse.Namespace(extra=extra, build=False, no_services=bool(foreign), foreground=False, compiler=None, type="Debug")
     try:
         return cmd_run(ns, env) or 0
     except SystemExit as exc:  # cmd_run reports its failures with die()
@@ -1186,6 +1243,7 @@ def health_run(hc, env: dict[str, str], plan: dict) -> dict:
     """One health run after the up-front checks: launch if needed, wait, shader settle, capture, judge. Returns the report."""
     launched, in_engine, delay, timeout = plan["launched"], plan["in_engine"], plan["delay"], plan["timeout"]
     report = {"engine": ENGINE, "stamp": plan["stamp"], "mode": plan["mode"], "delay_s": delay, "timeout_s": timeout,
+              "external_services": foreign_services(),
               "game": {"launched": launched, "pid": None, "leftover_game": None},
               "in_engine": None, "window": None, "log_signals": None}
     t0 = time.time()

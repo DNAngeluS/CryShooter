@@ -3,6 +3,15 @@
 Semver. Every change to this tooling gets a version here, a `VERSION` bump and a git tag `vX.Y.Z`; projects vendor a tagged
 copy (see "Releasing" in README.md). Newest first.
 
+## 1.2.0 — 2026-10-24
+- `health` reuses a shader server that another process holds on the service port (e.g. a second session's `cry_shader_server.py` on 61453) instead of failing with exit 3 / `launch-failed`; stderr says so, the report has `external_services`, and that server is never stopped by the run (OF-26). Ports free as before: the run starts and stops its own.
+- `build` message tells the truth about the deploy (OF-11): it prints `-> <engine bin>` only when the plugin library in that bin is the one this build produced (written since the build started, or byte-identical after a no-op build); otherwise a warning that the project's CMake deployed elsewhere (see its `Deploying ...` line).
+- `cry_shader_server.py` header: the remote-compile CVars go in the ENGINE-ROOT `system.cfg`; a project-folder `system.cfg` is never read (OF-22).
+- Window capture: `_window_geometry` also rejects a window whose right/bottom edge is beyond the root window (second monitor), so the root-crop fallback is not used for a partial crop; new `_root_size()` (`xwininfo -root`). The 1.1.1 changelog line that implied this was wrong (that tag and the vendored copy are not edited).
+- `shaders-status`: the verdict reports `Global Cache Miss` counts of the LATEST launch in the game log (the log is appended across launches; each launch starts at "Log Started at") before it falls back to the idle rule.
+- Tests: 204 (new `tests/test_release_120.py`; `test_health_verb` fake root size).
+- Not done (stays in TASK-dev-tooling-05): per-channel colour reference replacing the per-GPU ones; a real run that forces the root-crop fallback.
+
 ## 1.1.2 — 2026-10-24
 - `health` now watches the shader cache's `globals.txt`: a file with fewer than 10 flags (an empty stub from an early run) fails the run with reason `globals-stub`, a `%TEMP_TERRAIN` value other than `200000000` with `globals-terrain-flag`. Cause found in T8: an empty stub leaves `%TEMP_TERRAIN` unmapped and the renderer writes the wrong per-draw constant layout for terrain (half the far terrain renders black). New pure function `healthcheck.check_globals_flags`; runs after the shader-settle check. Tests: 198.
 

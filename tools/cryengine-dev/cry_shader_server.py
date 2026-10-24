@@ -15,7 +15,8 @@ Usage (CLI):
 Usage (VS Code):
     Terminal > Run Task > Start Shader Server
 
-Then launch the game with system.cfg containing:
+Then launch the game with these CVars set in the ENGINE-ROOT system.cfg (<CRYENGINE_DIR>/system.cfg; the engine reads only
+that file, a project-folder system.cfg is never read; a private runtime copy of the engine needs its own copy of it):
     r_ShadersRemoteCompiler=1
     r_ShaderCompilerServer=127.0.0.1
     r_VkShaderCompiler=DXC
