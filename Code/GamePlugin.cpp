@@ -56,6 +56,10 @@ static void GotoCommand(IConsoleCmdArgs *pArgs)
 				ang.x = DEG2RAD((float)atof(pArgs->GetArg(5)));
 
 			pPlayer->SetWorldTM(Matrix34::Create(Vec3(1.f), Quat(ang), pos));
+
+			// The player rebuilds its orientation from its own look state every frame, so set that too
+			if (CPlayerComponent *pPlayerComp = pPlayer->GetComponent<CPlayerComponent>())
+				pPlayerComp->SetLookAngles(RAD2DEG(ang.z), RAD2DEG(ang.x));
 		}
 	}
 }
@@ -121,8 +125,11 @@ bool CGamePlugin::Initialize(SSystemGlobalEnvironment &env, const SSystemInitPar
 							 "Capture once this many seconds after the local player is ready; 0 disables it.");
 	REGISTER_STRING("fps_autoshot_path", "", VF_NULL,
 							 "Absolute .jpg path for fps_autoshot_after_s; empty uses the default path.");
+	REGISTER_STRING("fps_autoshot_cmd", "", VF_NULL,
+							 "Console command run once just before the fps_autoshot_after_s capture (e.g. \"goto x y z yaw pitch\"), followed by a 2 s settle delay.");
 	ApplyLaunchCVar("fps_autoshot_after_s");
 	ApplyLaunchCVar("fps_autoshot_path");
+	ApplyLaunchCVar("fps_autoshot_cmd");
 
 	return true;
 }

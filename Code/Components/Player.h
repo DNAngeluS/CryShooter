@@ -112,6 +112,8 @@ public:
 	void OnReadyForGameplayOnServer();
 	bool IsLocalClient() const { return (m_pEntity->GetFlags() & ENTITY_FLAG_LOCAL_PLAYER) != 0; }
 	void RequestDebugScreenshot(const char* path = nullptr);
+	//! Debug: set the look direction (degrees); used by the goto console command
+	void SetLookAngles(float yawDeg, float pitchDeg) { m_lookOrientation = Quat(CCamera::CreateOrientationYPR(Ang3(DEG2RAD(yawDeg), DEG2RAD(pitchDeg), 0.f))); }
 
 protected:
 	void Revive(const Matrix34& transform);
@@ -157,6 +159,7 @@ protected:
 	bool m_debugMode = false;
 	bool m_autoScreenshotInitialized = false;
 	bool m_autoScreenshotRequested = false;
+	bool m_autoScreenshotCmdDone = false;
 	float m_screenshotMessageTimer = 0.f;
 	float m_autoScreenshotTimer = 0.f;
 	float m_screenshotPollTimer = 0.f;

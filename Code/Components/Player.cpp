@@ -665,6 +665,17 @@ void CPlayerComponent::UpdateDebugScreenshot(float frameTime)
 	if (!m_autoScreenshotRequested && m_autoScreenshotTimer > 0.f)
 	{
 		m_autoScreenshotTimer -= frameTime;
+		if (m_autoScreenshotTimer <= 0.f && !m_autoScreenshotCmdDone)
+		{
+			// Optional camera/teleport command (fps_autoshot_cmd), then let the view settle before the capture
+			m_autoScreenshotCmdDone = true;
+			const ICVar* pCmd = gEnv->pConsole->GetCVar("fps_autoshot_cmd");
+			if (pCmd && pCmd->GetString()[0] != '\0')
+			{
+				gEnv->pConsole->ExecuteString(pCmd->GetString());
+				m_autoScreenshotTimer = 2.f;
+			}
+		}
 		if (m_autoScreenshotTimer <= 0.f)
 		{
 			m_autoScreenshotRequested = true;
