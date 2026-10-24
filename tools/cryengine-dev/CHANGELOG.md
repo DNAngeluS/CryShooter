@@ -3,6 +3,9 @@
 Semver. Every change to this tooling gets a version here, a `VERSION` bump and a git tag `vX.Y.Z`; projects vendor a tagged
 copy (see "Releasing" in README.md). Newest first.
 
+## 1.1.2 — 2026-10-24
+- `health` now watches the shader cache's `globals.txt`: a file with fewer than 10 flags (an empty stub from an early run) fails the run with reason `globals-stub`, a `%TEMP_TERRAIN` value other than `200000000` with `globals-terrain-flag`. Cause found in T8: an empty stub leaves `%TEMP_TERRAIN` unmapped and the renderer writes the wrong per-draw constant layout for terrain (half the far terrain renders black). New pure function `healthcheck.check_globals_flags`; runs after the shader-settle check. Tests: 198.
+
 ## 1.1.1 — 2026-10-21
 - `health`: when `import -window <id>` keeps failing (observed: two consecutive runs failed all retries while another game was running on the same engine), the window rectangle is cropped out of the root window instead (`import -window root -crop WxH+X+Y`, geometry from `xwininfo`); a notice goes to stderr. Skipped when the window is not fully on the root window.
 - Tests: 192.

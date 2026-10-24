@@ -1144,7 +1144,19 @@ def health_shader_settle(hc, offset: int) -> dict:
     time.sleep(HEALTH_SETTLE_S)
     files_b = len(_files_under(shader_link()))
     signals = hc.count_log_signals(health_log_slice(offset))
-    return hc.check_shader_settle(files_a, files_b, COLD_FILES, signals["cache_miss"], signals["crc_mismatch"])
+    settle = hc.check_shader_settle(files_a, files_b, COLD_FILES, signals["cache_miss"], signals["crc_mismatch"])
+    if not settle["settled"]:
+        return settle
+    # an empty globals.txt in the cache silently breaks terrain rendering (see healthcheck.check_globals_flags)
+    gpath = shader_link() / "globals.txt"
+    try:
+        gtext = gpath.read_text(errors="replace") if gpath.is_file() else None
+    except OSError:
+        gtext = None
+    globals_verdict = hc.check_globals_flags(gtext)
+    if not globals_verdict["ok"]:
+        return {"settled": False, "reason": globals_verdict["reason"], "message": globals_verdict["message"]}
+    return settle
 
 
 def _metric_line(m: dict) -> str:

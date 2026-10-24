@@ -5,6 +5,7 @@ Used on screenshots taken from a running game, plus shader-cache counters:
   * analyze_image(source)      reduce an image (path or numpy array, full resolution) to a few numbers
   * evaluate_image(metrics)    turn those numbers into pass/fail with reason codes and warnings
   * check_shader_settle(...)   decide from shader-cache file counts whether compilation has finished
+  * check_globals_flags(text)  is the shader cache's globals.txt usable (not an empty stub, %TEMP_TERRAIN remapped)?
   * exit_code_for(status)      map a verdict to a process exit code
   * parse_capture_marker / count_log_signals / parse_wmctrl_windows   read the game log and window list
   * combine_verdicts(...)      one verdict from the parts of a health run (precedence in its docstring)
@@ -153,6 +154,32 @@ def check_shader_settle(files_a: int, files_b: int, cold_files: int, cache_miss:
     if files_b != files_a or cache_miss > 0 or crc_mismatch > 0:
         return {"settled": False, "reason": "shaders-still-compiling", "message": f"shaders still compiling: {counts}"}
     return {"settled": True, "reason": None, "message": f"shader cache settled: {counts}"}
+
+
+GLOBALS_MIN_FLAGS = 10  # a healthy globals.txt lists ~50 common global flags; a stub from a failed scan lists none
+GLOBALS_TEMP_TERRAIN = 0x200000000  # legacy value of %TEMP_TERRAIN; the renderer picks the terrain per-draw layout by it
+_GLOBALS_FLAG_RE = re.compile(r"^(%\S+)\s+([0-9a-fA-F]+)\s*$")
+
+
+def check_globals_flags(text: str | None) -> dict:
+    """Whether <shader cache>/globals.txt is usable. text=None (no file) is fine: the engine creates it on launch.
+
+    A file with no flags (a stub left by an early run that found no shader .ext files) is never re-created by older
+    engines, leaves %TEMP_TERRAIN on its local mask and makes terrain draws read the wrong per-draw constants (T8: half
+    the far terrain renders black). Reason codes: globals-stub (too few flags), globals-terrain-flag (wrong value).
+    """
+    if text is None:
+        return {"ok": True, "reason": None, "flags": 0, "message": "globals.txt absent (the engine creates it)"}
+    flags = {m.group(1).upper(): int(m.group(2), 16) for m in map(_GLOBALS_FLAG_RE.match, text.splitlines()) if m}
+    if len(flags) < GLOBALS_MIN_FLAGS:
+        return {"ok": False, "reason": "globals-stub", "flags": len(flags),
+                "message": f"shader cache globals.txt lists {len(flags)} flags (stub): delete it so the engine re-creates it, "
+                           "then let the shaders recompile (terrain renders wrong otherwise)"}
+    terrain = flags.get("%TEMP_TERRAIN")
+    if terrain is not None and terrain != GLOBALS_TEMP_TERRAIN:
+        return {"ok": False, "reason": "globals-terrain-flag", "flags": len(flags),
+                "message": f"shader cache globals.txt has %TEMP_TERRAIN {terrain:x}, expected {GLOBALS_TEMP_TERRAIN:x}: delete it"}
+    return {"ok": True, "reason": None, "flags": len(flags), "message": f"globals.txt ok ({len(flags)} flags)"}
 
 
 def exit_code_for(status: str) -> int:
