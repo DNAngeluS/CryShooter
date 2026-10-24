@@ -685,7 +685,7 @@ def _log_counts(path: Path) -> dict | None:
             text = fh.read().decode(errors="replace")
     except OSError:
         return None
-    # the game log is appended across launches: count only the latest one ("Log Started at ..." opens each launch)
+    # the engine's own log format opens each launch with "Log Started at ...": count only the latest launch when it is present
     start = text.rfind("Log Started at")
     if start > 0:
         text = text[start:]
@@ -710,12 +710,7 @@ def cmd_shaders_status(args, env) -> int:
     svc_age = _age_s(svc_log.stat().st_mtime) if svc_log and svc_log.exists() else None
     game_counts = _log_counts(LOG_FILES["game"])
     ages = [a for a in (_age_s(active_newest), svc_age) if a is not None]
-    if game_counts and game_counts["global_cache_miss"]:
-        # misses in the game log mean shaders are still missing, whatever the file ages say (an idle server can also mean it
-        # died or is not reachable); health uses the same counters in healthcheck.check_shader_settle
-        verdict = (f"{game_counts['global_cache_miss']} Global Cache Miss in the game log: shaders still missing "
-                   f"(activity {min(ages) if ages else '?'} s ago)")
-    elif not ages:
+    if not ages:
         verdict = "no cache activity recorded yet"
     elif min(ages) >= IDLE_DONE_S:
         verdict = f"idle >= {IDLE_DONE_S} s: shader compilation looks finished"

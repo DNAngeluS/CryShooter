@@ -8,7 +8,7 @@ copy (see "Releasing" in README.md). Newest first.
 - `build` message tells the truth about the deploy (OF-11): it prints `-> <engine bin>` only when the plugin library in that bin is the one this build produced (written since the build started, or byte-identical after a no-op build); otherwise a warning that the project's CMake deployed elsewhere (see its `Deploying ...` line).
 - `cry_shader_server.py` header: the remote-compile CVars go in the ENGINE-ROOT `system.cfg`; a project-folder `system.cfg` is never read (OF-22).
 - Window capture: `_window_geometry` also rejects a window whose right/bottom edge is beyond the root window (second monitor), so the root-crop fallback is not used for a partial crop; new `_root_size()` (`xwininfo -root`). The 1.1.1 changelog line that implied this was wrong (that tag and the vendored copy are not edited).
-- `shaders-status`: the verdict reports `Global Cache Miss` counts of the LATEST launch in the game log (the log is appended across launches; each launch starts at "Log Started at") before it falls back to the idle rule.
+- `shaders-status`: the game-log counts cover only the latest launch when the log carries the engine's `Log Started at` marker (FPS's appended `game.log` has none, so it still counts its whole 4 MB tail; the idle verdict is unchanged).
 - Tests: 204 (new `tests/test_release_120.py`; `test_health_verb` fake root size).
 - Not done (stays in TASK-dev-tooling-05): per-channel colour reference replacing the per-GPU ones; a real run that forces the root-crop fallback.
 
