@@ -17,7 +17,7 @@
 
 namespace
 {
-	constexpr const char *kStartupLevel = "fps_forest_basin";
+	constexpr const char *kDefaultStartupLevel = "fps_forest_basin";
 }
 
 static void GotoCommand(IConsoleCmdArgs *pArgs)
@@ -130,6 +130,9 @@ bool CGamePlugin::Initialize(SSystemGlobalEnvironment &env, const SSystemInitPar
 	ApplyLaunchCVar("fps_autoshot_after_s");
 	ApplyLaunchCVar("fps_autoshot_path");
 	ApplyLaunchCVar("fps_autoshot_cmd");
+	REGISTER_STRING("fps_startup_level", "", VF_NULL,
+							 "Level to load at startup (name under Assets/levels); empty or a level that does not exist falls back to fps_forest_basin.");
+	ApplyLaunchCVar("fps_startup_level");
 
 	return true;
 }
@@ -150,9 +153,26 @@ void CGamePlugin::OnSystemEvent(ESystemEvent event, UINT_PTR wparam, UINT_PTR lp
 		// Don't need to load the map in editor
 		if (!gEnv->IsEditor())
 		{
-			// Load the default gameplay test map in client-server mode.
+			// Load the level chosen with +fps_startup_level, or the default gameplay test map if unset or missing.
+			const char *levelName = kDefaultStartupLevel;
+			if (ICVar *pStartupLevel = gEnv->pConsole->GetCVar("fps_startup_level"))
+			{
+				const char *requestedLevel = pStartupLevel->GetString();
+				if (requestedLevel[0] != '\0')
+				{
+					string levelFile;
+					levelFile.Format("levels/%s/%s.level", requestedLevel, requestedLevel);
+					if (gEnv->pCryPak->IsFileExist(levelFile.c_str()))
+						levelName = requestedLevel;
+					else
+						CryLogAlways("fps_startup_level '%s' does not exist, using %s", requestedLevel, kDefaultStartupLevel);
+				}
+			}
+			CryLogAlways("Startup level: %s", levelName);
+
+			// Load the chosen map in client-server mode.
 			string mapCommand;
-			mapCommand.Format("map %s s", kStartupLevel);
+			mapCommand.Format("map %s s", levelName);
 			gEnv->pConsole->ExecuteString(mapCommand.c_str(), false, true);
 		}
 	}

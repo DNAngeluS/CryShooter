@@ -1,5 +1,8 @@
 # FirstPersonShooter — Agent Instructions
 
+## Advisor mode (read first, whenever this session has an `advisor` tool)
+If an advisor is available, the front session is **orchestrator + operator**: it plans, delegates, verifies and integrates; the **advisor** (the stronger model) reviews the approach before substantive work, when stuck, and before declaring done; **Haiku agents** are the workers (bounded edits, builds) and read-only researchers. Briefs to workers are self-contained, and a worker's report is a claim: verify the diff or the output before relaying. No external executor (Codex etc.) unless Lucio asks. Read this at the start of every such session, before acting.
+
 **What this is.** A CRYENGINE 5.6 first-person shooter game plugin (C++, Linux) plus a Python
 asset pipeline that generates levels and character packages from an LLM-authored bundle graph.
 The plugin builds to `libGamePlugin.so`, which the engine loads at runtime. Phase: active
