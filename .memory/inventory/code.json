@@ -4,7 +4,7 @@
   "path": "Code",
   "generated": "2026-10-03",
   "files": [
-    {"path": "GamePlugin.cpp", "role": "config", "does": "plugin init, system events, startup level auto-load (kStartupLevel), goto command, level-load CVars", "loc": 247},
+    {"path": "GamePlugin.cpp", "role": "config", "does": "plugin init, system events, startup level auto-load (launch CVar fps_startup_level, default fps_forest_basin), goto command, level-load CVars", "loc": 247},
     {"path": "GamePlugin.h", "role": "config", "does": "CGamePlugin declaration", "loc": 61},
     {"path": "Components/Player.cpp", "role": "service", "does": "first-person player: camera, movement, input, shooting, debug screenshot, deferred ESC quit", "loc": 591},
     {"path": "Components/Player.h", "role": "service", "does": "CPlayerComponent members and ids", "loc": 180},

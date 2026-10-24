@@ -13,6 +13,10 @@ entries are grouped by **milestone** (dated) instead of version numbers.
 
 ## [Unreleased]
 
+### Added (2026-10-24)
+- Launch CVar `fps_startup_level <name>` (`GameLauncher ... +fps_startup_level plain`): level under `Assets/levels` to load at startup. Empty or a missing level falls back to `fps_forest_basin` (logged). Replaces the compile-time `kStartupLevel` (the 2026-10 entries below refer to it).
+- Vendored `Tools/dev` 1.1.2: `make health` also fails when the shader-cache `globals.txt` is an empty stub (it made half of the far terrain render black). The project's shader cache slots were repaired.
+
 ### Added
 - **Dev command runner.** `Makefile` + `tools/dev.py` (stdlib only): `make setup | build | release | up | down | run | debug | stop | status | logs | test | pipeline`.
   Background services and the game log to `.dev/logs/`, pids in `.dev/pids/` (both gitignored). See README → *Dev commands*.
