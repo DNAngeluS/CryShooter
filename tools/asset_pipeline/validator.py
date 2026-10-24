@@ -86,6 +86,15 @@ def _validate_texture_node(report: dict, stage_root: Path, errors: list[str]) ->
         errors.append(f'texture node {report["node_id"]} output is missing: {path}')
     if path.suffix.lower() != ".png":
         errors.append(f'texture node {report["node_id"]} output must be a PNG')
+    runtime = report.get("runtime_path")
+    if not runtime:
+        errors.append(f'texture node {report["node_id"]} has no runtime DDS (the engine cannot load a PNG material texture)')
+    else:
+        dds = stage_root / "staged_assets" / "Assets" / runtime
+        if not dds.exists():
+            errors.append(f'texture node {report["node_id"]} runtime DDS is missing: {dds}')
+        elif dds.read_bytes()[:4] != b"DDS ":
+            errors.append(f'texture node {report["node_id"]} runtime file is not a DDS: {dds}')
 
 
 def _validate_material_node(report: dict, stage_root: Path, errors: list[str]) -> None:
@@ -94,8 +103,11 @@ def _validate_material_node(report: dict, stage_root: Path, errors: list[str]) -
         errors.append(f'material node {report["node_id"]} output is missing: {path}')
         return
     text = path.read_text(encoding="utf-8", errors="replace")
-    if report["diffuse_texture"] not in text:
+    runtime = report.get("runtime_diffuse_texture") or report["diffuse_texture"]
+    if runtime not in text:
         errors.append(f'material node {report["node_id"]} does not reference its diffuse texture')
+    if not runtime.lower().endswith(".dds"):
+        errors.append(f'material node {report["node_id"]} references {runtime}: the engine only loads DDS material textures')
 
 
 def _validate_mesh_node(report: dict, stage_root: Path, errors: list[str]) -> None:

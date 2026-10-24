@@ -243,6 +243,12 @@ class AssetPipelineTests(unittest.TestCase):
             self.assertIn("levels/fps_forest_basin/terraintexture.pak", publish["published_paths"])
             self.assertTrue((root / "Assets" / "Textures" / "Generated" / "fps_forest_basin" / "forest_ground_albedo.png").exists())
             self.assertTrue((root / "Assets" / "Materials" / "Generated" / "fps_forest_basin" / "forest_ground.mtl").exists())
+            dds = root / "Assets" / "Textures" / "Generated" / "fps_forest_basin" / "forest_ground_albedo.dds"
+            self.assertTrue(dds.exists())
+            self.assertEqual(dds.read_bytes()[:4], b"DDS ")  # runtime texture; the material must reference it, not the PNG
+            mtl_text = (root / "Assets" / "Materials" / "Generated" / "fps_forest_basin" / "forest_ground.mtl").read_text(encoding="utf-8")
+            self.assertIn("forest_ground_albedo.dds", mtl_text)
+            self.assertNotIn(".png", mtl_text)
 
     def test_mixed_graph_supports_procedural_and_imported_meshes(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

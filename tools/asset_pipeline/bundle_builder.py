@@ -21,6 +21,7 @@ from .procgen.interior_gen import generate_interior
 from .procgen.structured_gen import generate_structured
 from .procgen.heightmap_writer import write_heightmap_dat, flat_heightmap
 from .procgen.mesh_writer import write_obj, write_mtl
+from .dds_export import png_to_runtime_dds
 from .procgen.terrain_dat_writer import write_terrain_dat
 
 
@@ -367,12 +368,15 @@ def _compile_texture_node(stage_root: Path, stage_assets_root: Path, bundle_slug
         pixels, average = generate_texture_pixels(spec)
         write_png(texture_path, spec["width"], spec["height"], pixels)
         pixel_data = {"width": spec["width"], "height": spec["height"], "pixels": pixels}
+    # The PNG stays the master (terrain base texture, imports); materials reference the runtime DDS beside it.
+    runtime_path = png_to_runtime_dds(texture_path)
     report = {
         "node_id": node["id"],
         "type": node["type"],
         "status": "built",
         "mode": mode,
         "asset_path": f"Textures/Generated/{bundle_slug}/{spec['name']}.png",
+        "runtime_path": f"Textures/Generated/{bundle_slug}/{runtime_path.name}",
         "average_rgba": average,
     }
     if pixel_data:
@@ -390,8 +394,9 @@ def _compile_material_node(stage_assets_root: Path, bundle_slug: str, node: dict
     material_dir.mkdir(parents=True, exist_ok=True)
     material_name = node["spec"]["name"]
     material_path = material_dir / f"{material_name}.mtl"
-    relative_diffuse = diffuse_node["asset_path"]
-    write_text(material_path, _material_xml(node["spec"], relative_diffuse, template))
+    relative_diffuse = diffuse_node["asset_path"]  # PNG master: kept in the report (other nodes look textures up by it)
+    runtime_diffuse = diffuse_node.get("runtime_path", relative_diffuse)  # what the engine can load
+    write_text(material_path, _material_xml(node["spec"], runtime_diffuse, template))
     write_text(material_path.with_suffix(".mtl.cryasset"), _material_cryasset_xml(material_name, f"{material_name}.mtl"))
     report = {
         "node_id": node["id"],
@@ -399,6 +404,7 @@ def _compile_material_node(stage_assets_root: Path, bundle_slug: str, node: dict
         "status": "built",
         "asset_path": f"Materials/Generated/{bundle_slug}/{material_name}.mtl",
         "diffuse_texture": relative_diffuse,
+        "runtime_diffuse_texture": runtime_diffuse,
     }
     build_state[node["id"]] = report
     return report
