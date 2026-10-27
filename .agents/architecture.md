@@ -42,7 +42,7 @@ relative to `MODULE_PATH` (the launcher's own directory).
 ## External dependencies
 
 - CRYENGINE 5.6 source build (path via `CRYENGINE_DIR`); a few engine patches were applied for GCC 14 (see build-run workflow).
-- Wine + DXC for the optional remote shader compiler (`tools/cry_shader_server.py`, a shim; real file in `tools/cryengine-dev/`).
+- Wine + DXC for the optional remote shader compiler (`tools/plasmid-dev/plasmid_dev/shader_server.py`, vendored with the dev tooling).
 - `noise==1.2.2` Python package (procgen only).
 
 ## Known weak points

@@ -1,9 +1,10 @@
-"""PNG reader for cry_assets (ported from the P0(f) spike; logic unchanged).
+"""PNG reader for plasmid_assets (ported from the P0(f) spike; logic unchanged).
 
 read_png(path) returns (width, height, rgba bytes) for any non-animated PNG: gray, palette (+tRNS),
 gray+alpha, RGB or RGBA, bit depth 1..16, non-interlaced or Adam7. Stdlib only.
 """
 
+import array
 import itertools
 import struct
 import zlib
@@ -111,3 +112,53 @@ def read_png(path):
                 for i in range(pw):
                     put(x0 + i * dx, y0 + j * dy, row, i)
     return w, h, bytes(out)
+
+
+def read_png_gray(path):
+    """Return (width, height, bit_depth, samples) for a non-animated gray PNG (colour type 0, depth 1, 2, 4, 8 or
+    16, non-interlaced or Adam7). samples is an array('H') of the raw sample values (0 .. 2**bit_depth - 1), row-major.
+    Unlike read_png, 16 bit samples are kept in full. Any other colour type raises ValueError. Used for heightmaps."""
+    with open(path, "rb") as f:
+        data = f.read()
+    if data[:8] != b"\x89PNG\r\n\x1a\n":
+        raise ValueError("not a PNG")
+    pos, idat, ihdr = 8, b"", None
+    while pos < len(data):
+        n, typ = struct.unpack_from(">I4s", data, pos)
+        body = data[pos + 8:pos + 8 + n]
+        if typ == b"IHDR":
+            ihdr = struct.unpack(">IIBBBBB", body)
+        elif typ == b"IDAT":
+            idat += body
+        pos += 12 + n
+    if ihdr is None:
+        raise ValueError("PNG has no IHDR chunk")
+    w, h, depth, ctype, _c, _f, interlace = ihdr
+    if ctype != 0 or depth not in (1, 2, 4, 8, 16):
+        raise ValueError("not a gray PNG (colour type %d, depth %d)" % (ctype, depth))
+    raw = zlib.decompress(idat)
+    out = array.array("H", bytes(2 * w * h))
+
+    def samples(row, count):
+        if depth == 16:
+            return [(row[2 * i] << 8) | row[2 * i + 1] for i in range(count)]
+        if depth == 8:
+            return list(row[:count])
+        mask = (1 << depth) - 1
+        return [(row[(i * depth) >> 3] >> (8 - depth - ((i * depth) & 7))) & mask for i in range(count)]
+
+    if not interlace:
+        rows, _ = _unfilter(raw, 0, w, h, depth)
+        for y, row in enumerate(rows):
+            out[y * w:(y + 1) * w] = array.array("H", samples(row, w))
+    else:
+        pos = 0
+        for x0, y0, dx, dy in _ADAM7:
+            pw, ph = (w - x0 + dx - 1) // dx, (h - y0 + dy - 1) // dy
+            if pw <= 0 or ph <= 0:
+                continue
+            rows, pos = _unfilter(raw, pos, pw, ph, depth)
+            for j, row in enumerate(rows):
+                for i, v in enumerate(samples(row, pw)):
+                    out[(y0 + j * dy) * w + x0 + i * dx] = v
+    return w, h, depth, out

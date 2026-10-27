@@ -1,0 +1,9 @@
+#!/bin/sh
+# plas-assets: runs the plasmid_assets package that sits next to this script, from any working directory
+# (also through a symlink; PYTHONSAFEPATH keeps a plasmid_assets/ in the current directory from shadowing it).
+self=$(readlink -f "$0") || exit 1
+here=$(dirname "$self")
+PYTHONPATH="$here"
+PYTHONSAFEPATH=1
+export PYTHONPATH PYTHONSAFEPATH
+exec python3 -m plasmid_assets "$@"

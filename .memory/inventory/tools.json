@@ -7,13 +7,13 @@
     {
       "path": "dev.py",
       "role": "route",
-      "does": "dev command runner: build, services, run/debug, logs, status, test, pipeline passthrough (called by ../Makefile); implementation now tools/cryengine-dev/dev.py, this file is a forwarding shim",
+      "does": "dev command runner: build, services, run/debug, logs, status, test, pipeline passthrough (called by ../Makefile); removed 2026-10-27 (was a forwarding shim); the runner is now tools/plasmid-dev/plas-dev",
       "loc": 505
     },
     {
       "path": "../Makefile",
       "role": "route",
-      "does": "make targets over tools/cryengine-dev/dev.py (make help); tools/dev.py is a forwarding shim"
+      "does": "make targets over tools/plasmid-dev/plas-dev (make help)"
     },
     {
       "path": "cry_asset_pipeline.py",
@@ -30,7 +30,7 @@
     {
       "path": "cry_shader_server.py",
       "role": "service",
-      "does": "remote shader compile server over Wine+DXC (forwarding shim; implementation at tools/cryengine-dev/cry_shader_server.py)",
+      "does": "remote shader compile server over Wine+DXC (vendored from plasmid-dev: tools/plasmid-dev/plasmid_dev/shader_server.py)",
       "loc": 247
     },
     {

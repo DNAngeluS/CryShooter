@@ -1,8 +1,8 @@
 """dds_export.py — runtime DDS for generated textures.
 
 The engine's material loader has no PNG reader ("Unsupported texture extension 'png'"), so every PNG master the pipeline
-writes gets a sibling `.dds` that the `.mtl` files reference. Conversion uses the vendored `tools/cry-assets` (tag in its
-`.vendored-from`), with the parameters `cry_assets gltf2cgf` uses for colour textures (engine-verified): BC1 for opaque
+writes gets a sibling `.dds` that the `.mtl` files reference. Conversion uses the vendored `tools/plasmid-assets` (tag in its
+`.vendored-from`), with the parameters `plas-assets gltf2cgf` uses for colour textures (engine-verified): BC1 for opaque
 images, BC3 when there is alpha, sRGB (the CRYF header block sets EIF_SRGBRead), full mip chain, all mips persistent.
 """
 from __future__ import annotations
@@ -10,13 +10,13 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-_VENDORED = Path(__file__).resolve().parents[1] / "cry-assets"
+_VENDORED = Path(__file__).resolve().parents[1] / "plasmid-assets"
 if str(_VENDORED) not in sys.path:
     sys.path.insert(0, str(_VENDORED))
 
-from cry_assets.dds import write_dds  # noqa: E402
-from cry_assets.gltf import png_has_alpha  # noqa: E402
-from cry_assets.png import read_png  # noqa: E402
+from plasmid_assets.dds import write_dds  # noqa: E402
+from plasmid_assets.gltf import png_has_alpha  # noqa: E402
+from plasmid_assets.png import read_png  # noqa: E402
 
 
 def png_to_runtime_dds(png_path: Path, dds_path: Path | None = None) -> Path:

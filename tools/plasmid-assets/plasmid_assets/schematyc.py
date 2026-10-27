@@ -26,7 +26,7 @@ def _g():
     return str(uuid.uuid4())
 
 
-def build_xml(name="snl_probe", variant="ok", mesh_file=DEFAULT_MESH_FILE):
+def build_xml(name="plasmid_probe", variant="ok", mesh_file=DEFAULT_MESH_FILE):
     """Return the .schematyc_ent text for a variant. Negative controls: truncated, badguid."""
     entity_env_class = ENTITY_ENV_CLASS
     if variant == "badguid":
@@ -67,7 +67,7 @@ def build_xml(name="snl_probe", variant="ok", mesh_file=DEFAULT_MESH_FILE):
     return xml
 
 
-def write_schematyc(out_dir, name="snl_probe", variant="ok", mesh_file=DEFAULT_MESH_FILE):
+def write_schematyc(out_dir, name="plasmid_probe", variant="ok", mesh_file=DEFAULT_MESH_FILE):
     """Write <out_dir>/<name>.schematyc_ent for the given variant; return [path]."""
     os.makedirs(out_dir, exist_ok=True)
     path = os.path.join(out_dir, name + ".schematyc_ent")

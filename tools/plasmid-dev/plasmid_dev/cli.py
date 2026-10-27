@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Dev command runner for CRYENGINE game projects (currently FirstPersonShooter-shaped; see Tools/dev/config-schema.md) (stdlib only).
+"""plasmid-dev: the dev command runner for CRYENGINE game projects (currently FirstPersonShooter-shaped; see config-schema.md in the tool) (stdlib only).
 
 The npm-scripts equivalent for this project: build the plugin, manage background
 services (remote shader compiler), launch / debug the game, read logs, run tests and
@@ -9,7 +9,7 @@ the asset pipeline. Designed to be driven by humans and by agents without an IDE
   * commands are idempotent and exit non-zero on failure
   * `status --json` is machine readable
 
-Usually invoked through the Makefile (`make help`), or directly: `python3 tools/dev.py -h`.
+Usually invoked through the Makefile (`make help`), or directly: `plas-dev -h` (same as `python3 -m plasmid_dev -h`).
 """
 
 from __future__ import annotations
@@ -57,7 +57,7 @@ def init_project(project_dir: Path) -> None:
     for name, svc in CONFIG.get("services", {}).items():
         script = script_path(svc["script"])
         SERVICES[name] = {"match": script.name, "port": svc["port"],
-                          "cmd": (lambda p=script: [sys.executable, str(p)])}
+                          "cmd": (lambda p=script, a=tuple(svc.get("args", ())): [sys.executable, str(p), *a])}
     GAME_MATCH = launcher_name()
     LOG_FILES = {"game": ROOT / "game.log", "game.out": LOGS / "game.out.log",
                  **{n: LOGS / f"{n}.log" for n in SERVICES}, "gdb": LOGS / "gdb.log"}
@@ -66,9 +66,10 @@ def init_project(project_dir: Path) -> None:
 COMPILERS: tuple[str, ...] = ()  # union of engine preset keys (argparse --compiler choices); set in main()
 TYPES = ("Debug", "Profile", "Release")
 
-# Per-project config: <project dir>/cryengine-dev.config.json, documented in Tools/dev/config-schema.md.
+# Per-project config: <project dir>/plasmid.config.json, documented in config-schema.md (the tool root).
 # Loaded once in main() (CONFIG); the engine table below is derived from it.
-CONFIG_NAME = "cryengine-dev.config.json"
+CONFIG_NAME = "plasmid.config.json"
+LEGACY_CONFIG_NAME = "cryengine-dev.config.json"  # legacy-alias: removed in 3.0 (read only when CONFIG_NAME is absent; never written)
 CONFIG_SCHEMA = 1
 CONFIG_KEYS = frozenset({"schema", "name", "cryproject", "source_dir", "plugin_lib", "plugin_out_dir", "engine_bin_dir",
                          "launcher", "dev_dir", "env_file", "default_engine", "engines", "build_dirs", "services",
@@ -79,7 +80,7 @@ ENGINE_REQUIRED = ("label", "dir", "env", "compiler", "presets")
 BUILTIN_VERBS = frozenset({"setup", "doctor", "configure", "build", "clean", "up", "down", "run", "debug", "stop", "status", "logs",
                            "health"})
 
-CONFIG: dict = {}  # the parsed cryengine-dev.config.json; set in main()
+CONFIG: dict = {}  # the parsed plasmid.config.json; set in main()
 
 # Engine checkouts the plugin can be built against / run on (`engines` in the config; `--engine` picks one).
 # ENGINES is derived from CONFIG["engines"] in main(). Inner keys:
@@ -92,8 +93,12 @@ ENGINE: str | None = None  # the selected engine key; set from CONFIG["default_e
 
 DRY = False
 
-# Tooling release: TOOL_DIR is the directory holding this dev.py (the repo's Tools/dev, or a project's vendored copy).
-TOOL_DIR = Path(__file__).resolve().parent
+# Tooling release: PACKAGE_DIR is the plasmid_dev package; TOOL_DIR is the tool root holding VERSION and the
+# plas-dev launcher (the repo root, or a project's vendored copy).
+PACKAGE_DIR = Path(__file__).resolve().parent
+TOOL_DIR = PACKAGE_DIR.parent
+# `tool:` scripts that were renamed in 2.0.0 (the old name still resolves)
+LEGACY_TOOL_SCRIPTS = {"cry_shader_server.py": "shader_server.py"}  # legacy-alias: removed in 3.0
 VENDOR_MARKER = ".vendored-from"  # JSON written by the vendoring step: tool, version, tag, commit, vendored_at, files{name: sha256}
 
 
@@ -149,7 +154,7 @@ def vendored_integrity() -> dict | None:
 
 
 def version_line() -> str:
-    line = f"cryengine-dev {tool_version()}"
+    line = f"plasmid-dev {tool_version()}"
     commit = vendored_commit()
     return f"{line} (vendored from {commit[:8]})" if commit else line
 
@@ -175,12 +180,17 @@ def die(msg: str, code: int = 1) -> None:
 
 
 def load_config(project_dir: Path) -> dict:
-    """Read and validate <project_dir>/cryengine-dev.config.json (or the file named by env CRY_DEV_CONFIG, for trying a config
-    without editing the project). Every problem is a usage error (exit 2)."""
-    override = os.environ.get("CRY_DEV_CONFIG")
+    """Read and validate <project_dir>/plasmid.config.json (or the file named by env PLASMID_DEV_CONFIG, for trying a config
+    without editing the project). A project still on cryengine-dev.config.json is read as a fallback. Every problem is a
+    usage error (exit 2)."""
+    override = os.environ.get("PLASMID_DEV_CONFIG")
+    if override is None:
+        override = os.environ.get("CRY_DEV_CONFIG")  # legacy-alias: removed in 3.0
     path = Path(override) if override else project_dir / CONFIG_NAME
+    if not override and not path.is_file() and (project_dir / LEGACY_CONFIG_NAME).is_file():
+        path = project_dir / LEGACY_CONFIG_NAME  # legacy-alias: removed in 3.0
     if not path.is_file():
-        die(f"no {CONFIG_NAME} in {project_dir}; see Tools/dev/config-schema.md", 2)
+        die(f"no {CONFIG_NAME} in {project_dir}; see config-schema.md", 2)
     try:
         cfg = json.loads(path.read_text())
     except (OSError, ValueError) as exc:
@@ -210,6 +220,11 @@ def load_config(project_dir: Path) -> dict:
     for name, svc in cfg.get("services", {}).items():
         if not (isinstance(svc, dict) and isinstance(svc.get("script"), str) and isinstance(svc.get("port"), int)):
             die(f"{path}: services.{name} needs 'script' (string) and 'port' (integer)", 2)
+        unknown = set(svc) - {"script", "port", "args"}
+        if unknown:
+            die(f"{path}: services.{name}: unknown key(s): {', '.join(sorted(unknown))}", 2)
+        if "args" in svc and not (isinstance(svc["args"], list) and all(isinstance(a, str) for a in svc["args"])):
+            die(f"{path}: services.{name}.args must be a list of strings", 2)
     sc = cfg.get("shader_cache")
     if sc is not None and not (isinstance(sc, dict) and isinstance(sc.get("link"), str)
                                and isinstance(sc.get("slots_dir"), str)):
@@ -281,9 +296,10 @@ def source_dir() -> Path:
 
 
 def script_path(script: str) -> Path:
-    """`tool:<file>` = Tools/dev/<file> (next to this file); anything else is relative to the project root."""
+    """`tool:<file>` = plasmid_dev/<file> (inside the package); anything else is relative to the project root."""
     if script.startswith("tool:"):
-        return Path(__file__).resolve().parent / script[len("tool:"):]
+        name = script[len("tool:"):]
+        return PACKAGE_DIR / LEGACY_TOOL_SCRIPTS.get(name, name)
     return ROOT / script
 
 
@@ -373,7 +389,7 @@ def pick_compiler(compiler: str | None) -> str:
     compiler = compiler or spec["compiler"]
     if compiler not in spec["presets"]:
         die(f"{spec['label']} has no preset for COMPILER={compiler} (available: {', '.join(spec['presets'])}). "
-            f"Add one to {CONFIG.get('source_dir', 'Code')}/CMakePresets.json and `engines.<k>.presets` in cryengine-dev.config.json.", 2)
+            f"Add one to {CONFIG.get('source_dir', 'Code')}/CMakePresets.json and `engines.<k>.presets` in plasmid.config.json.", 2)
     return compiler
 
 
@@ -883,13 +899,40 @@ def cmd_status(args, env) -> int:
     return 0
 
 
-def tooling_checks() -> list[tuple[str, bool, bool]]:
+def remote_compile_cfg_files(env) -> list[Path]:
+    """system.cfg files that switch remote shader compilation on: the engine root's and the project's (a private engine
+    root has its own; the project one is read in some layouts). Only the engine-root one is guaranteed to be read."""
+    out = []
+    ed = env.get("CRYENGINE_DIR") if env else None
+    for cand in ([Path(ed) / "system.cfg"] if ed else []) + [ROOT / "system.cfg"]:
+        try:
+            if cand.is_file() and re.search(r"^\s*r_ShadersRemoteCompiler\s*=\s*1\b", cand.read_text(errors="replace"), re.M):
+                out.append(cand)
+        except OSError:
+            pass
+    return out
+
+
+def shader_server_checks(env=None) -> list[tuple[str, bool, bool]]:
+    """Doctor rows for the shader server (never required): which DXC backends exist, and whether remote compile is on."""
+    native = shutil.which("dxc") or shutil.which("dxc-3.7")
+    rows = [(f"native dxc for the shader server (optional, `--dxc native|auto`): {native or 'not installed'}", bool(native), False)]
+    found = remote_compile_cfg_files(env or {})
+    rows.append(("system.cfg with r_ShadersRemoteCompiler=1 (engine root or project): "
+                 + (", ".join(str(f) for f in found) if found else "none: shaders will not compile, frames stay black"),
+                 bool(found), False))
+    return rows
+
+
+def tooling_checks(env=None) -> list[tuple[str, bool, bool]]:
     """Doctor rows about the tooling release (never required: warn, not MISS)."""
     tv = tool_version()
     rows = [(f"tooling version {tv}", True, False)]
     pin = CONFIG.get("tools_version")
     if pin is not None and pin != tv:
         rows.append((f"tools_version pin {pin} != tooling {tv} (re-vendor or update the pin)", False, False))
+    if SERVICES:
+        rows += shader_server_checks(env)
     integ = vendored_integrity()
     if integ is not None and "error" in integ:
         rows.append((f"vendored tooling marker unreadable: {integ['error']}", False, False))
@@ -921,7 +964,7 @@ def cmd_doctor(args, env) -> int:
         *([(f"python venv ({CONFIG['python']['venv']})", VENV_PY.exists(), False)] if VENV_PY is not None else []),
     ]
     if args.cmd == "doctor":  # tooling rows: only for `doctor` itself, not the doctor step inside `setup` (its output is golden)
-        checks += tooling_checks()
+        checks += tooling_checks(env)
     bad = 0
     for label, ok, required in checks:
         print(f"{'ok  ' if ok else ('MISS' if required else 'warn')}  {label}")
@@ -972,13 +1015,13 @@ HEALTH_SIGNAL_LINES = 10  # [Assert]/[Error] lines quoted when the game exits be
 def load_healthcheck():
     """healthcheck.py, imported lazily so `--help` and the other verbs need no numpy/Pillow."""
     if str(TOOL_DIR) not in sys.path:
-        sys.path.insert(0, str(TOOL_DIR))  # dev.py may run from a vendored copy: use that copy's healthcheck.py
+        sys.path.insert(0, str(TOOL_DIR))  # plas-dev may run from a vendored copy: use that copy's package
     try:
-        import healthcheck
+        from plasmid_dev import healthcheck
     except ImportError as exc:
-        die(f"cannot import healthcheck.py from {TOOL_DIR}: {exc}", 2)
+        die(f"cannot import plasmid_dev/healthcheck.py from {TOOL_DIR}: {exc}", 2)
     if not healthcheck.HAVE_IMAGING:
-        die("health needs numpy and Pillow in the python that runs dev.py (pip install numpy pillow); "
+        die("health needs numpy and Pillow in the python that runs plas-dev (pip install numpy pillow); "
             "nothing was checked", 2)
     return healthcheck
 
@@ -1154,7 +1197,7 @@ def foreign_services() -> list[str]:
 
 
 def health_launch(env: dict[str, str], extra: list[str]) -> int:
-    """Start the game through cmd_run (services included), as `dev.py run` does. Returns 0 on success.
+    """Start the game through cmd_run (services included), as `plas-dev run` does. Returns 0 on success.
 
     A service port held by a process we did not start (another session's shader server on 61453) is reused, with a notice,
     instead of failing the whole run with exit 3 (OF-26); that server is never stopped by this run."""
@@ -1433,16 +1476,17 @@ def main() -> int:
     pre = argparse.ArgumentParser(add_help=False)
     pre.add_argument("--project-dir")
     known, _ = pre.parse_known_args()
-    project = Path(os.path.abspath(known.project_dir or os.environ.get("CRY_DEV_PROJECT_DIR") or os.getcwd()))
+    env_project = os.environ.get("PLASMID_DEV_PROJECT_DIR") or os.environ.get("CRY_DEV_PROJECT_DIR")  # legacy-alias: removed in 3.0
+    project = Path(os.path.abspath(known.project_dir or env_project or os.getcwd()))
     CONFIG = load_config(project)
     init_project(project)
     ENGINES = engines_from(CONFIG["engines"])
     COMPILERS = compilers_from(ENGINES)
     ENGINE = CONFIG["default_engine"]
 
-    p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0], formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(prog="plas-dev", description=__doc__.split("\n\n")[0], formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument("--project-dir", default=None,
-                   help="project root (default: env CRY_DEV_PROJECT_DIR, else the current directory)")
+                   help="project root (default: env PLASMID_DEV_PROJECT_DIR, else the current directory)")
     p.add_argument("--version", action="version", version=version_line(),
                    help="print the tooling version (and the vendored commit, if any) and exit")
     p.add_argument("--dry-run", action="store_true", help="print what would run; change nothing")

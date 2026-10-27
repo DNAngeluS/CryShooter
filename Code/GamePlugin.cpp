@@ -2,7 +2,7 @@
 #include "GamePlugin.h"
 
 #include "Components/Player.h"
-#include <crydebug/CryDebug.h>
+#include <plasmid/debug/Debug.h>
 
 #include <CrySchematyc/Env/IEnvRegistry.h>
 #include <CrySchematyc/Env/EnvPackage.h>
@@ -145,7 +145,7 @@ void CGamePlugin::OnSystemEvent(ESystemEvent event, UINT_PTR wparam, UINT_PTR lp
 	// Called when the game framework has initialized and we are ready for game logic to start
 	case ESYSTEM_EVENT_GAME_POST_INIT:
 	{
-		crydebug::Init();
+		Plasmid::Debug::Init();
 
 		// Listen for client connection events, in order to create the local player
 		if (gEnv->pGameFramework != nullptr)
@@ -182,7 +182,7 @@ void CGamePlugin::OnSystemEvent(ESystemEvent event, UINT_PTR wparam, UINT_PTR lp
 	break;
 
 	case ESYSTEM_EVENT_FULL_SHUTDOWN:
-		crydebug::Shutdown();
+		Plasmid::Debug::Shutdown();
 		break;
 
 	case ESYSTEM_EVENT_REGISTER_SCHEMATYC_ENV:

@@ -1,9 +1,9 @@
-<!-- when: writing or reading a project's cryengine-dev.config.json, or changing Tools/dev/dev.py -->
-# `cryengine-dev.config.json` — per-project config for `Tools/dev`
+<!-- when: writing or reading a project's plasmid.config.json, or changing plasmid_dev/cli.py -->
+# `plasmid.config.json` — per-project config for plasmid-dev
 
-One file at the project root. `Tools/dev/dev.py --project-dir <dir>` (the Makefile passes `$(CURDIR)`) reads it; nothing
+One file at the project root. `plas-dev --project-dir <dir>` (the Makefile passes `$(CURDIR)`) reads it; nothing
 project-specific lives in the tool. Plain JSON (no comments). Paths are relative to the project root unless noted.
-Every key below mirrors a constant that was hard-wired in FirstPersonShooter's `tools/dev.py` before 2026-10-18.
+Every key below mirrors a constant that was hard-wired in FirstPersonShooter's original runner before 2026-10-18.
 
 | Key | Type | Meaning (FPS value) |
 |---|---|---|
@@ -24,7 +24,7 @@ Every key below mirrors a constant that was hard-wired in FirstPersonShooter's `
 | `engines.<k>.compiler` | str | default compiler key |
 | `engines.<k>.presets` | map | compiler key -> CMake preset name |
 | `build_dirs` | map | preset name -> build dir override (`gcc9` -> `build/gcc`, the dir VS Code uses); default `build/<preset>` |
-| `services.<n>` | map | background service: `script` (project-relative, or a `Tools/dev` file via `"tool:<file>"`), `port` |
+| `services.<n>` | map | background service: `script` (project-relative, or a file of the `plasmid_dev` package via `"tool:<file>"`, e.g. `"tool:shader_server.py"`; the 1.x shader script name still resolves until 3.0), `port`, optional `args` (list of strings appended to the command, e.g. `["--dxc", "auto"]` for the shader server; unknown keys are an error) |
 | `python.venv` / `python.requirements` | str | optional; omit for projects without a Python toolchain |
 | `extra_verbs.<v>` | map | project-specific verbs: `help`, `python_module` **or** `python_script`, `fixed_args` (always passed first, e.g. `["tests/"]`), `default_args` (used only when the user passes no args after `--`, e.g. `["-q"]`) |
 | `shader_cache` | map | optional per-engine shader cache: `link` (project-relative dir the engine reads, `user/shaders/cache`) becomes a relative symlink to `<slots_dir>/<engine key>`, switched before every `run`/`debug` (refused while the game runs on another engine's slot). `slots_dir` (`user/shaders/cache-by-engine`) holds one slot per engine key. Enables the `shaders-status` verb; omit to leave the cache alone |
@@ -36,4 +36,4 @@ Rules: unknown keys are an error (typos must not pass silently); missing optiona
 (no `python` -> no `setup` venv step, no `extra_verbs` -> no `test`/`pipeline`). The Crytek root is found as the first
 ancestor of the project dir that contains `Engines/` (not by `parent.parent`).
 
-Env `CRY_DEV_CONFIG=<file>` makes the runner read that file instead of `<project>/cryengine-dev.config.json` (paths in it stay project-relative; the project dir is still `--project-dir`). For trying a config change, or a real-run gate with a modified config, without touching the project.
+Env `PLASMID_DEV_CONFIG=<file>` makes the runner read that file instead of `<project>/plasmid.config.json` (paths in it stay project-relative; the project dir is still `--project-dir`). For trying a config change, or a real-run gate with a modified config, without touching the project.

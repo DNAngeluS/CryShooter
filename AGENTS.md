@@ -60,9 +60,9 @@ jq '.seams[] | select(.id=="terrain-pipeline")' .memory/graph.json
 
 ## Dev commands (use these, not raw cmake)
 
-Run from the project root. `make help` lists everything; logic is in the generic runner `tools/cryengine-dev/dev.py`
-(stdlib Python). The runner is a VENDORED, numbered copy of the shared cryengine-dev tooling in `tools/cryengine-dev/` (committed here so a standalone clone works; pin: `tools_version` in the config, marker `tools/cryengine-dev/.vendored-from`). Never edit it here: change the tooling repo (`<Crytek>/Tools/dev`, tagged `vX.Y.Z`), then `python3 <Crytek>/Tools/dev/vendor.py --project-dir .`; `python3 tools/dev.py doctor` flags a mismatch or local edits. FPS settings live in `cryengine-dev.config.json` (schema: `tools/cryengine-dev/config-schema.md`).
-`tools/dev.py` and `tools/cry_shader_server.py` are 20-line forwarding shims, so `python3 tools/dev.py …` still works.
+Run from the project root. `make help` lists everything; logic is in the generic runner `tools/plasmid-dev/plas-dev`
+(stdlib Python). The runner is a VENDORED, numbered copy of the shared plasmid-dev tooling in `tools/plasmid-dev/` (committed here so a standalone clone works; pin: `tools_version` in the config, marker `tools/plasmid-dev/.vendored-from`). Never edit it here: change the tooling repo (`<Crytek>/Tools/plasmid-dev`, tagged `vX.Y.Z`), then `python3 <Crytek>/Tools/plasmid-dev/plasmid_dev/vendor.py --project-dir .`; `tools/plasmid-dev/plas-dev doctor` flags a mismatch or local edits. FPS settings live in `plasmid.config.json` (schema: `tools/plasmid-dev/config-schema.md`).
+There are no forwarding shims: `tools/dev.py` and `tools/cry_shader_server.py` were removed 2026-10-27. Use `make <target>` or `tools/plasmid-dev/plas-dev <command>`.
 
 | Do this | Command |
 |---|---|
@@ -71,14 +71,14 @@ Run from the project root. `make help` lists everything; logic is in the generic
 | pick the engine | `ENGINE=56` (default, CRYENGINE 5.6.7, gcc9) or `ENGINE=57` (5.7.1, gcc13): `make run ENGINE=57`. Paths: `CRYENGINE_DIR` (=56) / `CRYENGINE_DIR_57` in `.env` |
 | production build | `make release` |
 | play (starts shader server, launches game **in background**) | `make run` (returns at once) |
-| inspect state | `make status` (`python3 tools/dev.py status --json`) |
+| inspect state | `make status` (`tools/plasmid-dev/plas-dev status --json`) |
 | shader cache per engine, compile progress | `make shaders-status` |
 | read results | `make logs` (warnings/errors from `game.log`), or files in `.dev/logs/` |
 | crash investigation without a terminal UI | `make debug-batch TIMEOUT=120` → `.dev/logs/gdb.log` |
 | stop everything | `make stop` (idempotent) |
 | tests · asset pipeline | `make test` · `make pipeline ARGS="…"` |
 
-Rules for agents: never run `GameLauncher`, `gdb` or `cry_shader_server.py` directly in the foreground — use
+Rules for agents: never run `GameLauncher`, `gdb` or `shader_server.py` directly in the foreground — use
 `make run` / `make debug-batch` / `make up`. `run` and `debug` need a desktop session; if `make doctor` warns
 there is none, do not launch the game — build and test only. Always `make stop` when done. Commands print
 the exact underlying command line (`$ …`) and exit non-zero on failure.

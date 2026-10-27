@@ -1,9 +1,9 @@
 """Self-authored PFX2 particle-effect fixture (ported from the P0(d) spike make_pfx_fixture.py).
 
 write_pfx(out_dir, png_path, tag) writes two files and returns their paths, DDS first:
-  <out_dir>/Textures/snl_spark_<tag>.dds   BC3 texture from png_path (srgb=True)
-  <out_dir>/particles/snl_spark_<tag>.pfx  plain JSON effect (no trailing commas), every key the engine's schema shows
-The texture reference inside the .pfx is the game-relative string "Textures/snl_spark_<tag>.dds", whatever out_dir is.
+  <out_dir>/Textures/plasmid_spark_<tag>.dds   BC3 texture from png_path (srgb=True)
+  <out_dir>/particles/plasmid_spark_<tag>.pfx  plain JSON effect (no trailing commas), every key the engine's schema shows
+The texture reference inside the .pfx is the game-relative string "Textures/plasmid_spark_<tag>.dds", whatever out_dir is.
 The engine caches a failed lookup as null, so use a new tag for every variant within one game run.
 """
 
@@ -44,9 +44,9 @@ def effect_features(tag, tex):
 
 def write_pfx(out_dir, png_path, tag="a"):
     """Write the texture and the effect under out_dir; return [dds_path, pfx_path]."""
-    tex = f"Textures/snl_spark_{tag}.dds"
+    tex = f"Textures/plasmid_spark_{tag}.dds"
     w, h, px = read_png(png_path)
-    dds_path = os.path.join(out_dir, "Textures", f"snl_spark_{tag}.dds")
+    dds_path = os.path.join(out_dir, "Textures", f"plasmid_spark_{tag}.dds")
     os.makedirs(os.path.dirname(dds_path), exist_ok=True)
     write_dds(dds_path, w, h, px, "bc3", srgb=True)
 
@@ -55,7 +55,7 @@ def write_pfx(out_dir, png_path, tag="a"):
                                          "Features": effect_features(tag, tex)}}]}
     pfx_dir = os.path.join(out_dir, "particles")
     os.makedirs(pfx_dir, exist_ok=True)
-    pfx_path = os.path.join(pfx_dir, f"snl_spark_{tag}.pfx")
+    pfx_path = os.path.join(pfx_dir, f"plasmid_spark_{tag}.pfx")
     with open(pfx_path, "w") as f:
         f.write(json.dumps(eff, indent=1) + "\n")
     return [dds_path, pfx_path]

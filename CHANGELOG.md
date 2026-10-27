@@ -13,6 +13,8 @@ entries are grouped by **milestone** (dated) instead of version numbers.
 
 ## [Unreleased]
 
+### Breaking / may break (2026-10-27)
+- **Plasmid rename (DEC-05): tooling re-vendored under the new names.** `tools/cryengine-dev/` -> `tools/plasmid-dev/` (plasmid-dev 2.0.0, launcher `tools/plasmid-dev/plas-dev`, package `plasmid_dev`, env `PLASMID_DEV_*`); `cryengine-dev.config.json` -> `plasmid.config.json`; `tools/cry-assets/` -> `tools/plasmid-assets/` (plasmid-assets 0.6.0, package `plasmid_assets`, launcher `plas-assets`); `tools/cry-debug` -> `tools/plasmid-debug` (plasmid-debug 0.1.0, `Plasmid::Debug`, `plasmid_debug_*` console commands). The `tools/dev.py` and `tools/cry_shader_server.py` shims are removed: use `make <target>` or `tools/plasmid-dev/plas-dev <command>`; the shader server is `tools/plasmid-dev/plasmid_dev/shader_server.py` (the VS Code task points there). Not yet gated by a real build and launch.
 ### Fixed (2026-10-24)
 - `terrain.dat` writer: appends the empty object-tree chunk and pads with 0xDE like Sandbox, so 512 m levels load (OF-09). New `procgen/terrain_dat_parser.py`, validator check and `fix-terrain` verb; `fps_forest_basin/level.pak` patched. **May break:** none for 1024 m levels (same frame); levels built before this change must be passed through `fix-terrain` if they are 512 m.
 - Generated textures also get a runtime `.dds` (vendored `tools/cry-assets` 0.2.0); layer materials reference it (the engine cannot load PNG material textures). `fps_forest_basin` and `fps_tech_ruins_interior` regenerated.

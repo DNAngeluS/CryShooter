@@ -195,7 +195,7 @@
 			"label": "Start Shader Server",
 			"type": "shell",
 			"command": "python3",
-			"args": ["${workspaceFolder}/tools/cry_shader_server.py"],
+			"args": ["${workspaceFolder}/tools/plasmid-dev/plasmid_dev/shader_server.py"],
 			"options": {
 				"env": {
 					"CRYENGINE_DIR": "${config:cryengineDir}"

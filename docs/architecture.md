@@ -40,7 +40,7 @@ The full workflow, node types and constraints are in the [Asset pipeline guide](
 
 CMake + Ninja with three supported compilers (GCC 9 by default, GCC 14, Clang). The engine location is
 supplied through the `CRYENGINE_DIR` environment variable — see the [project README](../README.md).
-An optional helper, `tools/cry_shader_server.py`, compiles Vulkan shaders through Wine + DXC when
+An optional helper, `tools/plasmid-dev/plasmid_dev/shader_server.py`, compiles Vulkan shaders through Wine + DXC when
 the engine's own compiler is unavailable on Linux.
 
 ## What is not covered yet

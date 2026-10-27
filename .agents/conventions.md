@@ -21,8 +21,8 @@ Enforcer in brackets: **[CI]** automated, **[test]** a pytest asserts it, **[soc
 - Terrain texture hmap layer pixel is always `bytes([128,128,0,0])`; default ocean level is `-100`; default env preset is `%ENGINE%/EngineAssets/Shading/default.env`. [test, partly]
 
 ## Dev workflow
-- Build/run/debug through `make` targets (`tools/dev.py`), never ad-hoc cmake or a foreground `GameLauncher`. [social]
-- New dev verbs go into `tools/dev.py` first, then get a one-line `Makefile` target. [social]
+- Build/run/debug through `make` targets (`tools/plasmid-dev/plas-dev`), never ad-hoc cmake or a foreground `GameLauncher`. [social]
+- New dev verbs go into the plasmid-dev tool repo (`Tools/plasmid-dev`) first, then get a one-line `Makefile` target. [social]
 - Milestones and anything that may break a setup get a `CHANGELOG.md` entry. [social]
 
 ## Git

@@ -5,6 +5,7 @@ decoder, and returns True only if every check passes. The input is opened 'rb' a
 Stdlib only.
 """
 
+import math
 import struct
 
 # ChunkTypes enum: CryCommon/Cry3DEngine/CGF/CryHeaders.h:16-68
@@ -466,3 +467,69 @@ def dump(path):
         len(chunks), decoded, "all checks passed" if all_ok else "PROBLEMS FOUND"))
     print()
     return all_ok
+
+
+# ---------------------------------------------------------------- bounds (read-only, used by terrain brushes)
+
+class CgfBoundsError(ValueError):
+    """The file is not a .cgf whose vertex bounds can be read; the message says why."""
+
+
+def mesh_bounds(path):
+    """Min and max of the POSITIONS of every Mesh chunk in a 0x746 .cgf, as ((x, y, z), (x, y, z)) floats.
+
+    Reads the Mesh chunk (MESH_CHUNK_DESC_0801, the same layout decode_mesh uses), follows its POSITIONS stream id
+    to the DataStream chunk and reads the vertices: float32 (element size 12) or half-float Vec3f16 stored as CryHalf4
+    (element size 8). Read-only. Raises CgfBoundsError for anything it cannot read exactly; it never guesses a box."""
+    with open(path, "rb") as f:
+        data = f.read()
+    try:
+        hdr, chunks = parse_container(data)
+    except (ValueError, struct.error) as exc:
+        raise CgfBoundsError("%s: not a readable .cgf container: %s" % (path, exc))
+    if hdr["format"] != "0x746":
+        raise CgfBoundsError("%s: %s container, only the 0x746 format has vertex bounds here" % (path, hdr["format"]))
+    by_id = {}
+    for c in chunks:
+        by_id.setdefault(c.cid, c)
+    meshes = [c for c in chunks if c.ctype == T_MESH]
+    if not meshes:
+        raise CgfBoundsError("%s: no Mesh chunk" % path)
+    lo = [float("inf")] * 3
+    hi = [float("-inf")] * 3
+    for m in meshes:
+        if m.version != 0x801 or m.offset + m.size > len(data) or m.size < 264:
+            raise CgfBoundsError("%s: Mesh chunk %d has version 0x%x or size %d, not MESH_CHUNK_DESC_0801"
+                                 % (path, m.index, m.version, m.size))
+        e = ">" if m.be else "<"
+        v = struct.unpack_from(e + "7i16i4i6f2f31i", data, m.offset)
+        n_verts, pos_cid = v[2], v[7]
+        if n_verts <= 0:
+            raise CgfBoundsError("%s: Mesh chunk %d has no vertices" % (path, m.index))
+        if pos_cid <= 0:
+            raise CgfBoundsError("%s: Mesh chunk %d has no POSITIONS stream" % (path, m.index))
+        ds = by_id.get(pos_cid)
+        if ds is None or ds.ctype != T_DATASTREAM or ds.offset + ds.size > len(data) or ds.size < 24:
+            raise CgfBoundsError("%s: POSITIONS stream id %d is not a DataStream chunk in the file" % (path, pos_cid))
+        de = ">" if ds.be else "<"
+        n_flags, stype, count, esize = struct.unpack_from(de + "4i", data, ds.offset)
+        if stype != 0 or count != n_verts:
+            raise CgfBoundsError("%s: POSITIONS stream has type %d and %d elements, Mesh has %d vertices"
+                                 % (path, stype, count, n_verts))
+        if esize == 12:
+            fmt = de + "3f"
+        elif esize == 8:
+            fmt = de + "4e"
+        else:
+            raise CgfBoundsError("%s: POSITIONS element size %d is neither float32 (12) nor half (8)" % (path, esize))
+        if 24 + count * esize > ds.size:
+            raise CgfBoundsError("%s: POSITIONS stream does not fit its chunk" % path)
+        base = ds.offset + 24
+        for i in range(count):
+            p = struct.unpack_from(fmt, data, base + i * esize)[:3]
+            for k in range(3):
+                if not math.isfinite(p[k]):
+                    raise CgfBoundsError("%s: non-finite vertex position" % path)
+                lo[k] = min(lo[k], p[k])
+                hi[k] = max(hi[k], p[k])
+    return tuple(lo), tuple(hi)

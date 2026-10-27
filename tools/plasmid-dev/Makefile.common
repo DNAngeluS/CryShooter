@@ -1,19 +1,19 @@
 # Generic dev menu shared by every CRYENGINE project in this workspace.
 # Included by <project>/Makefile, which adds its project-specific targets. Run `make help` for the list.
-# Per-project settings: <project>/cryengine-dev.config.json (see Tools/dev/config-schema.md).
+# Per-project settings: <project>/plasmid.config.json (see config-schema.md in the plasmid-dev tool root).
 
 # Must stay the first statement: until another include runs, the last MAKEFILE_LIST entry is this file.
 DEV_TOOLS    := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 PY           ?= python3
 PROJECT_DIR  ?= $(CURDIR)
-# An exported-but-empty ENGINE passes no --engine flag (dev.py uses the config's default_engine).
-# Bad values are rejected by dev.py's argparse (exit 2).
-DEV          = $(PY) $(DEV_TOOLS)/dev.py --project-dir $(PROJECT_DIR) $(if $(ENGINE),--engine $(ENGINE))
+# An exported-but-empty ENGINE passes no --engine flag (plas-dev uses the config's default_engine).
+# Bad values are rejected by plas-dev's argparse (exit 2). PY is the interpreter plas-dev runs under.
+DEV          = PLASMID_DEV_PYTHON=$(PY) $(DEV_TOOLS)/plas-dev --project-dir $(PROJECT_DIR) $(if $(ENGINE),--engine $(ENGINE))
 COMPILER     ?=
 TYPE         ?= Debug
 ARGS         ?=
-# COMPILER defaults per engine in dev.py (config engines.<key>.compiler)
+# COMPILER defaults per engine in plas-dev (config engines.<key>.compiler)
 OPTS         := $(if $(COMPILER),--compiler $(COMPILER)) --type $(TYPE)
 
 .DEFAULT_GOAL := help

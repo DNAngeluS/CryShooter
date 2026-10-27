@@ -1,8 +1,8 @@
 <!-- when: configuring, building, running or debugging the C++ plugin (libGamePlugin.so) -->
 # Build, run, debug the plugin
 
-**Use `make` first** (`make help`; implemented in the generic `tools/cryengine-dev/dev.py`, with FPS settings in
-`cryengine-dev.config.json`; `tools/dev.py` is a forwarding shim): `make setup`, `make build`, `make run`,
+**Use `make` first** (`make help`; implemented in the generic `tools/plasmid-dev/plas-dev`, with FPS settings in
+`plasmid.config.json`): `make setup`, `make build`, `make run`,
 `make debug-batch`, `make status`, `make shaders-status`, `make logs`, `make stop`. It wraps the presets in `Code/CMakePresets.json`
 (build dirs `build/gcc`, `build/gcc13`, `build/gcc14`, `build/clang`), reads `.env` itself, starts the shader server, and logs
 to `.dev/logs/`. The manual commands below are the reference for what it runs and for the gotchas.
@@ -75,7 +75,7 @@ Console `goto x y z [yaw [pitch]]` teleports the player; bare `goto` logs the po
 
 ## Optional: remote shader compiler
 
-`python3 tools/cry_shader_server.py` (Wine + DXC; shim, real file `tools/cryengine-dev/cry_shader_server.py`), then in `system.cfg`:
+`python3 tools/plasmid-dev/plasmid_dev/shader_server.py` (Wine + DXC; vendored with plasmid-dev), then in `system.cfg`:
 `r_ShadersRemoteCompiler=1`, `r_ShaderCompilerServer=127.0.0.1`, `r_VkShaderCompiler=DXC`.
 
 > **Caveat (2026-10-18):** launching from VS Code (F5 / `launch.json` with preLaunchTask "CMake Build", or running GameLauncher directly) bypasses `make run`, so the per-engine shader-cache link is NOT switched. After using VS Code, or on first use of an engine, run `make shaders-status`; a cold cache can reappear and look like T2 failed. Use `make run ENGINE=56|57` / `make debug` to get the right slot.

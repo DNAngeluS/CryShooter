@@ -1,0 +1,30 @@
+{
+  "tool": "plasmid-assets",
+  "version": "0.6.0",
+  "tag": "v0.6.0",
+  "commit": "b2d5986a3c2fc4e94a17da2bd43bd57c534ae574",
+  "vendored_at": "2026-10-27T23:30:02Z",
+  "source": "Tools/plasmid-assets",
+  "note": "vendored tagged copy (tests not included); never edit here, release a new tag in Tools/plasmid-assets and re-vendor",
+  "files": {
+    "AGENTS.md": "4065494a1b4d5d1f52828653365844e4748ba412c56bbeb60757bc98d5180b83",
+    "CHANGELOG.md": "b02323ef49ef6aa51b3e03f403751e114fd5c510f77f98282643c7fee26c8e76",
+    "README.md": "7e1e22e66b49fe0f69ba84aa9f5d94c05e840e4bec3deb3c2298445082eb3702",
+    "VERSION": "97a5d6e540a6120d09c39ddb667e0e8e2bac7fcc2ffef813b82e08fd60365bce",
+    "plas-assets": "5cfb13b7481877d35fba2396a4e7dd379928c508fb6ec7ef8758a395ef6d2180",
+    "plasmid_assets/__init__.py": "f06c5bfa481663d355aeb66b0f89666a8f4d3e2393dd2f23174bbc526053cde4",
+    "plasmid_assets/__main__.py": "f6d636d66ae7b88e2f5e551d417fa94b568d28af8397cfd2158b7bc5b13b595f",
+    "plasmid_assets/audio.py": "385c4fe785aa053d0dd2e49c92bfd5c03fc37bf70c63250bf995fdcef9cc9010",
+    "plasmid_assets/cache.py": "01ac78a540b1d79491140f9196d58e147fd3ccfaec21381f3e5ce27e2bfb1e5b",
+    "plasmid_assets/cgf.py": "407602336959f0b320ca44de64f66b32ccc8a6ccf374e55c1c1960158339448f",
+    "plasmid_assets/cgf_dump.py": "4e84628c6ebaeaf4511213d2408da69064f12e2ace7b90398e09d7e32fbb40ff",
+    "plasmid_assets/cli.py": "1f11ddfb240f0654d9f8650814c4b371e431e48708c6e3ced091b0f5a4b2c2e4",
+    "plasmid_assets/dds.py": "42286f8907bce6f1c270e78aeb368e33c8e2b609f81c76d7c16ee9d3544cab36",
+    "plasmid_assets/gltf.py": "b88c0e849e1b6a12192915c3f586317a0b6eda393a165e23653afb3e50d7e280",
+    "plasmid_assets/heightmap.py": "ef1fb0852029e5995075c4d26707a98f81c665e0203d0c169afff1dc155c5205",
+    "plasmid_assets/pfx.py": "c44344eca7e322b53a211fb50b698f9f7f8d6a168eee3e32bf4458b0e90a2b6c",
+    "plasmid_assets/png.py": "93c0c8e598f3508d724b059d5e9b8fecda734e71af2261d41e450a914a6e1d2e",
+    "plasmid_assets/schematyc.py": "595bef8418eeda80637004fc12d262ab815bcb7e4276494edf694d854366982b",
+    "plasmid_assets/terrain.py": "27df15a0d6bc1f5c3b5ea7c8e3e2e7e020d9447bd5ad7fdd830d98d3d38fef36"
+  }
+}

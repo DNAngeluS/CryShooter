@@ -1,0 +1,10 @@
+#!/bin/sh
+# plas-dev: run the Plasmid dev runner (package plasmid_dev) from this checkout or a vendored copy.
+# Location-independent: the package is found next to this file, whatever the working directory.
+# PLASMID_DEV_PYTHON picks the interpreter (default: python3).
+self=$(readlink -f -- "$0" 2>/dev/null) || self=$0
+here=$(cd -- "$(dirname -- "$self")" && pwd) || exit 1
+PYTHONPATH=$here
+PYTHONSAFEPATH=1
+export PYTHONPATH PYTHONSAFEPATH
+exec "${PLASMID_DEV_PYTHON:-python3}" -m plasmid_dev "$@"

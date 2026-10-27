@@ -40,7 +40,7 @@
   },
   "services": {
     "shader": {
-      "script": "tool:cry_shader_server.py",
+      "script": "tool:shader_server.py",
       "port": 61453
     }
   },
@@ -92,5 +92,5 @@
       "failed": "\\[Screenshot\\] FAILED (?P<reason>.*)"
     }
   },
-  "tools_version": "1.2.0"
+  "tools_version": "2.0.0"
 }

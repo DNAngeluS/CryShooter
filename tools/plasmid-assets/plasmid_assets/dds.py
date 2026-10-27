@@ -1,4 +1,4 @@
-"""DDS writer and block decoders for cry_assets (ported from the P0(f) spike; logic unchanged).
+"""DDS writer and block decoders for plasmid_assets (ported from the P0(f) spike; logic unchanged).
 
 write_dds(path, w, h, px, fmt, ...) writes a monolithic DDS with a legacy 128-byte header from RGBA
 pixels. Formats: rgba8, bc1, bc3, bc5. decode_mip0 is an independent decoder used by the tests.
