@@ -121,3 +121,6 @@ Screenshots/
 
 # Dev runner state (pids, logs)
 .dev/
+
+# Private engine runtime copy (make private-sync); large, local
+.engine-private/

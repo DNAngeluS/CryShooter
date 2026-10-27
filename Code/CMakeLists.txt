@@ -18,6 +18,10 @@ include("${TOOLS_CMAKE_DIR}/Configure.cmake")
 get_filename_component(_bin_subdir "${OUTPUT_DIRECTORY}" NAME)
 set(GAME_ENGINE_BIN_DIR "${CRYENGINE_DIR}/bin/${_bin_subdir}")
 
+# crydebug: debug kit (symlink/vendored copy under tools/cry-debug)
+set(CRYDEBUG_DIR "${CMAKE_SOURCE_DIR}/../tools/cry-debug")
+include("${CRYDEBUG_DIR}/cmake/crydebug.cmake")
+
 start_sources()
 
 sources_platform(ALL)
@@ -40,6 +44,12 @@ add_sources("Components_uber.cpp"
         "Components/Bullet.h"
 )
 
+add_sources("CryDebug_uber.cpp"
+    PROJECTS GamePlugin
+    SOURCE_GROUP "CryDebug"
+        ${CRYDEBUG_SOURCES}
+)
+
 end_sources()
 
 CryEngineModule(GamePlugin PCH "StdAfx.cpp" SOLUTION_FOLDER "Project")
@@ -50,6 +60,7 @@ target_include_directories(${THIS_PROJECT} SYSTEM PRIVATE
     "${CRYENGINE_DIR}/Code/CryEngine/CrySchematyc/Core/Interface"
     "${CRYENGINE_DIR}/Code/CryPlugins/CryDefaultEntities/Module"
 )
+target_include_directories(${THIS_PROJECT} PRIVATE "${CRYDEBUG_INCLUDE_DIR}")
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "[Cc]lang")
     target_compile_options(${THIS_PROJECT} PRIVATE

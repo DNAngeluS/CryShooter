@@ -1,7 +1,7 @@
 {
   "when": "you need to pick up work, report progress, or estimate what is left",
   "backend": "local",
-  "updated": "2026-10-14",
+  "updated": "2026-10-26",
   "epics": [
     {
       "id": "E-01",
@@ -38,6 +38,18 @@
       ],
       "file": "epics/E-03.md",
       "updated": "2026-10-03"
+    },
+    {
+      "id": "E-04",
+      "title": "Debug kit (Tools/cry-debug) and private engine runtime",
+      "goal": "FPS runs on a private Debug engine copy and a shared crydebug lib provides debug views, console extension, pause, free camera, sky/weather debugging",
+      "status": "in-progress",
+      "components": [
+        "code",
+        "tools"
+      ],
+      "file": "epics/E-04.md",
+      "updated": "2026-10-26"
     }
   ]
 }
