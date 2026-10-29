@@ -6,6 +6,7 @@ Subcommands:
   cgf-write  <preset> <out.cgf> [--position-format {f32,f16}]
   cgf-dump   <file.cgf> [...]
   gltf2cgf   <in.gltf|in.glb> <out_dir> [--name NAME] [--scale S] [--game-dir DIR]
+  gltf2chr   <in.gltf|in.glb> <out_dir> --game-dir DIR [--name NAME] [--scale S]   (skinned: .chr .skin .caf .cdf .chrparams .mtl)
   pfx-write  <out_dir> --png <in.png> [--tag a]
   schematyc-write <out_dir> [--name plasmid_probe] [--variant ok] [--mesh-file PATH]
   audio-write <out_dir>
@@ -25,7 +26,7 @@ import math
 import os
 import sys
 
-from . import audio, cgf, cgf_dump, gltf, heightmap, pfx, schematyc, terrain
+from . import audio, cgf, cgf_dump, gltf, heightmap, pfx, schematyc, skin, terrain
 from .cache import write_dds_cached
 from .png import read_png
 
@@ -90,6 +91,17 @@ def _gltf2cgf(a):
                     subsets=len(r["subsets"]), materials_in_source=len(r["materials"]),
                     aabb=[[min(xs), min(ys), min(zs)], [max(xs), max(ys), max(zs)]],
                     textures=textures, material=mtl_name, warnings=r["warnings"])
+    print(json.dumps(manifest, indent=1))
+    return 0
+
+
+def _gltf2chr(a):
+    name = a.name or os.path.splitext(os.path.basename(a.src))[0]
+    try:
+        manifest = skin.convert_skin(a.src, a.out_dir, a.game_dir, name, a.scale, a.jobs, a.cache_dir)
+    except (gltf.GltfError, skin.SkinError) as e:
+        print("gltf2chr: " + str(e), file=sys.stderr)
+        return 2
     print(json.dumps(manifest, indent=1))
     return 0
 
@@ -252,7 +264,7 @@ def _terrain_check(a):
 def build_parser():
     ap = argparse.ArgumentParser(prog="plas-assets", description="CRYENGINE asset tools (stdlib only).")
     sub = ap.add_subparsers(dest="cmd", required=True,
-                            metavar="{png2dds,cgf-write,cgf-dump,gltf2cgf,pfx-write,schematyc-write,audio-write,"
+                            metavar="{png2dds,cgf-write,cgf-dump,gltf2cgf,gltf2chr,pfx-write,schematyc-write,audio-write,"
                                     "terrain-write,terrain-check,cgf-bounds,terrain-sample}")
 
     p = sub.add_parser("png2dds", help="PNG -> DDS (rgba8, bc1, bc3, bc5)")
@@ -288,13 +300,24 @@ def build_parser():
     p.add_argument("--name")
     p.add_argument("--scale", type=float, default=1.0)
     p.add_argument("--game-dir",
-                   help="game-relative folder the output will live in (e.g. Objects/snl_test); "
+                   help="game-relative folder the output will live in (e.g. Objects/plasmid_test); "
                         "writes a .mtl and links the cgf to it")
     p.add_argument("--jobs", type=int, default=1,
                    help="encode textures in N worker processes (default 1; 0 = all CPUs); output is identical")
     p.add_argument("--cache-dir", default=None,
                    help="content-hash cache of finished DDS files in this directory (no cache when absent)")
     p.set_defaults(func=_gltf2cgf)
+
+    p = sub.add_parser("gltf2chr", help="import a skinned glTF/GLB: .chr .skin .caf .cdf .chrparams .mtl + textures, JSON manifest")
+    p.add_argument("src")
+    p.add_argument("out_dir")
+    p.add_argument("--game-dir", required=True,
+                   help="game-relative folder the output will live in (e.g. Objects/plasmid_skin); written into the .cdf/.chrparams/.mtl")
+    p.add_argument("--name")
+    p.add_argument("--scale", type=float, default=1.0)
+    p.add_argument("--jobs", type=int, default=1)
+    p.add_argument("--cache-dir", default=None)
+    p.set_defaults(func=_gltf2chr)
 
     p = sub.add_parser("pfx-write", help="write a PFX2 particle effect and its BC3 texture; JSON list of paths on stdout")
     p.add_argument("out_dir")

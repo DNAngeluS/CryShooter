@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.8.2 - 2026-10-28 - Real models; 0.8.1's tangent change reverted
+
+- REVERTED: 0.8.1 negated the tangent frame handedness of skins. That was a mistake: it only compensated for a test rig whose triangles were wound against its normals (the engine then lights the inside faces of the far wall). The tangent frame of a skin is the static one again (`cgf.py`), a test pins it. If you vendored 0.8.1, re-vendor 0.8.2; output of 0.8.1 renders inverted on correctly wound models.
+- Added: a warning when most triangles are wound against their vertex normals ("the engine will light the inside faces"), the symptom being a black or inverted skin.
+- Fixed with real models (Khronos RiggedFigure, RiggedSimple, Fox, all CC-BY 4.0, downloaded for the test, not stored): skinning to the bind pose now follows glTF (`joint_world * inverseBind * v`, in the scene's world space): a model whose skeleton and mesh hang under a rotated node (RiggedFigure's `Z_UP`) was lying on its back; joints defined by `matrix` (RiggedSimple) are decomposed instead of refused; a primitive without NORMAL (Fox) gets smooth normals. Still refused: JPEG textures (CesiumMan), the importer reads PNG only.
+- A skeleton whose root joint is rotated by such a parent now gets the synthetic `root` bone (the engine wants the root near identity).
+- Engine-verified from frames: a real skinned model drawn, lit, animated (plasmid-mcp 0.2.3).
+
+## 0.8.1 - 2026-10-28 - Skinned meshes: tangent frame handedness
+
+- Fix: a skin written by `gltf2chr` rendered black in the engine (lit by no light, sun included) because the engine derives a skin's normal from the tangent frame with the opposite sign of a static mesh, so every normal pointed inward. The TANGENTS stream of `.skin` and `.chr` now carries the negated handedness. Found by looking at the engine's normals debug view (`r_DebugGBuffer 1`): after the change the four faces of the test column read outward as expected (-Y (125,0,128), +X (255,123,128), +Y (130,255,127), -X (0,132,127)), and a real skinned character rendered lit beside it in the same scene. Static `.cgf` output is unchanged. A test pins the sign.
+- Engine-proven visually (plasmid-mcp 0.2.2 `examples/chr_proof.py`): the converted character is drawn, lit, and animated by the engine.
+
+## 0.8.0 - 2026-10-28 - Skinned characters: gltf2chr
+
+- New command `gltf2chr <in.gltf|in.glb> <out_dir> --game-dir DIR [--name NAME] [--scale S] [--jobs N] [--cache-dir DIR]` and module `plasmid_assets.skin`: a glTF skin becomes the compiled character files the engine loads without RC: `<name>.chr` (skeleton and a one-triangle proxy mesh), `<name>.skin` (mesh, bone mapping, bone boxes), `<name>.cdf`, `<name>.chrparams` (with `#filepath`, because a bare animation path is looked up under `animations/`), `<name>_<animation>.caf` per glTF animation (uncompressed controllers, 30 Hz, positions in cm), `<name>.mtl` and the textures. Prints a JSON manifest.
+- Engine-proven (5.6.7, log-asserted in plasmid-mcp 0.2.1 `examples/chr_proof.py`): bone names, parents and bind positions, skin vertex count, animation set size, and the animated joint position and rotation at three sample times. The bone chunk bytes are pinned by a test to the hand-built rig the engine loaded in the spike.
+- Rules: bones are written parents-first with children contiguous; a synthetic `root` bone at the origin is added when the skin has several roots or the root is rotated more than about 8 degrees (the engine refuses such a skeleton); the root joint's animation keys are root motion in the engine and are replaced by its bind pose (with a warning); weights are 4 per vertex, u8, summing to 255.
+- Refused with `SkinError` (exit 2, `gltf2chr: ...`): more than one skin, JOINTS_1/WEIGHTS_1, morph targets, cubic-spline animation, non-rigid (scaled) bind poses, more than 32767 vertices, a skinned primitive without NORMAL.
+- The static `gltf2cgf` still refuses skinned input, as before.
+- Not covered yet: LODs, physics proxies, per-vertex colours, scale animation beyond passing the key through, animations on non-joint nodes. A character was not drawn in the probe, so lighting and visuals are unproven (see the sandbox TASK-sandboxllm-mcp-24).
+
+## 0.7.0 - 2026-10-27 - Fixture folders follow the Plasmid naming rule
+
+- Game-relative fixture folders `Objects/snl_3p/...` and `Objects/snl_test/...` become `Objects/plasmid_3p/...` and `Objects/plasmid_test/...` in the schematyc-write default mesh (`DEFAULT_MESH_FILE`), the CLI help and the terrain brush docs. A host project must rename its own fixture folders to match (assets on disk are not touched by this tool).
+- No other behaviour change.
+
 ## 0.6.0 - 2026-10-27 - Renamed to plasmid-assets
 
 - Package `cry_assets` is now `plasmid_assets`. Import path: `from plasmid_assets import png`; module run: `python3 -m plasmid_assets`.

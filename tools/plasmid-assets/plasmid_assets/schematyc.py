@@ -14,7 +14,7 @@ GUIDs come from uuid.uuid4() and are therefore different on every run (the spike
 import os
 import uuid
 
-DEFAULT_MESH_FILE = "Objects/snl_test/uvquad.cgf"
+DEFAULT_MESH_FILE = "Objects/plasmid_test/uvquad.cgf"
 ENTITY_ENV_CLASS = "be845278-0dd2-409f-b8be-97895607c256"
 # OF-20: a ComponentInstance (Mesh, DefaultComponents StaticMeshComponent.h:51) as a sibling of Base under root. Layout from
 # ScriptComponentInstance.cpp:97-122 (typeGUID + properties); FilePath is a GeomFileName (string). badtype = unknown typeGUID.

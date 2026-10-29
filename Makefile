@@ -28,7 +28,7 @@ PRIVATE_ENV    := CRYENGINE_DIR=$(PRIVATE_ENGINE) CRYENGINE_DIR_56=$(PRIVATE_ENG
 .PHONY: private-sync deploy-private run-private private-status
 private-sync: ## (re)copy the shared engine runtime into .engine-private (real copies; keeps our plugin)
 	mkdir -p $(PRIVATE_ENGINE)
-	rsync -a --exclude=libGamePlugin.so --exclude=libSandboxLLMPlugin.so $(SHARED_ENGINE)/bin $(PRIVATE_ENGINE)/
+	rsync -a --exclude=libGamePlugin.so --exclude=libSandboxLLMPlugin.so --exclude=libPlasmidMcpPlugin.so $(SHARED_ENGINE)/bin $(PRIVATE_ENGINE)/
 	rsync -a $(SHARED_ENGINE)/Engine $(PRIVATE_ENGINE)/
 	ln -sfn Engine $(PRIVATE_ENGINE)/engine
 	cp --remove-destination $(SHARED_ENGINE)/system.cfg $(SHARED_ENGINE)/cryengine.cryengine $(PRIVATE_ENGINE)/

@@ -241,7 +241,7 @@ def _brush_cgf_name(name) -> str:
 
 def normalize_brushes(brushes) -> list:
     """Validate a brush list and fill the defaults. Input items are dicts with keys:
-      cgf          str, path of a .cgf relative to the assets directory, e.g. "Objects/snl_3p/box.cgf" (required)
+      cgf          str, path of a .cgf relative to the assets directory, e.g. "Objects/plasmid_3p/box.cgf" (required)
       pos          [x, y, z] world position in metres (required); the matrix translation
       rot          [w, x, y, z] unit quaternion (default identity [1, 0, 0, 0]); must be unit length within 1e-6
       scale        a number or [sx, sy, sz], each > 0 (default 1); column j of the rotation is scaled by sx/sy/sz

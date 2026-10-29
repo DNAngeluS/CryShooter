@@ -15,6 +15,7 @@ and it does not read files outside its own directory.
 | `cgf-write <preset> <out.cgf> [--position-format {f32,f16}]` | Writes a static-mesh `.cgf` from a built-in preset (`box10`, `tri`). |
 | `cgf-dump <file.cgf> [...]` | Read-only dump of the chunk table and decoded chunks. Exit 0 only if every check passes. |
 | `gltf2cgf <in.gltf\|in.glb> <out_dir> [--name NAME] [--scale S] [--game-dir DIR] [--jobs N] [--cache-dir DIR]` | Imports the default scene's triangles into `<out_dir>/<name>.cgf`, converts the referenced PNGs to DDS, and prints a JSON manifest on stdout. `--game-dir` also writes a `.mtl`. `--jobs` converts independent textures in N processes (default 1, 0 = all CPUs); `--cache-dir` as for `png2dds`. |
+| `gltf2chr <in.gltf\|in.glb> <out_dir> --game-dir DIR [--name NAME] [--scale S] [--jobs N] [--cache-dir DIR]` | Imports a skinned glTF (one skin) into `<name>.chr`, `.skin`, `.cdf`, `.chrparams`, one `.caf` per animation, `.mtl` and textures; prints a JSON manifest. Exit 2 with `gltf2chr: <message>` when the input cannot be expressed. |
 | `pfx-write <out_dir> --png <in.png> [--tag a]` | Writes `<out_dir>/Textures/plasmid_spark_<tag>.dds` (BC3, sRGB, from the PNG) and `<out_dir>/particles/plasmid_spark_<tag>.pfx` (PFX2 effect JSON). The tag letter selects the feature family (a to g). Prints a JSON list of the two paths. |
 | `schematyc-write <out_dir> [--name plasmid_probe] [--variant ok] [--mesh-file PATH]` | Writes `<out_dir>/<name>.schematyc_ent`. Variants: `ok`, `truncated`, `badguid`, `mesh`, `badtype`, `multi`, `light`. `--mesh-file` is the FilePath written into the Mesh component. Prints a JSON list. |
 | `audio-write <out_dir>` | Writes `<out_dir>/sdlmixer/assets/plasmid_beep.wav` (2 s, 440 Hz, 22.05 kHz mono s16) and `<out_dir>/sdlmixer/ace/plasmid_test.xml` (ATL control file, trigger `Play_plasmid_beep`). Prints a JSON list. |
@@ -59,7 +60,7 @@ The template `terrain/cover.ctc` kept in a level pak is tied to the template siz
 `brushes.json` is a list of objects; at most 4096 entries:
 
 ```
-[{"cgf": "Objects/snl_3p/box.cgf", "pos": [1725, 357, 68], "rot": [1, 0, 0, 0], "scale": 1, "material_id": -1}]
+[{"cgf": "Objects/plasmid_3p/box.cgf", "pos": [1725, 357, 68], "rot": [1, 0, 0, 0], "scale": 1, "material_id": -1}]
 ```
 
 - `cgf` (required): the .cgf path relative to `--assets-dir`, ASCII, `/` separators, no empty or `..` part, ending in

@@ -5,12 +5,6 @@
   "generated": "2026-10-03",
   "files": [
     {
-      "path": "dev.py",
-      "role": "route",
-      "does": "dev command runner: build, services, run/debug, logs, status, test, pipeline passthrough (called by ../Makefile); removed 2026-10-27 (was a forwarding shim); the runner is now tools/plasmid-dev/plas-dev",
-      "loc": 505
-    },
-    {
       "path": "../Makefile",
       "role": "route",
       "does": "make targets over tools/plasmid-dev/plas-dev (make help)"
@@ -26,12 +20,6 @@
       "role": "route",
       "does": "tracker CLI status/next/resume",
       "loc": 81
-    },
-    {
-      "path": "cry_shader_server.py",
-      "role": "service",
-      "does": "remote shader compile server over Wine+DXC (vendored from plasmid-dev: tools/plasmid-dev/plasmid_dev/shader_server.py)",
-      "loc": 247
     },
     {
       "path": "asset_pipeline/pipeline.py",

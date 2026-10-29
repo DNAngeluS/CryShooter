@@ -13,6 +13,9 @@ entries are grouped by **milestone** (dated) instead of version numbers.
 
 ## [Unreleased]
 
+### Changed (2026-10-28)
+- `tools/plasmid-assets` re-vendored from 0.6.0 to 0.8.2 (adds `gltf2chr` skinned characters, plasmid_* fixture folders; `dds_export.py` imports unchanged). The private-engine `rsync` in the Makefile now also excludes `libPlasmidMcpPlugin.so` (the sandbox plugin), next to the stale `libSandboxLLMPlugin.so`.
+
 ### Breaking / may break (2026-10-27)
 - **Plasmid rename (DEC-05): tooling re-vendored under the new names.** `tools/cryengine-dev/` -> `tools/plasmid-dev/` (plasmid-dev 2.0.0, launcher `tools/plasmid-dev/plas-dev`, package `plasmid_dev`, env `PLASMID_DEV_*`); `cryengine-dev.config.json` -> `plasmid.config.json`; `tools/cry-assets/` -> `tools/plasmid-assets/` (plasmid-assets 0.6.0, package `plasmid_assets`, launcher `plas-assets`); `tools/cry-debug` -> `tools/plasmid-debug` (plasmid-debug 0.1.0, `Plasmid::Debug`, `plasmid_debug_*` console commands). The `tools/dev.py` and `tools/cry_shader_server.py` shims are removed: use `make <target>` or `tools/plasmid-dev/plas-dev <command>`; the shader server is `tools/plasmid-dev/plasmid_dev/shader_server.py` (the VS Code task points there). Not yet gated by a real build and launch.
 ### Fixed (2026-10-24)
