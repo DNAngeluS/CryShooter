@@ -14,6 +14,7 @@ entries are grouped by **milestone** (dated) instead of version numbers.
 ## [Unreleased]
 
 ### Changed (2026-11-01)
+- **Default engine is now CRYENGINE 5.7.1** (`default_engine` "57" in `plasmid.config.json`; use `ENGINE=56` for 5.6.7). Gate on 5.7.1: `make build` (gcc13) and `make health` PASS (NVIDIA, shaders settled, 0 misses). The `private-*` targets stay on 5.6.7: they pass `--engine 56` and take the plugin from the 5.6.7 engine bin (run `make build ENGINE=56` first), because `./bin` holds whichever engine was built last. `run-private` verified: game from `.engine-private/ce-5.6.7`, `plasmid_debug_ping` answers.
 - All three shared tools are now **tagged vendored copies** with a `.vendored-from` marker: `tools/plasmid-dev` 2.0.0, `tools/plasmid-assets` 0.16.0 (was 0.8.2; FPS imports only `dds`, `gltf`, `png`, unchanged), `tools/plasmid-debug` 0.1.0 (a real copy; the symlink into `Tools/plasmid-debug` is gone, so a standalone clone builds). Vendored with `.agents/scripts/vendor_tool.py` of the Crytek domain (`--check` verifies a copy against its marker). Never edit these directories: change the tool repo, tag, re-vendor.
 - `Code/CMakeLists.txt`: `-DPLASMID_DEBUG_DIR=<Crytek>/Tools/plasmid-debug` builds the kit from its working tree (to develop the kit); the default is the vendored copy.
 - Gate: `make test` 72 passed, `make doctor` ok (vendored tooling unmodified), `make build` 5.6.7 from the vendored kit, `make health` PASS (NVIDIA, shaders settled, 0 misses).

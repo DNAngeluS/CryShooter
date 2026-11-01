@@ -22,7 +22,9 @@ pipeline: ## asset pipeline CLI; ARGS="create-job --kind level ..."
 # has no DXC), so run-private starts it from there and launches the game from the private copy.
 SHARED_ENGINE  ?= $(abspath $(CURDIR)/../../Engines/ce-5.6.7)
 PRIVATE_ENGINE ?= $(CURDIR)/.engine-private/ce-5.6.7
-PLUGIN_SO      := $(CURDIR)/bin/linux_x64_gcc/libGamePlugin.so
+# The plugin is taken from the shared engine's bin (where `make build ENGINE=56` deployed it), not from ./bin, which holds
+# whichever engine was built last. The private runtime is the 5.6.7 one (default engine is 5.7.1 since 2026-11-01).
+PLUGIN_SO      := $(SHARED_ENGINE)/bin/linux_x64_gcc/libGamePlugin.so
 PRIVATE_ENV    := CRYENGINE_DIR=$(PRIVATE_ENGINE) CRYENGINE_DIR_56=$(PRIVATE_ENGINE)
 
 .PHONY: private-sync deploy-private run-private private-status
@@ -34,12 +36,12 @@ private-sync: ## (re)copy the shared engine runtime into .engine-private (real c
 	cp --remove-destination $(SHARED_ENGINE)/system.cfg $(SHARED_ENGINE)/cryengine.cryengine $(PRIVATE_ENGINE)/
 	@echo "private engine synced from $(SHARED_ENGINE); run 'make deploy-private' for the plugin"
 deploy-private: ## copy the built plugin into the private engine bin (after every `make build`)
-	@test -f $(PLUGIN_SO) || { echo "$(PLUGIN_SO) missing: run 'make build' first"; exit 1; }
+	@test -f $(PLUGIN_SO) || { echo "$(PLUGIN_SO) missing: run 'make build ENGINE=56' first"; exit 1; }
 	@test -d $(PRIVATE_ENGINE)/bin/linux_x64_gcc || { echo "no private engine: run 'make private-sync' first"; exit 1; }
 	cp --remove-destination $(PLUGIN_SO) $(PRIVATE_ENGINE)/bin/linux_x64_gcc/
 run-private: deploy-private ## like run, but launches GameLauncher from .engine-private (shader server from the shared engine)
-	@$(DEV) up
-	@$(PRIVATE_ENV) $(DEV) run --no-services $(OPTS) -- $(ARGS)
+	@PLASMID_DEV_PYTHON=$(PY) $(DEV_TOOLS)/plas-dev --project-dir $(PROJECT_DIR) --engine 56 up
+	@$(PRIVATE_ENV) PLASMID_DEV_PYTHON=$(PY) $(DEV_TOOLS)/plas-dev --project-dir $(PROJECT_DIR) --engine 56 run --no-services $(OPTS) -- $(ARGS)
 private-status: ## compare the shared and private engine libraries and plugin
 	@for f in GameLauncher libCrySystem.so libCryRenderVulkan.so libCry3DEngine.so libGamePlugin.so; do \
 	  s=$(SHARED_ENGINE)/bin/linux_x64_gcc/$$f; p=$(PRIVATE_ENGINE)/bin/linux_x64_gcc/$$f; \

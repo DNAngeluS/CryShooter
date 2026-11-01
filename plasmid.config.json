@@ -9,7 +9,7 @@
   "launcher": "GameLauncher",
   "dev_dir": ".dev",
   "env_file": ".env",
-  "default_engine": "56",
+  "default_engine": "57",
   "engines": {
     "56": {
       "label": "CRYENGINE 5.6.7",
