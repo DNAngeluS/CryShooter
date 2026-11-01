@@ -18,8 +18,11 @@ include("${TOOLS_CMAKE_DIR}/Configure.cmake")
 get_filename_component(_bin_subdir "${OUTPUT_DIRECTORY}" NAME)
 set(GAME_ENGINE_BIN_DIR "${CRYENGINE_DIR}/bin/${_bin_subdir}")
 
-# plasmid-debug: debug kit (symlink/vendored copy under tools/plasmid-debug)
-set(PLASMID_DEBUG_DIR "${CMAKE_SOURCE_DIR}/../tools/plasmid-debug")
+# plasmid-debug: debug kit, the vendored tag copy under tools/plasmid-debug (never edited here). To develop the kit itself,
+# build against its working tree instead: cmake -DPLASMID_DEBUG_DIR=<Crytek>/Tools/plasmid-debug (then tag, re-vendor, rebuild).
+if(NOT PLASMID_DEBUG_DIR)
+    set(PLASMID_DEBUG_DIR "${CMAKE_SOURCE_DIR}/../tools/plasmid-debug")
+endif()
 include("${PLASMID_DEBUG_DIR}/cmake/PlasmidDebug.cmake")
 
 start_sources()

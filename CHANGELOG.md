@@ -13,6 +13,11 @@ entries are grouped by **milestone** (dated) instead of version numbers.
 
 ## [Unreleased]
 
+### Changed (2026-11-01)
+- All three shared tools are now **tagged vendored copies** with a `.vendored-from` marker: `tools/plasmid-dev` 2.0.0, `tools/plasmid-assets` 0.16.0 (was 0.8.2; FPS imports only `dds`, `gltf`, `png`, unchanged), `tools/plasmid-debug` 0.1.0 (a real copy; the symlink into `Tools/plasmid-debug` is gone, so a standalone clone builds). Vendored with `.agents/scripts/vendor_tool.py` of the Crytek domain (`--check` verifies a copy against its marker). Never edit these directories: change the tool repo, tag, re-vendor.
+- `Code/CMakeLists.txt`: `-DPLASMID_DEBUG_DIR=<Crytek>/Tools/plasmid-debug` builds the kit from its working tree (to develop the kit); the default is the vendored copy.
+- Gate: `make test` 72 passed, `make doctor` ok (vendored tooling unmodified), `make build` 5.6.7 from the vendored kit, `make health` PASS (NVIDIA, shaders settled, 0 misses).
+
 ### Changed (2026-10-28)
 - `tools/plasmid-assets` re-vendored from 0.6.0 to 0.8.2 (adds `gltf2chr` skinned characters, plasmid_* fixture folders; `dds_export.py` imports unchanged). The private-engine `rsync` in the Makefile now also excludes `libPlasmidMcpPlugin.so` (the sandbox plugin), next to the stale `libSandboxLLMPlugin.so`.
 

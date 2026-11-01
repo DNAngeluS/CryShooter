@@ -1,7 +1,7 @@
 """Command-line wiring for plasmid_assets. Flags, defaults, stdout text and exit codes follow the P0(f) spike CLIs.
 
 Subcommands:
-  png2dds    <in.png> <out.dds> --format {rgba8,bc1,bc3,bc5} [--mips N] [--trailer] [--persistent N]
+  png2dds    <in.png> <out.dds> --format {rgba8,bc1,bc3,bc5,bc5s} [--mips N] [--trailer] [--persistent N]
              [--srgb] [--allow-misnamed]
   cgf-write  <preset> <out.cgf> [--position-format {f32,f16}]
   cgf-dump   <file.cgf> [...]
@@ -26,7 +26,7 @@ import math
 import os
 import sys
 
-from . import audio, cgf, cgf_dump, gltf, heightmap, pfx, schematyc, skin, terrain
+from . import audio, cgf, cgf_dump, dds, gltf, heightmap, pfx, schematyc, skin, terrain
 from .cache import write_dds_cached
 from .png import read_png
 
@@ -41,8 +41,19 @@ def _png2dds(a):
     w, h, px = read_png(a.png)
     with open(a.png, "rb") as f:
         png_bytes = f.read() if a.cache_dir else None
-    n, size = write_dds_cached(a.dds, png_bytes, w, h, px, a.format, a.cache_dir, a.mips, a.trailer,
-                               a.allow_misnamed, a.srgb, a.persistent, jobs)
+    if a.gloss:
+        if a.cache_dir:
+            print("png2dds: --gloss and --cache-dir cannot be combined (the cache key does not cover the gloss image)", file=sys.stderr)
+            return 2
+        gw, gh, gpx = read_png(a.gloss)
+        if (gw, gh) != (w, h):
+            print(f"png2dds: gloss {gw}x{gh} must match the normal map {w}x{h}", file=sys.stderr)
+            return 2
+        n, size = dds.write_dds(a.dds, w, h, px, a.format, a.mips, a.trailer, a.allow_misnamed, a.srgb, a.persistent, jobs,
+                                gloss=bytes(gpx[0::4]))
+    else:
+        n, size = write_dds_cached(a.dds, png_bytes, w, h, px, a.format, a.cache_dir, a.mips, a.trailer,
+                                   a.allow_misnamed, a.srgb, a.persistent, jobs)
     print(f"{a.dds}: {w}x{h} {a.format} mips {n} bytes {size}")
     return 0
 
@@ -66,19 +77,50 @@ def _cgf_dump(a):
     return 0 if ok else 1
 
 
+def _material_options(a):
+    """MaterialOptions from the shared --opaque / --no-pbr / --emissive-intensity flags."""
+    from .materials import MaterialOptions
+    opaque = None
+    if a.opaque:
+        opaque = "all" if a.opaque.strip().lower() == "all" else {n for n in a.opaque.split(",") if n}
+    return MaterialOptions(pbr=not a.no_pbr, opaque=opaque, emissive_intensity=a.emissive_intensity, bake=not a.no_bake, ao=a.bake_ao, occlusion_map=not a.no_occlusion_map)
+
+
+def _add_material_flags(p):
+    p.add_argument("--opaque", metavar="all|NAME,NAME",
+                   help="force these glTF materials (or all) opaque: a BLEND material is drawn in the engine's forward pass "
+                        "(no ambient light, lit only where a direct light reaches it)")
+    p.add_argument("--no-pbr", action="store_true",
+                   help="write the 0.9.1 matte materials (no Specular, Shininess or Emittance)")
+    p.add_argument("--no-bake", action="store_true",
+                   help="do not bake a metallicRoughnessTexture per texel (diffuse, _spec and _ddna gloss maps): use the 0.13.0 "
+                        "mean approximation of its factors")
+    p.add_argument("--bake-ao", action="store_true",
+                   help="multiply a glTF occlusionTexture into the diffuse map instead of writing an occlusion map: works on a stock "
+                        "engine, but also darkens direct light (the default writes a BC4 occlusion map in the Custom slot with "
+                        "%%OCCLUSION_MAP, which scales indirect light only and needs the sandbox shader extension)")
+    p.add_argument("--no-occlusion-map", action="store_true",
+                   help="ignore a glTF occlusionTexture (with a warning) unless --bake-ao is given")
+    p.add_argument("--emissive-intensity", type=float, default=10.0,
+                   help="Emittance intensity for emissiveFactor 1.0 (default 10; the shader multiplies rgb by intensity/10)")
+
+
 def _gltf2cgf(a):
     name = a.name or os.path.splitext(os.path.basename(a.src))[0]
     os.makedirs(a.out_dir, exist_ok=True)
     try:
         r = gltf.import_gltf(a.src, a.scale)
         cgf_path = os.path.join(a.out_dir, name + ".cgf")
-        textures = gltf.convert_textures(r["asset"], a.out_dir, name, a.jobs, a.cache_dir)
+        mat_options = _material_options(a)
+        textures = gltf.convert_textures(r["asset"], a.out_dir, name, a.jobs, a.cache_dir, emissive=mat_options.pbr,
+                                           bake=mat_options.pbr and mat_options.bake, warnings=mat_options.warnings,
+                                           ao=mat_options.ao, occlusion=mat_options.pbr and mat_options.occlusion_map)
         mtl_name = gltf.MTL_DEFAULT
         if a.game_dir:
             game_dir = a.game_dir.strip("/")
             mtl_name = game_dir + "/" + name
             gltf.write_mtl(os.path.join(a.out_dir, name + ".mtl"), game_dir, name, r["asset"].doc,
-                           r["materials"], textures)
+                           r["materials"], textures, r["asset"], mat_options)
         size = cgf.write_static_mesh(cgf_path, r["positions"], r["normals"], r["uvs"], r["indices"],
                                      r["subsets"], mtl_name)
     except gltf.GltfError as e:
@@ -90,7 +132,7 @@ def _gltf2cgf(a):
     manifest = dict(cgf=name + ".cgf", cgf_bytes=size, vertices=len(r["positions"]), indices=len(r["indices"]),
                     subsets=len(r["subsets"]), materials_in_source=len(r["materials"]),
                     aabb=[[min(xs), min(ys), min(zs)], [max(xs), max(ys), max(zs)]],
-                    textures=textures, material=mtl_name, warnings=r["warnings"])
+                    textures=textures, material=mtl_name, warnings=r["warnings"] + mat_options.warnings)
     print(json.dumps(manifest, indent=1))
     return 0
 
@@ -98,7 +140,7 @@ def _gltf2cgf(a):
 def _gltf2chr(a):
     name = a.name or os.path.splitext(os.path.basename(a.src))[0]
     try:
-        manifest = skin.convert_skin(a.src, a.out_dir, a.game_dir, name, a.scale, a.jobs, a.cache_dir)
+        manifest = skin.convert_skin(a.src, a.out_dir, a.game_dir, name, a.scale, a.jobs, a.cache_dir, _material_options(a))
     except (gltf.GltfError, skin.SkinError) as e:
         print("gltf2chr: " + str(e), file=sys.stderr)
         return 2
@@ -233,6 +275,30 @@ def _terrain_write(a):
     return 0
 
 
+def _probe_cubemap(a):
+    from . import cubemap
+
+    def colour(text, label):
+        try:
+            parts = [float(x) for x in text.split(",")]
+        except ValueError:
+            parts = []
+        if len(parts) != 3:
+            raise ValueError("--%s must be three comma-separated numbers, got %r" % (label, text))
+        return tuple(parts)
+
+    try:
+        paths = cubemap.write_probe(a.out_dir, a.name, sky=colour(a.sky, "sky"), horizon=colour(a.horizon, "horizon"),
+                                    ground=colour(a.ground, "ground"), size=a.size)
+    except (ValueError, OSError) as e:
+        print("probe-cubemap: " + str(e), file=sys.stderr)
+        return 2
+    files = {os.path.basename(p): {"bytes": os.path.getsize(p), "sha256": hashlib.sha256(open(p, "rb").read()).hexdigest()}
+             for p in paths}
+    print(json.dumps({"files": files}, indent=1, sort_keys=True))
+    return 0
+
+
 def _terrain_check(a):
     try:
         with open(a.file, "rb") as f:
@@ -265,12 +331,12 @@ def build_parser():
     ap = argparse.ArgumentParser(prog="plas-assets", description="CRYENGINE asset tools (stdlib only).")
     sub = ap.add_subparsers(dest="cmd", required=True,
                             metavar="{png2dds,cgf-write,cgf-dump,gltf2cgf,gltf2chr,pfx-write,schematyc-write,audio-write,"
-                                    "terrain-write,terrain-check,cgf-bounds,terrain-sample}")
+                                    "terrain-write,terrain-check,cgf-bounds,terrain-sample,probe-cubemap}")
 
-    p = sub.add_parser("png2dds", help="PNG -> DDS (rgba8, bc1, bc3, bc5)")
+    p = sub.add_parser("png2dds", help="PNG -> DDS (rgba8, bc1, bc3, bc5, bc5s)")
     p.add_argument("png")
     p.add_argument("dds")
-    p.add_argument("--format", choices=["rgba8", "bc1", "bc3", "bc5"], required=True)
+    p.add_argument("--format", choices=["rgba8", "bc1", "bc3", "bc5", "bc5s"], required=True)
     p.add_argument("--mips", type=int, default=0, help="0 = full chain")
     p.add_argument("--trailer", action="store_true")
     p.add_argument("--persistent", type=int, default=None,
@@ -278,6 +344,8 @@ def build_parser():
     p.add_argument("--srgb", action="store_true",
                    help="colour texture: set the engine sRGB-read flag and filter mips in linear light")
     p.add_argument("--allow-misnamed", action="store_true", help="negative tests only: allow BC5 without a _ddn name")
+    p.add_argument("--gloss", metavar="PNG", default=None,
+                   help="bc5s only: per-texel smoothness (the red channel of this PNG, same size) written as the normal map's attached alpha")
     p.add_argument("--cache-dir", default=None,
                    help="content-hash cache of finished DDS files in this directory (no cache when absent)")
     p.add_argument("--jobs", type=int, default=1,
@@ -306,6 +374,7 @@ def build_parser():
                    help="encode textures in N worker processes (default 1; 0 = all CPUs); output is identical")
     p.add_argument("--cache-dir", default=None,
                    help="content-hash cache of finished DDS files in this directory (no cache when absent)")
+    _add_material_flags(p)
     p.set_defaults(func=_gltf2cgf)
 
     p = sub.add_parser("gltf2chr", help="import a skinned glTF/GLB: .chr .skin .caf .cdf .chrparams .mtl + textures, JSON manifest")
@@ -317,7 +386,17 @@ def build_parser():
     p.add_argument("--scale", type=float, default=1.0)
     p.add_argument("--jobs", type=int, default=1)
     p.add_argument("--cache-dir", default=None)
+    _add_material_flags(p)
     p.set_defaults(func=_gltf2chr)
+
+    p = sub.add_parser("probe-cubemap", help="write an environment-probe cube map pair (BC6H, sky/horizon/ground gradient); JSON on stdout")
+    p.add_argument("out_dir")
+    p.add_argument("--name", default="ambient", help="file stem: <name>_cm.dds and <name>_cm_diff.dds (default ambient)")
+    p.add_argument("--sky", default="0.35,0.5,0.8", help="colour straight up, r,g,b linear (default %(default)s)")
+    p.add_argument("--horizon", default="0.7,0.75,0.8", help="colour at the horizon (default %(default)s)")
+    p.add_argument("--ground", default="0.25,0.22,0.18", help="colour straight down (default %(default)s)")
+    p.add_argument("--size", type=int, default=256, help="specular map side, a power of two, at least 256 (default 256)")
+    p.set_defaults(func=_probe_cubemap)
 
     p = sub.add_parser("pfx-write", help="write a PFX2 particle effect and its BC3 texture; JSON list of paths on stdout")
     p.add_argument("out_dir")

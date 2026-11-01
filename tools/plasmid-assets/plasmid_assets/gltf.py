@@ -18,6 +18,8 @@ import struct
 
 from . import cgf
 from .cache import write_dds_cached
+from . import bake as bake_mod
+from .materials import MaterialOptions, illum_params
 from .png import read_png
 
 MTL_DEFAULT = cgf.MTL_EDITORPRIMITIVE
@@ -299,18 +301,34 @@ def _convert_one(task):
     """Worker entry point (module level so it pickles). task = (png bytes, source index, slot, name, out_dir,
     cache_dir, jobs). Returns (format, fname, width, height, mips, bytes). Each (source, slot) is converted once,
     so the temporary PNG names never collide between workers."""
-    png, source, slot, name, out_dir, cache_dir, jobs = task
-    tmp = os.path.join(out_dir, ".tmp_%d_%s.png" % (source, slot))
+    png, source, slot, name, out_dir, cache_dir, jobs, nscale = task
+    tmp = os.path.join(out_dir, ".tmp_%d_%d_%s.png" % (os.getpid(), source, slot))   # pid: concurrent imports into one folder
     open(tmp, "wb").write(png)
     try:
         if slot == "normal":
-            fmt, fname = "bc5", "%s_img%d_ddn.dds" % (name, source)
+            fmt, fname = "bc5s", "%s_img%d_ddn.dds" % (name, source)  # signed: the engine reads the map as already signed
+            if nscale != 1.0:      # normalTexture.scale: another file per scale, so two materials can share one image
+                fname = "%s_img%d_s%g_ddn.dds" % (name, source, nscale)
+                png = png + b"|nscale=%r" % nscale          # the cache key is the PNG bytes plus what changes the output
+        elif slot == "occlusion":
+            # glTF occlusionTexture: R only, linear, strength baked in; one BC4 file per strength (the Custom slot, %OCCLUSION_MAP)
+            fmt, fname = "bc4", "%s_img%d_occ.dds" % (name, source)
+            if nscale != 1.0:
+                fname = "%s_img%d_occ_s%g.dds" % (name, source, nscale)
+            png = png + b"|occ=%r" % nscale
+        elif slot == "emissive":
+            # glTF emissive colour is sRGB; the Illum shader reads rgb x alpha of the map, so no alpha channel (BC1)
+            fmt, fname = "bc1", "%s_img%d_em.dds" % (name, source)
         else:
             fmt = "bc3" if png_has_alpha(tmp) else "bc1"
             fname = "%s_img%d.dds" % (name, source)
         w, h, px = read_png(tmp)
+        if slot == "normal" and nscale != 1.0:
+            px = bake_mod.scale_normals(px, nscale)
+        elif slot == "occlusion":
+            px = bake_mod.occlusion_pixels(px, nscale)
         mips, size = write_dds_cached(os.path.join(out_dir, fname), png, w, h, px, fmt, cache_dir, 0,
-                                      srgb=(slot == "baseColor"), jobs=jobs)
+                                      srgb=(slot in ("baseColor", "emissive")), jobs=jobs)
     finally:
         os.remove(tmp)
     return fmt, fname, w, h, mips, size
@@ -325,35 +343,57 @@ def resolve_jobs(jobs):
     return jobs
 
 
-def convert_textures(A, out_dir, name, jobs=1, cache_dir=None):
+def convert_textures(A, out_dir, name, jobs=1, cache_dir=None, emissive=True, bake=False, warnings=None, ao=False, occlusion=False):
     """Convert the PNGs used by materials to DDS. Returns list of manifest entries, in material order.
 
     Independent textures are encoded in a process pool when jobs > 1 (one texture at a time otherwise, with the
     row-band split inside each texture). Entry order and content do not depend on jobs. cache_dir enables the
-    content-hash cache (see cache.py)."""
+    content-hash cache (see cache.py). emissive=False skips emissiveTexture (the --no-pbr output). occlusion=True writes an
+    occlusionTexture as a BC4 map for the Illum %OCCLUSION_MAP flag (not when ao baked it into the diffuse already)."""
     jobs = resolve_jobs(jobs)
     d = A.doc
-    plan, done = [], {}  # plan: (material index, slot, source index, fname template key) in first-use order
+    plan, done, uses = [], {}, []  # plan: one encode per (source, slot, scale); uses: every (material, slot, key) that points at one
+    baked_entries = []
     for mi, mat in enumerate(d.get("materials", [])):
         slots = []
         pbr = mat.get("pbrMetallicRoughness", {})
-        if "baseColorTexture" in pbr:
+        baked = False
+        if bake and bake_mod.can_bake(mat, ao):
+            try:
+                baked_entries += bake_mod.bake_material(A, mi, mat, name, out_dir, None, cache_dir, jobs, ao)
+                baked = True
+            except bake_mod.Unbakeable as e:
+                if warnings is not None:
+                    warnings.append("material %r: not baked (%s), falling back to the mean approximation" % (mat.get("name", mi), e))
+        if "baseColorTexture" in pbr and not baked:
             slots.append(("baseColor", pbr["baseColorTexture"]))
-        if "normalTexture" in mat:
+        if "normalTexture" in mat and not baked:
             slots.append(("normal", mat["normalTexture"]))
+        if emissive and "emissiveTexture" in mat:
+            slots.append(("emissive", mat["emissiveTexture"]))
+        if occlusion and "occlusionTexture" in mat and not (baked and ao):
+            oref = mat["occlusionTexture"]
+            if oref.get("texCoord", 0) != 0:
+                if warnings is not None:
+                    warnings.append("material %r: occlusionTexture uses TEXCOORD_%d, only TEXCOORD_0 is supported: ignored"
+                                    % (mat.get("name", mi), oref["texCoord"]))
+            else:
+                slots.append(("occlusion", oref))
         for slot, ref in slots:
             if ref.get("texCoord", 0) != 0:
                 raise GltfError("only TEXCOORD_0 supported (material %d %s)" % (mi, slot))
             tex = d["textures"][ref["index"]]
             if "source" not in tex:
                 raise GltfError("texture %d has no source" % ref["index"])
-            key = (tex["source"], slot)
+            nscale = float(ref.get("scale", 1.0)) if slot == "normal" else float(ref.get("strength", 1.0)) if slot == "occlusion" else 1.0
+            key = (tex["source"], slot, nscale)
+            uses.append((mi, slot, key))
             if key in done:
                 continue
             done[key] = True
-            plan.append((mi, slot, tex["source"], A.image_png(tex["source"])))
+            plan.append((mi, slot, tex["source"], A.image_png(tex["source"]), nscale))
     inner = 1 if len(plan) > 1 else jobs  # textures in parallel, or bands inside the one texture
-    tasks = [(png, src, slot, name, out_dir, cache_dir, inner) for _mi, slot, src, png in plan]
+    tasks = [(png, src, slot, name, out_dir, cache_dir, inner, ns) for _mi, slot, src, png, ns in plan]
     if jobs > 1 and len(plan) > 1:
         import multiprocessing
         from concurrent.futures import ProcessPoolExecutor
@@ -363,28 +403,34 @@ def convert_textures(A, out_dir, name, jobs=1, cache_dir=None):
     else:
         results = [_convert_one(t) for t in tasks]
     entries = []
-    for (mi, slot, src, _png), (fmt, fname, w, h, mips, size) in zip(plan, results):
-        entries.append(dict(material=mi, slot=slot, image=src, dds=fname, format=fmt,
+    by_key = {(src, slot, ns): r for (_mi, slot, src, _png, ns), r in zip(plan, results)}
+    for mi, slot, key in uses:      # a material that shares an image with an earlier one points at the same file
+        fmt, fname, w, h, mips, size = by_key[key]
+        entries.append(dict(material=mi, slot=slot, image=key[0], dds=fname, format=fmt,
                             width=w, height=h, mips=mips, bytes=size))
+    entries += baked_entries
+    entries.sort(key=lambda e: e["material"])        # stable: the order of a plain import is unchanged
     return entries
 
 
 MTL_FLAG_MULTI_SUBMTL = 0x0100  # IMaterial.h:56
+MTL_FLAG_2SIDED = 0x0002        # IMaterial.h:49, read per material node (MatMan.cpp:427)
 WHITE_TEXTURE = "%ENGINE%/EngineAssets/Textures/white.dds"
 
 
-def write_mtl(path, game_dir, name, doc, mats, textures):
+def write_mtl(path, game_dir, name, doc, mats, textures, asset=None, options=None):
     """Write <name>.mtl next to the cgf: one sub-material per glTF material used by a subset, in subset-id order
     (the cgf mesh subset matID indexes SubMaterials; ids past the count wrap, CGFLoader.cpp:2480). A single material
     is written without the multi-submaterial flag. Texture File paths are game-relative (MaterialHelpers.cpp:349)."""
     from xml.sax.saxutils import quoteattr
+    options = options or MaterialOptions()
     by_slot = {(t["material"], t["slot"]): t["dds"] for t in textures}
 
     def one(mi, label):
         m = doc["materials"][mi] if mi is not None else {}
-        pbr = m.get("pbrMetallicRoughness", {})
-        bc = pbr.get("baseColorFactor", [1.0, 1.0, 1.0, 1.0])
-        diffuse = ",".join("%g" % c for c in bc[:3])
+        baked = (mi, "specular") in by_slot
+        p = illum_params(m, asset, options, baked=baked)
+        diffuse = ",".join("%g" % c for c in p["diffuse"])
         rows = []
         if (mi, "baseColor") in by_slot:
             rows.append(("Diffuse", game_dir + "/" + by_slot[(mi, "baseColor")]))
@@ -394,11 +440,30 @@ def write_mtl(path, game_dir, name, doc, mats, textures):
             rows.append(("Diffuse", WHITE_TEXTURE))
         if (mi, "normal") in by_slot:
             rows.append(("Bumpmap", game_dir + "/" + by_slot[(mi, "normal")]))
+        if baked:
+            rows.append(("Specular", game_dir + "/" + by_slot[(mi, "specular")]))
+        if (mi, "emissive") in by_slot and p["emittance"] is not None:
+            rows.append(("Emittance", game_dir + "/" + by_slot[(mi, "emissive")]))
+        if (mi, "occlusion") in by_slot:
+            rows.append(("Custom", game_dir + "/" + by_slot[(mi, "occlusion")]))     # read by Illum under %OCCLUSION_MAP
         tex = "".join('   <Texture Map="%s" File=%s/>\n' % (slot, quoteattr(f)) for slot, f in rows)
-        attrs = 'Name=%s Shader="Illum" Diffuse="%s" Opacity="%g"' % (quoteattr(label), diffuse, bc[3] if len(bc) > 3 else 1.0)
-        if (mi, "normal") in by_slot:
-            # the editor writes the shader generation mask for a bump map; without it the Illum variant is wrong (render check 2026-10-24)
-            attrs += ' StringGenMask="%NORMAL_MAP"'
+        attrs = 'Name=%s Shader="Illum" Diffuse="%s"' % (quoteattr(label), diffuse)
+        if m.get("doubleSided"):
+            attrs += ' MtlFlags="%d"' % MTL_FLAG_2SIDED       # glTF doubleSided: no back-face culling, the shader flips the normal
+        if p["specular"] is not None:
+            attrs += ' Specular="%s" Shininess="%d"' % (",".join("%.6g" % c for c in p["specular"]), p["shininess"])
+        if p["emittance"] is not None:
+            attrs += ' Emittance="%s"' % ",".join("%.6g" % c for c in p["emittance"])
+        attrs += ' Opacity="%g"' % p["opacity"]
+        if p["alpha_test"] is not None:
+            attrs += ' AlphaTest="%g"' % p["alpha_test"]
+        # the editor writes the shader generation mask for a bump map; without it the Illum variant is wrong (render check 2026-10-24);
+        # a Specular texture needs %SPECULAR_MAP the same way (Illum.cfx:489), concatenated as the engine's own materials write it;
+        # %OCCLUSION_MAP exists only in an engine with the sandbox's shader extension (engine-ext), others ignore the unknown flag
+        mask = ("%NORMAL_MAP" if (mi, "normal") in by_slot else "") + ("%SPECULAR_MAP" if baked else "") \
+            + ("%OCCLUSION_MAP" if (mi, "occlusion") in by_slot else "")
+        if mask:
+            attrs += ' StringGenMask="%s"' % mask
         return attrs, tex
 
     out = []

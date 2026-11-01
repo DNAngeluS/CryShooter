@@ -7,7 +7,7 @@ files are the COMPILED chunk files the engine expects. Stdlib only.
 import_gltf_skin(path, scale) -> Rig dict; build_* turn it into file bytes; convert_skin writes a folder.
 What cannot be expressed raises SkinError; nothing degrades silently. Limits of this first version: one skin per file,
 one weight set (JOINTS_0/WEIGHTS_0, up to 4 influences), no morph targets, no cubic-spline animation, bind poses without
-scale. Axes as in gltf.py: glTF (x, y, z) -> engine (x, -z, y) (a pure rotation).
+scale of their own (one uniform scale shared by all joints, from an ancestor node, is folded in). Axes as in gltf.py: glTF (x, y, z) -> engine (x, -z, y) (a pure rotation).
 """
 
 import math
@@ -16,6 +16,7 @@ import struct
 import zlib
 
 from . import cgf, gltf
+from .materials import MaterialOptions
 
 FPS = 30.0
 T_COMPILED_BONES, T_COMPILED_PHYS_BONES, T_INT_SKIN_VERTS = 0x2000, 0x2001, 0x2005
@@ -118,16 +119,35 @@ def _mat4_inverse(m):
     return [inv[r][c] for c in range(4) for r in range(4)]
 
 
-def _decompose_rigid(m, what):
-    """Column-major glTF 4x4 -> (engine-space rotation quat, engine-space translation) of a pure rigid transform."""
+def _decompose_rigid(m, what, scale=1.0):
+    """Column-major glTF 4x4 -> (engine-space rotation quat, engine-space translation) of a rigid transform times a
+    uniform `scale` (the translation is the world position, so it already includes that scale)."""
     cols = [(m[0], m[1], m[2]), (m[4], m[5], m[6]), (m[8], m[9], m[10])]
     for c in cols:
-        if abs(math.sqrt(sum(v * v for v in c)) - 1.0) > 1e-3:
+        if abs(math.sqrt(sum(v * v for v in c)) / scale - 1.0) > 1e-3:
             raise SkinError("%s has scale in its bind pose; the engine needs an orthonormal bone matrix" % what)
-    rot = [[m[0], m[4], m[8]], [m[1], m[5], m[9]], [m[2], m[6], m[10]]]
+    rot = [[m[0] / scale, m[4] / scale, m[8] / scale], [m[1] / scale, m[5] / scale, m[9] / scale],
+           [m[2] / scale, m[6] / scale, m[10] / scale]]
     q = _mat_to_quat(rot)
     t = _cry((m[12], m[13], m[14]))
     return _quat_cry(q), t
+
+
+def _world_scale(joint_world, names):
+    """The uniform scale S shared by the world bind matrices of all joints (1.0 for a rigid skeleton). A scaled ancestor
+    above the skeleton (an FBX centimetre wrapper, scale 100) gives every joint the same S; anything else is refused."""
+    s0 = None
+    for m, nm in zip(joint_world, names):
+        for c in ((m[0], m[1], m[2]), (m[4], m[5], m[6]), (m[8], m[9], m[10])):
+            ln = math.sqrt(sum(v * v for v in c))
+            if s0 is None:
+                s0 = ln
+            if s0 < 1e-9 or abs(ln / s0 - 1.0) > 1e-3:
+                raise SkinError("joint %r has scale in its bind pose; the engine needs an orthonormal bone matrix "
+                                "(only one uniform scale shared by all joints, from an ancestor, is folded)" % nm)
+    if abs(s0 - 1.0) <= 1e-3:
+        return 1.0
+    return s0
 
 
 def _rigid_mul(a, b):
@@ -205,8 +225,12 @@ def import_gltf_skin(path, scale=1.0, fps=FPS):
     frame_inv = gltf.mat_identity()
     joint_world = [rest_world(joints[j]) for j in range(len(joints))]
     bind = []
+    world_s = _world_scale(joint_world, names)
+    if world_s != 1.0:
+        A.warnings.append("the skeleton hangs under a node with uniform scale %g: folded into the bone positions and the "
+                          "animation keys (bone matrices stay orthonormal)" % world_s)
     for j in range(len(joints)):
-        q, t = _decompose_rigid(joint_world[j], "joint %r" % names[j])
+        q, t = _decompose_rigid(joint_world[j], "joint %r" % names[j], world_s)
         bind.append((q, tuple(c * scale for c in t)))
     skin_mat = [gltf.mat_mul(joint_world[j], [float(v) for v in ibm[j]]) for j in range(len(joints))]
     identity = gltf.mat_identity()
@@ -311,7 +335,7 @@ def import_gltf_skin(path, scale=1.0, fps=FPS):
     if len(positions) > MAX_VERTICES:
         raise SkinError("%d vertices; at most %d are supported (16-bit indices)" % (len(positions), MAX_VERTICES))
 
-    animations = _import_animations(A, bones, joints, joint_set, parent_of, rest_world, frame_inv, scale, fps)
+    animations = _import_animations(A, bones, joints, joint_set, parent_of, rest_world, frame_inv, scale, fps, world_s)
     return dict(bones=bones, positions=positions, normals=normals, uvs=uvs, indices=indices, subsets=subsets,
                 materials=mats, weights=weights, animations=animations, warnings=A.warnings, asset=A)
 
@@ -383,7 +407,7 @@ def _node_trs(node):
     return (m[12], m[13], m[14]), _mat_to_quat(rot), tuple(sc)
 
 
-def _import_animations(A, bones, joints, joint_set, parent_of, rest_world, frame_inv, scale, fps):
+def _import_animations(A, bones, joints, joint_set, parent_of, rest_world, frame_inv, scale, fps, world_s=1.0):
     d = A.doc
     nodes = d["nodes"]
     out = []
@@ -441,7 +465,7 @@ def _import_animations(A, bones, joints, joint_set, parent_of, rest_world, frame
                 tr = sample((ni, "translation"), rest_t, t, False)
                 ro = sample((ni, "rotation"), rest_q, t, True)
                 sc = sample((ni, "scale"), rest_s, t, False)
-                q, p = _quat_cry(_qnorm(tuple(ro))), tuple(c * scale for c in _cry(tr))
+                q, p = _quat_cry(_qnorm(tuple(ro))), tuple(c * scale * world_s for c in _cry(tr))
                 # a joint whose glTF parent is not a joint: fold the rest transform of the non-joint ancestors in
                 gpar = parent_of.get(ni)
                 if gpar is not None and gpar not in joint_set:
@@ -611,13 +635,17 @@ def _file_stem(text):
     return keep.strip("_") or "anim"
 
 
-def convert_skin(src, out_dir, game_dir, name, scale=1.0, jobs=1, cache_dir=None):
+def convert_skin(src, out_dir, game_dir, name, scale=1.0, jobs=1, cache_dir=None, material_options=None):
     """Write <name>.chr/.skin/.cdf/.chrparams/.mtl, one <name>_<anim>.caf per animation and the textures. Returns a manifest."""
     rig = import_gltf_skin(src, scale)
     os.makedirs(out_dir, exist_ok=True)
     game_dir = game_dir.strip("/")
-    textures = gltf.convert_textures(rig["asset"], out_dir, name, jobs, cache_dir)
-    gltf.write_mtl(os.path.join(out_dir, name + ".mtl"), game_dir, name, rig["asset"].doc, rig["materials"], textures)
+    opts = material_options if material_options is not None else MaterialOptions()
+    textures = gltf.convert_textures(rig["asset"], out_dir, name, jobs, cache_dir, emissive=opts.pbr,
+                                     bake=opts.pbr and opts.bake, warnings=opts.warnings, ao=opts.ao,
+                                     occlusion=opts.pbr and opts.occlusion_map)
+    gltf.write_mtl(os.path.join(out_dir, name + ".mtl"), game_dir, name, rig["asset"].doc, rig["materials"], textures,
+                   rig["asset"], material_options)
     mtl_ref = game_dir + "/" + name
     files = {name + ".chr": build_chr(rig, mtl_ref), name + ".skin": build_skin(rig, mtl_ref)}
     anim_files, seen = [], set()
@@ -639,4 +667,5 @@ def convert_skin(src, out_dir, game_dir, name, scale=1.0, jobs=1, cache_dir=None
     return dict(chr=name + ".chr", skin=name + ".skin", cdf=name + ".cdf", chrparams=name + ".chrparams",
                 bones=[b["name"] for b in rig["bones"]], vertices=len(rig["positions"]),
                 animations=[dict(name=n, file=f, frames=a["frames"]) for (n, f), a in zip(anim_files, rig["animations"])],
-                textures=textures, material=mtl_ref, warnings=rig["warnings"])
+                textures=textures, material=mtl_ref,
+                warnings=rig["warnings"] + (material_options.warnings if material_options else []))

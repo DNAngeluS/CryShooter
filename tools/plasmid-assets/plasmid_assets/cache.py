@@ -17,7 +17,8 @@ import os
 import struct
 
 from . import __version__
-from .dds import CRYF_STAGE, DDPF_FOURCC, check_args, trailer_bytes, write_dds
+from . import dds as dds_mod
+from .dds import CRYF_STAGE, DDPF_FOURCC, DXGI_BC5_SNORM, check_args, trailer_bytes, write_dds
 
 _BLOCK_BYTES = {b"DXT1": 8, b"DXT5": 16, b"ATI2": 16}
 _FILE_SUFFIX = ".dds"
@@ -44,10 +45,14 @@ def _expected_len(data):
         return None
     pf_flags = struct.unpack_from("<I", data, 80)[0]
     total = 128
+    if pf_flags & DDPF_FOURCC and data[84:88] == b"DX10":
+        if len(data) < 148 or struct.unpack_from("<I", data, 128)[0] != DXGI_BC5_SNORM:
+            return None
+        total = 148
     for i in range(mips):
         lw, lh = max(1, w >> i), max(1, h >> i)
         if pf_flags & DDPF_FOURCC:
-            bsz = _BLOCK_BYTES.get(data[84:88])
+            bsz = 16 if data[84:88] == b"DX10" else _BLOCK_BYTES.get(data[84:88])
             if bsz is None:
                 return None
             total += max(1, (lw + 3) // 4) * max(1, (lh + 3) // 4) * bsz
@@ -60,6 +65,11 @@ def _valid(data, trailer):
     n = _expected_len(data)
     if n is None:
         return False
+    if struct.unpack_from("<I", data, 36)[0] & dds_mod.EIF_ATTACHED_ALPHA:     # a `_ddna`: the attached image follows the mips
+        if trailer or len(data) < n + 16 or data[n:n + 8] != b"CExtAttC":
+            return False
+        size = struct.unpack_from("<I", data, n + 8)[0]
+        return len(data) == n + 12 + size + 4 and data[-4:] == b"CEnd"
     if trailer:
         tb = trailer_bytes()
         return len(data) == n + len(tb) and data[n:] == tb
@@ -111,3 +121,21 @@ def write_dds_cached(path, png_bytes, w, h, px, fmt, cache_dir, mips=0, trailer=
     with open(path, "rb") as f:
         store(cache_dir, k, f.read())
     return n, size
+
+
+def write_lazy(path, parts, make, fmt, cache_dir, srgb=False, jobs=1):
+    """A cached DDS whose pixels are expensive to compute: the key hashes `parts` (bytes: every source, every factor, a bake
+    version), `make()` -> (w, h, rgba px, gloss bytes | None) runs only on a miss. Returns (width, height, mips, bytes)."""
+    k = key(b"|".join(parts), fmt, srgb, 0, None, False)
+    data = load(cache_dir, k) if cache_dir else None
+    if data is not None:
+        _write_atomic(path, data)
+    else:
+        w, h, px, gloss = make()
+        write_dds(path, w, h, px, fmt, 0, False, False, srgb, None, jobs, gloss=gloss)
+        with open(path, "rb") as f:
+            data = f.read()
+        if cache_dir:
+            store(cache_dir, k, data)
+    h, w, mips = struct.unpack_from("<I", data, 12)[0], struct.unpack_from("<I", data, 16)[0], struct.unpack_from("<I", data, 28)[0]
+    return w, h, mips, len(data)

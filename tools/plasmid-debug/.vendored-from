@@ -1,0 +1,20 @@
+{
+  "tool": "plasmid-debug",
+  "version": "0.1.0",
+  "tag": "v0.1.0",
+  "commit": "d03aafddcfe0ee22ca467f113dad4f3a072ea879",
+  "vendored_at": "2026-11-01T14:47:23Z",
+  "source": "Tools/plasmid-debug",
+  "note": "vendored tagged copy (tests not included); never edit here, release a new tag in the tool repo and re-vendor",
+  "files": {
+    "AGENTS.md": "3a1dd63262cdd13ff451784498d6286d2340b605b210eaf6454c99566abcca40",
+    "CHANGELOG.md": "186bea5025aa6ee7cae37852bcb9167fccd8e7e456871b730ee586c5de85de7b",
+    "README.md": "8b2bbf9aa3b4d3794ad79a81cc009db220608d59748458f5bd8e0ccbed629b5b",
+    "VERSION": "e9dd8507f4bf0c6f42458e41aea833ad0bd3f6127272335eee9bf4d58541ed67",
+    "cmake/PlasmidDebug.cmake": "9cf7e10b537b20cf46b4221af499a801818c90352433b2cd2dae731348923814",
+    "include/plasmid/debug/Debug.h": "7f63247f60f601fbc5b173926020b5d18b3e7b6be5a06858f0330d9f9bb001a3",
+    "src/Console.cpp": "116b1c1a8836dfb5509497b68347e687c89ba7bc983d4c0c6fb5fd7c7fce6113",
+    "src/Console.h": "336f4787b4ce1725fc55337278eb7d94f783fe815efe6473545be57d6c93507d",
+    "src/Debug.cpp": "973990bc7fe33ea3a6680d4e0869e2a4db7500cc4358b37876d329e481844550"
+  }
+}
