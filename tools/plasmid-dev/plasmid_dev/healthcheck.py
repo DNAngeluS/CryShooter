@@ -38,6 +38,9 @@ THRESHOLDS: dict = {
     "uniform_std": 6.0,
     "uniform_distinct": 48,
     "colour_drift": 12.0,
+    # Both captures show the same frame, so their per-channel means agree to < 0.5 on every healthy run on record
+    # (worst pass: 4.6). A wallpaper-as-window capture differed by 39-105.
+    "capture_mismatch": 20.0,
 }
 
 
@@ -141,6 +144,31 @@ def evaluate_image(metrics: dict, thresholds: dict = THRESHOLDS, reference_rgb: 
     }
 
 
+def compare_captures(engine_metrics: dict, window_metrics: dict, thresholds: dict = THRESHOLDS,
+                     reference_rgb: tuple | None = None) -> dict:
+    """Do the in-engine and the window capture show the same picture? Compares the per-channel means.
+
+    Catches a window capture that is not the game (desktop, another window): two images that each look "rendered"
+    but disagree. `suspect` names the channel to distrust: the one farther from reference_rgb when given, else
+    "window" (the capture that goes through the window system and has been seen to grab the wrong thing).
+    Resolution may differ; only the means are compared.
+    """
+    e, w = engine_metrics["channel_means"], window_metrics["channel_means"]
+    diff = {c: w[c] - e[c] for c in "rgb"}
+    worst = max(abs(d) for d in diff.values())
+    limit = thresholds["capture_mismatch"]
+    suspect = "window"
+    if reference_rgb is not None:
+        dist = lambda m: max(abs(m[c] - ref) for c, ref in zip("rgb", reference_rgb))  # noqa: E731
+        suspect = "window" if dist(w) >= dist(e) else "in-engine"
+    fmt = lambda m: f"r={m['r']:.1f} g={m['g']:.1f} b={m['b']:.1f}"  # noqa: E731
+    agree = worst <= limit
+    return {"agree": agree, "worst_channel_diff": worst, "diff": diff, "suspect": None if agree else suspect,
+            "message": (f"in-engine and window channel means agree (largest difference {worst:.1f})" if agree else
+                        f"in-engine ({fmt(e)}) and window ({fmt(w)}) captures disagree: largest channel-mean "
+                        f"difference {worst:.1f} > {limit}; the {suspect} capture is suspect (not the game window?)")}
+
+
 def check_shader_settle(files_a: int, files_b: int, cold_files: int, cache_miss: int, crc_mismatch: int) -> dict:
     """Whether the active shader-cache slot has stopped changing. files_a/files_b: counts a few seconds apart.
 
@@ -231,7 +259,7 @@ def parse_wmctrl_windows(output: str, pid: int) -> list[str]:
 
 
 def combine_verdicts(process: dict | None, shaders: dict | None, engine: dict | None, window: dict | None,
-                     capture_error: str | None) -> dict:
+                     capture_error: str | None, agreement: dict | None = None) -> dict:
     """One verdict from the parts of a health run. Precedence, the first matching rule wins:
 
       1. process = {"running": False, ...}                 -> fail not-running (no image can be trusted)
@@ -240,6 +268,8 @@ def combine_verdicts(process: dict | None, shaders: dict | None, engine: dict | 
            engine fail, window pass -> fail engine-capture-broken (the window shows the game is fine)
            engine pass, window fail -> fail with the window's reason
            both fail                -> fail with the engine's reason
+           both pass, agreement (compare_captures) says they disagree -> fail capture-mismatch, message names the
+                                       suspect channel (a wrong picture in the "independent oracle" is not a pass)
            both pass                -> pass
          method "both" in every case
       4. one image result only      -> its verdict; method "in-engine" or "window"
@@ -266,9 +296,14 @@ def combine_verdicts(process: dict | None, shaders: dict | None, engine: dict | 
             return result("fail", window["reason"], f"window capture: {window['message']}", "both")
         if engine["status"] == "fail":
             return result("fail", engine["reason"], f"in-engine capture: {engine['message']}", "both")
+        if agreement is not None and not agreement.get("agree", True):
+            return result("fail", "capture-mismatch", agreement["message"], "both")
         return result("pass", None, "in-engine and window captures look rendered", "both")
 
     if engine is not None or window is not None:
+        if engine is not None and window is None and (capture_error or "").startswith("window-unavailable"):
+            # the independent oracle could not look at the game: never a pass (the in-engine image alone is not enough)
+            return result("fail", "window-unavailable", capture_error, "in-engine")
         image, method = (engine, "in-engine") if engine is not None else (window, "window")
         message = image["message"]
         if image["status"] == "pass":

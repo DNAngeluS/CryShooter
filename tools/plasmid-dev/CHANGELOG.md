@@ -3,6 +3,30 @@
 Semver. Every change to this tooling gets a version here, a `VERSION` bump and a git tag `vX.Y.Z`; projects vendor a tagged
 copy (see "Releasing" in README.md). Newest first.
 
+## 2.1.0 - 2026-11-03 - `make health` no longer passes a window capture that is not the game
+
+Root cause (found after the safety net below caught it on Intel, about 1 run in 2): the game window was not mapped, viewable
+or on top when captured, so the root-window crop fallback grabbed the desktop wallpaper.
+- `health_window_shot()` now prepares the window before every grab: `xdotool windowmap`, `windowraise`, `windowactivate`, then waits
+  (bounded, `HEALTH_WINDOW_READY_S` = 10 s) until `xwininfo` reports `Map State: IsViewable`. The whole sequence is retried
+  (3 attempts).
+- The root-window crop is used only when the window is confirmed viewable AND the active window (`xdotool getactivewindow`).
+  Otherwise the capture is reported unavailable: error `window-unavailable: ...` naming the cause, never a pass. With an in-engine
+  pass and no usable window, `combine_verdicts()` returns `fail`, reason `window-unavailable` (the independent oracle did not look).
+- Tests: fakes for wmctrl/xdotool/xwininfo/import (no display): prepare order, wait until viewable, never-viewable and
+  not-on-top refuse the crop, window-unavailable never passes. The `capture-mismatch` check below stays as the safety net.
+
+Fixed: `make health` once reported `status: pass`, `method: both` while the window capture was the desktop wallpaper (the
+in-engine capture was right). Each image alone looked "rendered", so the independent oracle confirmed nothing.
+- New `compare_captures()` (healthcheck.py): when both captures exist, their per-channel means must agree within
+  `THRESHOLDS["capture_mismatch"]` (20; healthy runs on record differ by < 0.5, the worst pass by 4.6, the wallpaper by 39-105).
+- New verdict: `fail`, reason `capture-mismatch`, method `both`; the message names the suspect capture (the window by default;
+  with `--reference`, the one farther from the reference colour). The report gains an `agreement` key (`agree`, `diff`,
+  `worst_channel_diff`, `suspect`). `combine_verdicts()` takes an optional `agreement` argument; without it nothing changes.
+- Unchanged: every existing pass path (agreeing captures still pass), single-channel runs (`--no-window`, no in-engine capture)
+  and the other failure reasons. A window-only run has no second channel to compare, so it cannot detect this.
+- Tests: synthetic non-game image (no third-party content) at unit level and through `cmd_health`.
+
 ## 2.0.0 - 2026-10-27 - Renamed to plasmid-dev
 
 Breaking: the tool is now `plasmid-dev` (brand Plasmid, DEC-05). Behaviour is unchanged except for the names below.

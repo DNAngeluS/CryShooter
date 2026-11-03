@@ -1,20 +1,20 @@
 {
   "tool": "plasmid-dev",
-  "version": "2.0.0",
-  "tag": "v2.0.0",
-  "commit": "44023e8203fcb24f1dfa16c057c20e83d60bd8fa",
-  "vendored_at": "2026-10-27T23:29:36Z",
+  "version": "2.1.0",
+  "tag": "v2.1.0",
+  "commit": "b981478e6a6ba419f465332d15946b5f4ceabbb4",
+  "vendored_at": "2026-11-03T12:49:03Z",
   "files": {
-    "CHANGELOG.md": "65ef90a0be76b1c8c9fc5c2f732bfc241faa7ebf6dac64bf44c591ed81c854b6",
+    "CHANGELOG.md": "31840eb307c35b0a45c23183269a83a3aba20a53abbfaf8f75f3a0d4643d0761",
     "Makefile.common": "0dea726536aa92370f0e5d55018dfc60baf3cde0af3975156cdaef923dfe0f92",
-    "README.md": "e3bcfa0d8a7462f7a23d7840fc3fd2ead45f044ed4c152673156a701c85ce349",
-    "VERSION": "c28fcca53637bc88e124af1725df13cb98c69dedefd62fb3cdbe1cdb6b760624",
+    "README.md": "eb9943572f7982b6db40f4c1209b9c1ee3cdb03fe7c3195a6406f1b62554de84",
+    "VERSION": "c89b87c262e9d5ffd20e73aac74a1772adcc9f5a21682cc33adcf5086e5fef5c",
     "config-schema.md": "fa0951c5b799b57855aae3c7a734645e9ed0d3344c0a8f83e0868d68ad942661",
     "plas-dev": "9761eb6c7d6661277bf2c9a1024e6e3891add410adaf742cebe96b73a808421b",
     "plasmid_dev/__init__.py": "f1f30067cb4b0fb1b176725eb873b6f3caca28cae19aa215e3cfffe22a495398",
     "plasmid_dev/__main__.py": "5522b185a9df911ceb3be2b8d992c3f002f2a781a101c39c1b2fbd3331e4d0f6",
-    "plasmid_dev/cli.py": "04f96b724f6d9000b401352923d99d7051893f1c2bea7f89255f9b9e24619104",
-    "plasmid_dev/healthcheck.py": "07879922ea5aad152eece52a7f06ac5046843f0325029c6b2e172748ae0d38f8",
+    "plasmid_dev/cli.py": "822c4ba5bf608c1bd6157f9a1df88c3f659d7c12ed5d7c1b8efe0298521226e0",
+    "plasmid_dev/healthcheck.py": "5b8309c65583c355c7be1ee27ac604eda149a97a80e884d03d05e1eda0afc3f3",
     "plasmid_dev/shader_server.py": "16454b4f472b49461ba44887d937132760a63f68d44b0e3e1d928ecc14f94761"
   }
 }

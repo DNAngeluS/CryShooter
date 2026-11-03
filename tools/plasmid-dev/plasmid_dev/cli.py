@@ -1007,6 +1007,9 @@ HEALTH_DEFAULT_DELAY_S = 40
 HEALTH_TIMEOUT_EXTRA_S = 60  # --timeout default is --delay plus this
 HEALTH_WINDOW_ATTEMPTS = 3  # window grabs tried before giving up
 HEALTH_WINDOW_RETRY_S = 1.0  # pause between window grab attempts
+HEALTH_WINDOW_READY_S = 10.0  # bound on waiting for the game window to become viewable
+HEALTH_WINDOW_POLL_S = 0.25
+HEALTH_WINDOW_SETTLE_S = 0.5  # pause after the window is viewable, before the grab
 HEALTH_POLL_S = 2  # how often the game log and the process are checked while waiting
 HEALTH_SETTLE_S = 3  # gap between the two shader-cache file counts
 HEALTH_SIGNAL_LINES = 10  # [Assert]/[Error] lines quoted when the game exits before the capture
@@ -1104,21 +1107,33 @@ def health_window_shot(hc, pids: list[int], out: Path) -> tuple[str | None, str 
     if wid is None:
         return None, f"no-window: no X11 window for game pid(s) {pids or '-'} (wmctrl -lp / xdotool)"
     out.parent.mkdir(parents=True, exist_ok=True)
-    # ImageMagick's `import -window` fails now and then on a healthy window ("missing an image filename", ~1 run in 15): retry.
+    # The window must be mapped, raised and viewable BEFORE any grab: an unmapped or covered game window yields the desktop
+    # (the root-crop fallback used to capture the wallpaper on about 1 Intel run in 2). The whole sequence is retried.
+    # ImageMagick's `import -window` also fails now and then on a healthy window ("missing an image filename", ~1 run in 15).
     err = ""
     for attempt in range(1, HEALTH_WINDOW_ATTEMPTS + 1):
-        out.unlink(missing_ok=True)
-        try:
-            r = subprocess.run(["import", "-window", wid, f"png:{out}"], capture_output=True, text=True, timeout=60)
-        except (OSError, subprocess.TimeoutExpired) as exc:
-            return None, f"capture-failed: import: {exc}"
-        if not r.returncode and out.is_file() and out.stat().st_size > 0:
-            return str(out), None
-        err = f"capture-failed: import -window {wid} exited {r.returncode} (attempt {attempt}/{HEALTH_WINDOW_ATTEMPTS}): {r.stderr.strip()[:200]}"
+        ready, why = _prepare_window(wid)
+        if ready is False:
+            err = f"window-unavailable: window {wid} is not viewable ({why}) (attempt {attempt}/{HEALTH_WINDOW_ATTEMPTS})"
+        else:
+            out.unlink(missing_ok=True)
+            try:
+                r = subprocess.run(["import", "-window", wid, f"png:{out}"], capture_output=True, text=True, timeout=60)
+            except (OSError, subprocess.TimeoutExpired) as exc:
+                return None, f"capture-failed: import: {exc}"
+            if not r.returncode and out.is_file() and out.stat().st_size > 0:
+                return str(out), None
+            err = f"capture-failed: import -window {wid} exited {r.returncode} (attempt {attempt}/{HEALTH_WINDOW_ATTEMPTS}): {r.stderr.strip()[:200]}"
         if attempt < HEALTH_WINDOW_ATTEMPTS:
             time.sleep(HEALTH_WINDOW_RETRY_S)
-    # still failing: crop the window's rectangle out of the root window (not subject to the per-window grab failure;
-    # shows whatever overlaps the game window, which is fine for an is-it-rendering check)
+    # still failing: crop the window's rectangle out of the root window, but ONLY when the window is confirmed viewable
+    # and on top (otherwise the crop shows whatever is there, e.g. the wallpaper, and would pass as "the game")
+    ready, why = _prepare_window(wid)
+    on_top = _window_on_top(wid) if ready else None
+    if not (ready and on_top):
+        reason = why if ready is not True else "viewable but not confirmed on top"
+        return None, (f"window-unavailable: window {wid} is not confirmed viewable and on top ({reason}); "
+                      f"no root-window crop was taken; last error: {err}")
     geo = _window_geometry(wid)
     if geo:
         x, y, w, h = geo
@@ -1129,10 +1144,48 @@ def health_window_shot(hc, pids: list[int], out: Path) -> tuple[str | None, str 
         except (OSError, subprocess.TimeoutExpired) as exc:
             return None, f"{err}; root crop: {exc}"
         if not r.returncode and out.is_file() and out.stat().st_size > 0:
-            print(f"health: `import -window {wid}` failed {HEALTH_WINDOW_ATTEMPTS}x; used a root-window crop instead", file=sys.stderr)
+            print(f"health: `import -window {wid}` failed {HEALTH_WINDOW_ATTEMPTS}x; used a root-window crop of the viewable, "
+                  f"top window instead", file=sys.stderr)
             return str(out), None
         err += f"; root crop exited {r.returncode}: {r.stderr.strip()[:120]}"
     return None, err
+
+
+def _window_viewable(wid: str) -> bool | None:
+    """True when `xwininfo -id` says Map State: IsViewable, False for any other state, None when it cannot tell."""
+    if not shutil.which("xwininfo"):
+        return None
+    m = re.search(r"Map State:\s*(\w+)", _capture_text(["xwininfo", "-id", wid]))
+    return (m.group(1) == "IsViewable") if m else None
+
+
+def _window_on_top(wid: str) -> bool:
+    """True when the window is the active (focused, raised) one, per `xdotool getactivewindow`."""
+    if not shutil.which("xdotool"):
+        return False
+    try:
+        return int(_capture_text(["xdotool", "getactivewindow"]).strip()) == int(wid, 16)
+    except ValueError:
+        return False
+
+
+def _prepare_window(wid: str) -> tuple[bool | None, str]:
+    """Map, raise and activate the window, then wait (bounded) until it is viewable.
+
+    Returns (viewable, why): True/False, or None when xwininfo is missing so viewability cannot be checked."""
+    if shutil.which("xdotool"):
+        for verb in ("windowmap", "windowraise", "windowactivate"):
+            _capture_text(["xdotool", verb, wid])
+    deadline = time.monotonic() + HEALTH_WINDOW_READY_S
+    while True:
+        state = _window_viewable(wid)
+        if state is not False:
+            if state:
+                time.sleep(HEALTH_WINDOW_SETTLE_S)  # let the compositor/WM repaint the raised window
+            return state, ""
+        if time.monotonic() >= deadline:
+            return False, f"Map State not IsViewable within {HEALTH_WINDOW_READY_S:g} s"
+        time.sleep(HEALTH_WINDOW_POLL_S)
 
 
 def _window_geometry(wid: str) -> tuple[int, int, int, int] | None:
@@ -1270,9 +1323,15 @@ def _judge_image(hc, path: Path, reference, entry: dict) -> dict | None:
     return entry["verdict"]
 
 
-def _finish(report: dict, hc, process, shaders, engine, window, capture_error: str | None) -> dict:
+def _finish(report: dict, hc, process, shaders, engine, window, capture_error: str | None, reference=None) -> dict:
     """Judge the parts of a run and put the verdict and the parts into the report."""
-    report.update(hc.combine_verdicts(process, shaders, engine, window, capture_error))  # status, reason, message, method
+    agreement = None
+    em = (report.get("in_engine") or {}).get("metrics") if engine is not None else None
+    wm = (report.get("window") or {}).get("metrics") if window is not None else None
+    if em and wm:
+        agreement = hc.compare_captures(em, wm, reference_rgb=reference)
+        report["agreement"] = agreement
+    report.update(hc.combine_verdicts(process, shaders, engine, window, capture_error, agreement))  # status, reason, message, method
     report.update(process=process, shaders=shaders, capture_error=capture_error)
     return report
 
@@ -1331,7 +1390,7 @@ def health_run(hc, env: dict[str, str], plan: dict) -> dict:
             window = _judge_image(hc, Path(shot), plan["reference"], entry)
         report["window"] = entry
         capture_error = capture_error or entry["error"]
-    return _finish(report, hc, process, shaders, engine, window, capture_error)
+    return _finish(report, hc, process, shaders, engine, window, capture_error, plan["reference"])
 
 
 def _shown(path: Path) -> str:
@@ -1364,6 +1423,7 @@ def health_dry_run(plan: dict, win_ok: bool, win_why: str) -> int:
     if plan["window"]:
         print("$ wmctrl -lp   (window id: the row whose PID column is the game pid)")
         print("$ xdotool search --onlyvisible --pid <game pid>   (fallback: the largest window)")
+        print("$ xdotool windowmap|windowraise|windowactivate <window id>; wait for xwininfo Map State IsViewable")
         print(f"$ import -window <window id> png:{_shown(out)}/{ENGINE}-{stamp}.window.png")
     print(f"report: {_shown(out)}/{ENGINE}-{stamp}.json (printed too; --json prints only the JSON)")
     return 0
