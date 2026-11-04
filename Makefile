@@ -15,34 +15,37 @@ test: ## run the Python test suite (venv)
 pipeline: ## asset pipeline CLI; ARGS="create-job --kind level ..."
 	@$(DEV) pipeline -- $(ARGS)
 
-# Private engine runtime (E-04/T-03, pattern from SandboxLLM): an independent copy of the SHARED engine's runtime
-# (bin, Engine, system.cfg) under .engine-private, so a run is not disturbed while the parent folder rebuilds or patches
-# Engines/ce-5.6.7. Building still uses the shared engine (headers and CMake live there); `make build` deploys the plugin to
-# the shared bin, `make deploy-private` copies it here. The shader server must run from the SHARED engine (the private copy
-# has no DXC), so run-private starts it from there and launches the game from the private copy.
-SHARED_ENGINE  ?= $(abspath $(CURDIR)/../../Engines/ce-5.6.7)
-PRIVATE_ENGINE ?= $(CURDIR)/.engine-private/ce-5.6.7
-# The plugin is taken from the shared engine's bin (where `make build ENGINE=56` deployed it), not from ./bin, which holds
-# whichever engine was built last. The private runtime is the 5.6.7 one (default engine is 5.7.1 since 2026-11-01).
-PLUGIN_SO      := $(SHARED_ENGINE)/bin/linux_x64_gcc/libGamePlugin.so
-PRIVATE_ENV    := CRYENGINE_DIR=$(PRIVATE_ENGINE) CRYENGINE_DIR_56=$(PRIVATE_ENGINE)
+# Private runtime overlay (domain runtime channel, skill plasmid-engine-runtime; replaces the 2026-10-26 copy of the engine).
+# A run uses .engine-private/ce-5.7.1: a HARD-LINK overlay of the clean runtime Engines/runtime/stable, so a run is not
+# disturbed while the dev engine (Engines/ce-5.7.1) is rebuilt. Building still uses the dev engine (headers and CMake live
+# there) and `make build ENGINE=57` deploys the plugin to the dev bin; `deploy-private` copies it into the overlay with
+# --remove-destination (a new inode, so the runtime's files are never written). Never write in place and never chmod inside
+# the overlay. The environment variable beats .env, so `make run` itself stays on the dev engine. 5.7.1 only: 5.6.7 has no runtime.
+DEV_ENGINE     ?= $(abspath $(CURDIR)/../../Engines/ce-5.7.1)
+RUNTIME        ?= $(abspath $(CURDIR)/../../Engines/runtime/stable)
+PRIVATE_ENGINE ?= $(CURDIR)/.engine-private/ce-5.7.1
+PLUGIN_SO      := $(DEV_ENGINE)/bin/linux_x64_gcc/libGamePlugin.so
+PRIVATE_ENV    := CRYENGINE_DIR_57=$(PRIVATE_ENGINE)
 
-.PHONY: private-sync deploy-private run-private private-status
-private-sync: ## (re)copy the shared engine runtime into .engine-private (real copies; keeps our plugin)
-	mkdir -p $(PRIVATE_ENGINE)
-	rsync -a --exclude=libGamePlugin.so --exclude=libSandboxLLMPlugin.so --exclude=libPlasmidMcpPlugin.so $(SHARED_ENGINE)/bin $(PRIVATE_ENGINE)/
-	rsync -a $(SHARED_ENGINE)/Engine $(PRIVATE_ENGINE)/
-	ln -sfn Engine $(PRIVATE_ENGINE)/engine
-	cp --remove-destination $(SHARED_ENGINE)/system.cfg $(SHARED_ENGINE)/cryengine.cryengine $(PRIVATE_ENGINE)/
-	@echo "private engine synced from $(SHARED_ENGINE); run 'make deploy-private' for the plugin"
-deploy-private: ## copy the built plugin into the private engine bin (after every `make build`)
-	@test -f $(PLUGIN_SO) || { echo "$(PLUGIN_SO) missing: run 'make build ENGINE=56' first"; exit 1; }
-	@test -d $(PRIVATE_ENGINE)/bin/linux_x64_gcc || { echo "no private engine: run 'make private-sync' first"; exit 1; }
+.PHONY: private-sync deploy-private run-private health-private private-status
+private-sync: ## create the hard-link overlay of the stable runtime in .engine-private (no copy; fails if it exists)
+	@test -d $(RUNTIME)/bin || { echo "no runtime at $(RUNTIME)"; exit 1; }
+	@test ! -e $(PRIVATE_ENGINE) || { echo "$(PRIVATE_ENGINE) exists: delete it by hand to re-create it (see plasmid-engine-runtime)"; exit 1; }
+	mkdir -p $(dir $(PRIVATE_ENGINE))
+	cp -al $(RUNTIME) $(PRIVATE_ENGINE)
+	ln -s $(DEV_ENGINE)/Code $(PRIVATE_ENGINE)/Code
+	rm $(PRIVATE_ENGINE)/RUNTIME.json
+deploy-private: ## copy the plugin built by `make build ENGINE=57` into the overlay (new inode, runtime untouched)
+	@test -f $(PLUGIN_SO) || { echo "$(PLUGIN_SO) missing: run 'make build ENGINE=57' first"; exit 1; }
+	@test -d $(PRIVATE_ENGINE)/bin/linux_x64_gcc || { echo "no overlay: run 'make private-sync' first"; exit 1; }
 	cp --remove-destination $(PLUGIN_SO) $(PRIVATE_ENGINE)/bin/linux_x64_gcc/
-run-private: deploy-private ## like run, but launches GameLauncher from .engine-private (shader server from the shared engine)
-	@PLASMID_DEV_PYTHON=$(PY) $(DEV_TOOLS)/plas-dev --project-dir $(PROJECT_DIR) --engine 56 up
-	@$(PRIVATE_ENV) PLASMID_DEV_PYTHON=$(PY) $(DEV_TOOLS)/plas-dev --project-dir $(PROJECT_DIR) --engine 56 run --no-services $(OPTS) -- $(ARGS)
-private-status: ## compare the shared and private engine libraries and plugin
-	@for f in GameLauncher libCrySystem.so libCryRenderVulkan.so libCry3DEngine.so libGamePlugin.so; do \
-	  s=$(SHARED_ENGINE)/bin/linux_x64_gcc/$$f; p=$(PRIVATE_ENGINE)/bin/linux_x64_gcc/$$f; \
-	  printf '%-24s shared %s  private %s\n' $$f "$$(sha256sum $$s 2>/dev/null | cut -c1-12)" "$$(sha256sum $$p 2>/dev/null | cut -c1-12)"; done
+run-private: deploy-private ## like `make run ENGINE=57`, from the overlay of the stable runtime
+	@$(PRIVATE_ENV) $(MAKE) --no-print-directory run ENGINE=57 OPTS="$(OPTS)" ARGS="$(ARGS)"
+health-private: deploy-private ## like `make health ENGINE=57`, from the overlay
+	@$(PRIVATE_ENV) $(MAKE) --no-print-directory health ENGINE=57 OPTS="$(OPTS)" ARGS="$(ARGS)"
+private-status: ## is the overlay still hard-linked to the stable runtime? is the plugin the one just built?
+	@for f in GameLauncher libCrySystem.so libCryRenderVulkan.so libCry3DEngine.so; do \
+	  r=$(RUNTIME)/bin/linux_x64_gcc/$$f; o=$(PRIVATE_ENGINE)/bin/linux_x64_gcc/$$f; \
+	  printf '%-24s %s\n' $$f "$$([ "$$(stat -c %i $$r 2>/dev/null)" = "$$(stat -c %i $$o 2>/dev/null)" ] && echo 'linked to stable' || echo 'DIFFERS from stable')"; done
+	@printf '%-24s %s\n' libGamePlugin.so "$$([ "$$(sha256sum < $(PLUGIN_SO) 2>/dev/null)" = "$$(sha256sum < $(PRIVATE_ENGINE)/bin/linux_x64_gcc/libGamePlugin.so 2>/dev/null)" ] && echo 'same as the dev bin (deployed)' || echo 'DIFFERS from the dev bin: run make deploy-private')"
+	@echo "runtime: $$(readlink $(RUNTIME) 2>/dev/null || echo $(RUNTIME))"

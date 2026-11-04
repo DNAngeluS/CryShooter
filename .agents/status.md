@@ -1,5 +1,13 @@
 <!-- when: you need to know what is happening in this project right now -->
-# Status — updated 2026-10-18
+# Status — updated 2026-11-04
+
+## Current state (2026-11-04, supersedes the dated sections below where they differ)
+- **Engine:** default is CRYENGINE 5.7.1 (`plasmid.config.json` `default_engine` "57"; `ENGINE=56` = 5.6.7, maintenance only). Runs can use the clean runtime `Engines/runtime/stable` (`571-60e786a`) through the hard-link overlay `.engine-private/ce-5.7.1`: `make private-sync` (once), `make build ENGINE=57`, `make health-private` / `make run-private`, `make private-status`. The plugin is deployed with `cp --remove-destination`, never written in place. `make run`/`health` without `-private` still use the dev engine `Engines/ce-5.7.1`.
+- **Vendored tools** (tagged copies, `.vendored-from` marker, never edited; skill `plasmid-vendor-tool` in the domain): `tools/plasmid-dev` 2.2.1, `tools/plasmid-assets` 0.16.0, `tools/plasmid-debug` 0.1.0.
+- **Gate 2026-11-04:** `make test` 72 passed, `make doctor` ok, `make build ENGINE=57`, `make health-private` PASS (single 46.87 GB Vulkan heap = Intel; shaders settled, 0 misses; game launched from the overlay). Earlier: NVIDIA PASS 2026-11-01.
+- **E-04 (debug kit):** T-01..T-03, T-14(v0.1.0) done; next T-04 ([epic](workstreams/epics/E-04.md)).
+- Superseded below: "CRY_*" / `tools/cryengine-dev` / `dev.py` names (now `plasmid-dev`, `plas-dev`, `PLASMID_DEV_*`), the 5.6 default, and the "Open investigation" E-03 entry: the in-engine screenshot now works in every `make health` (`fps_autoshot`), but the manual `K` then `P` path was not rechecked and E-03.md still says "ready".
+
 
 **Phase:** active development, pre-release `[assumed]`
 **Live:** nothing deployed; local `GameLauncher` smoke runs only `[assumed]`
