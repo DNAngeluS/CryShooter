@@ -3,6 +3,27 @@
 Semver. Every change to this tooling gets a version here, a `VERSION` bump and a git tag `vX.Y.Z`; projects vendor a tagged
 copy (see "Releasing" in README.md). Newest first.
 
+## 2.2.1 - 2026-11-04 - vendored copies include `rconsole.py`
+
+2.2.0 added `plasmid_dev/rconsole.py` but `vendor.py` did not list it, so a vendored 2.2.0 copy failed on `health.startup_map`.
+- `RUNTIME_FILES` now lists it; `tests/test_vendor.py::test_every_runtime_module_is_vendored` fails when a module in
+  `plasmid_dev/` is missing from the list. Use 2.2.1, not 2.2.0.
+
+## 2.2.0 - 2026-11-04 - `health.startup_map`: `run` and `health` can load a level
+
+A project whose bare launch loads no level (SandboxLLM loads levels over the Remote Console) could never pass `make health`:
+the real window is a flat frame, which 2.1.0 correctly refuses.
+- Config key `health.startup_map` (level folder name; letters, digits, `_ . -`). After launching, `run` and `health` send
+  `map <level> s` over the engine Remote Console (`plasmid_dev/rconsole.py`, port read from the engine log line
+  `Remote console listening on: N`) and wait for `*LOADING: Level <level> loading time`. A `+map` launch argument is ignored by
+  the engine here, so it is not used. `health` counts its capture delay from the loaded level; every existing check
+  (mostly-black, capture-mismatch, shader settle) is unchanged.
+- Failures are exit 5 for `run` / `launch-failed` for `health`, reason `startup-map-failed: ...` (no Remote Console line, send
+  failed, game exited, level never finished loading). Needs an engine built with the Remote Console option.
+- Without the key nothing changes.
+- Tests: `tests/test_startup_map.py` (config validation; the client against a fake engine). Real gate: SandboxLLM
+  `make health ENGINE=57` with `startup_map` = `light_room` passes; a name that is not a level fails.
+
 ## 2.1.0 - 2026-11-03 - `make health` no longer passes a window capture that is not the game
 
 Root cause (found after the safety net below caught it on Intel, about 1 run in 2): the game window was not mapped, viewable

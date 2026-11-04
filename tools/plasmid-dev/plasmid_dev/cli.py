@@ -246,8 +246,11 @@ def check_health_config(path: Path, h) -> None:
     """Validate the optional `health` section (see config-schema.md). Usage errors (exit 2)."""
     if not isinstance(h, dict):
         die(f"{path}: health must be an object", 2)
-    for key in sorted(set(h) - {"default_delay_s", "capture"}):
-        die(f"{path}: unknown key {key!r} in health; allowed keys: capture, default_delay_s", 2)
+    for key in sorted(set(h) - {"default_delay_s", "capture", "startup_map"}):
+        die(f"{path}: unknown key {key!r} in health; allowed keys: capture, default_delay_s, startup_map", 2)
+    smap = h.get("startup_map")
+    if smap is not None and not (isinstance(smap, str) and re.fullmatch(r"[A-Za-z0-9_.-]+", smap)):
+        die(f"{path}: health.startup_map must be a level name (letters, digits, _ . -)", 2)
     delay = h.get("default_delay_s")
     if delay is not None and not (isinstance(delay, int) and not isinstance(delay, bool) and delay > 0):
         die(f"{path}: health.default_delay_s must be an integer > 0", 2)
@@ -755,6 +758,43 @@ def cmd_shaders_status(args, env) -> int:
     return 0
 
 
+STARTUP_MAP_RC_WAIT_S = 90  # bound on waiting for the engine's Remote Console to listen
+STARTUP_MAP_LOAD_WAIT_S = 180  # bound on waiting for the level to finish loading
+_RC_LISTEN = re.compile(r"Remote console listening on:\s*(\d+)")
+
+
+def load_startup_map(level: str, offset: int) -> str | None:
+    """Load `level` in the game this run just launched: `map <level> s` over the engine Remote Console (a `+map` launch
+    argument is ignored by the engine here). Returns None once the level reports loaded, else a reason string."""
+    from plasmid_dev import rconsole
+    deadline = time.time() + STARTUP_MAP_RC_WAIT_S
+    port = None
+    while port is None:
+        m = _RC_LISTEN.findall(health_log_slice(offset))
+        if m:
+            port = int(m[-1])
+        elif running_pid("game", GAME_MATCH) is None:
+            return "the game exited before its Remote Console was up"
+        elif time.time() > deadline:
+            return (f"no 'Remote console listening' line in the engine log after {STARTUP_MAP_RC_WAIT_S} s "
+                    "(engine built without the Remote Console option?)")
+        else:
+            time.sleep(HEALTH_POLL_S)
+    try:
+        rconsole.send_commands([f"map {level} s"], port=port, timeout_s=60)
+    except (OSError, TimeoutError, ValueError) as exc:
+        return f"could not send 'map {level} s' over the Remote Console (port {port}): {exc}"
+    marker = f"*LOADING: Level {level} loading time"
+    deadline = time.time() + STARTUP_MAP_LOAD_WAIT_S
+    while marker not in health_log_slice(offset):
+        if running_pid("game", GAME_MATCH) is None:
+            return f"the game exited while loading level {level}"
+        if time.time() > deadline:
+            return f"level {level} did not finish loading within {STARTUP_MAP_LOAD_WAIT_S} s"
+        time.sleep(HEALTH_POLL_S)
+    return None
+
+
 def cmd_run(args, env) -> int:
     extra = strip_sep(args.extra)
     check_display()
@@ -775,6 +815,7 @@ def cmd_run(args, env) -> int:
     if args.foreground:
         return run(cmd, cwd=cwd, env=env)
     log = LOGS / "game.out.log"
+    offset = _log_size(LOG_FILES["game"])
     pid = spawn("game", cmd, cwd, env, log)
     if DRY:
         return 0
@@ -782,6 +823,12 @@ def cmd_run(args, env) -> int:
     if not running_pid("game", GAME_MATCH):
         print("\n".join(tail(log, 30)))
         die("game exited during startup (see output above; engine log: game.log)", 5)
+    startup_map = CONFIG.get("health", {}).get("startup_map")
+    if startup_map:
+        why = load_startup_map(startup_map, offset)
+        if why:
+            die(f"startup-map-failed: {why}", 5)
+        print(f"game: level {startup_map} loaded")
     print(f"game: running (pid {pid}); stdout {DEV_REL}/logs/game.out.log, engine log game.log; stop with `make stop`")
     return 0
 
@@ -1348,6 +1395,8 @@ def health_run(hc, env: dict[str, str], plan: dict) -> dict:
         rc = health_launch(env, plan["launch_args"])
         if rc:
             return _finish(report, hc, None, None, None, None, f"launch-failed: cmd_run exited {rc}; see the output above")
+        if CONFIG.get("health", {}).get("startup_map"):
+            t0 = time.time()  # the capture delay counts from the loaded level, not from the launch
 
     marker, gone, timed_out = health_wait(hc, in_engine=in_engine, launched=launched, offset=plan["offset"],
                                           delay=delay, timeout=timeout, markers=plan["markers"], t0=t0)
