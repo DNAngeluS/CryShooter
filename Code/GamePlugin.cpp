@@ -89,7 +89,7 @@ static void ApplyLaunchCVar(const char* name)
 	if (const ICmdLineArg* pArg = gEnv->pSystem->GetICmdLine()->FindArg(eCLAT_Post, name))
 	{
 		if (ICVar* pCVar = gEnv->pConsole->GetCVar(name))
-			pCVar->Set(pArg->GetValue());
+			pCVar->SetFromString(pArg->GetValue());
 	}
 }
 
